@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Tokkip Notas' window. Files and copies go through the app's own commands.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

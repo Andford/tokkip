@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="watch_face_name">Tokkip</string>
+    <string name="theme_label">Color</string>
+    <string name="tokkip_label">Tokkip</string>
+    <string name="lavanda">Lavanda</string>
+    <string name="rosa">Rosa</string>
+    <string name="menta">Menta</string>
+    <string name="cielo">Cielo</string>
+    <string name="durazno">Durazno</string>
+    <string name="blanco">Blanco</string>
+    <string name="crema">Crema</string>
+    <string name="lila">Lila</string>
+    <string name="left_label">Izquierda</string>
+    <string name="right_label">Derecha</string>
+    <string name="bottom_label">Abajo</string>
+    <string name="limon">Limón</string>
+    <string name="coral">Coral</string>
+    <string name="timefont_label">Letra de la hora</string>
+    <string name="datefont_label">Letra de la fecha</string>
+    <string name="font_system">Sistema</string>
+    <string name="font_round">Redonda</string>
+    <string name="font_serif">Elegante</string>
+    <string name="font_mono">Retro</string>
+    <string name="font_hand">A mano</string>
+    <string name="shape_label">Forma de los botones</string>
+    <string name="shape_mix">Mezcla</string>
+    <string name="shape_cookie">Galleta</string>
+    <string name="shape_clover">Trébol</string>
+    <string name="shape_flower">Flor</string>
+    <string name="shape_sun">Sol</string>
+    <string name="shape_circle">Círculo</string>
+    <string name="steps_label">Anillo de pasos</string>
+</resources>

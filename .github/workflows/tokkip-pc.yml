@@ -1,0 +1,81 @@
+name: Tokkip PC
+
+# Builds Tokkip for Windows (the windows/ folder) on every push to the android
+# branch that touches it, and keeps the installer and the portable .exe as
+# artifacts for a few days. Nothing is published.
+
+on:
+  push:
+    branches: [android]
+    paths:
+      - 'windows/**'
+      - 'android/shared/src/main/res/raw/**'
+      - '.github/workflows/tokkip-pc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            windows/target
+          key: tokkip-pc-cargo-${{ hashFiles('windows/Cargo.lock') }}
+          restore-keys: |
+            tokkip-pc-cargo-
+            windows-cargo-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Island tests
+        run: npm test
+
+      - name: Rust tests
+        run: cargo test -p tokkip --locked
+
+      - name: Build and pack the installer
+        id: pack
+        shell: pwsh
+        run: |
+          npm run pack
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Copy-Item target/release/tokkip.exe release/Tokkip.exe
+          Get-ChildItem release | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tokkip-Windows-setup
+          path: windows/release/Tokkip-Windows-${{ steps.pack.outputs.version }}-setup.exe
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Tokkip-Windows-portable
+          path: windows/release/Tokkip.exe
+          retention-days: 5

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Tokkip Notas",
+  "version": "0.3.1",
+  "identifier": "mx.loperstack.tokkipnotas",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1430",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1430 http://localhost:1430"
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tokkip Notas",
+        "url": "index.html",
+        "width": 1240,
+        "height": 820,
+        "minWidth": 720,
+        "minHeight": 520,
+        "center": true,
+        "dragDropEnabled": false,
+        "backgroundColor": "#0B0C0E"
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico", "icons/icon.png"],
+    "copyright": "Tokkip © Andy (LoperStack)",
+    "category": "Productivity",
+    "shortDescription": "Tus notas, tableros y tablas con Tokkip",
+    "longDescription": "Tokkip Notas: páginas dentro de páginas, tableros, tablas y plantillas, con el diseño de Tokkip. Todo se queda en tu PC.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Spanish", "English"]
+      }
+    }
+  }
+}

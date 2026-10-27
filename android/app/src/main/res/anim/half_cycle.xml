@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- sin(πt): out and back to rest — every step of Tokkip's widget motion starts and ends still. -->
+<cycleInterpolator xmlns:android="http://schemas.android.com/apk/res/android" android:cycles="0.5" />

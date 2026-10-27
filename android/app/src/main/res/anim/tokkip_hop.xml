@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A happy hop: crouch, jump, land, a little rebound, settle. Smooth tweens run by the launcher. -->
+<set xmlns:android="http://schemas.android.com/apk/res/android" android:shareInterpolator="false">
+    <scale android:startOffset="0" android:duration="170" android:fromXScale="1" android:toXScale="1.12" android:fromYScale="1" android:toYScale="0.86"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+    <scale android:startOffset="130" android:duration="520" android:fromXScale="1" android:toXScale="0.92" android:fromYScale="1" android:toYScale="1.1"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+    <translate android:startOffset="130" android:duration="520" android:fromYDelta="0%" android:toYDelta="-16%" android:interpolator="@anim/half_cycle" />
+    <scale android:startOffset="630" android:duration="200" android:fromXScale="1" android:toXScale="1.15" android:fromYScale="1" android:toYScale="0.84"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+    <scale android:startOffset="810" android:duration="280" android:fromXScale="1" android:toXScale="0.97" android:fromYScale="1" android:toYScale="1.04"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+    <translate android:startOffset="810" android:duration="280" android:fromYDelta="0%" android:toYDelta="-5%" android:interpolator="@anim/half_cycle" />
+    <scale android:startOffset="1070" android:duration="260" android:fromXScale="1" android:toXScale="1.05" android:fromYScale="1" android:toYScale="0.96"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+</set>

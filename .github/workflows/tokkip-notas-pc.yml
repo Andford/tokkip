@@ -1,0 +1,85 @@
+name: Tokkip Notas PC
+
+# Builds Tokkip Notas for Windows (the notas-pc/ folder) on every push to the
+# android branch that touches it, and keeps the installer and the portable
+# .exe as artifacts for a few days. Nothing is published.
+
+on:
+  push:
+    branches: [android]
+    paths:
+      - 'notas-pc/**'
+      - '.github/workflows/tokkip-notas-pc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: notas-pc
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: notas-pc/package-lock.json
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            notas-pc/src-tauri/target
+          key: tokkip-notas-pc-cargo-${{ hashFiles('notas-pc/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            tokkip-notas-pc-cargo-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
+      - name: Build the window (Rust needs it to compile)
+        run: npm run build
+
+      - name: Rust tests
+        working-directory: notas-pc/src-tauri
+        run: cargo test --locked
+
+      - name: Build the installer
+        id: pack
+        shell: pwsh
+        run: |
+          npx tauri build
+          $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item "src-tauri/target/release/bundle/nsis/*-setup.exe" "release/TokkipNotas-Windows-$version-setup.exe"
+          Copy-Item src-tauri/target/release/tokkip-notas.exe release/TokkipNotas.exe
+          Get-ChildItem release | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TokkipNotas-Windows-setup
+          path: notas-pc/release/TokkipNotas-Windows-${{ steps.pack.outputs.version }}-setup.exe
+          retention-days: 5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TokkipNotas-Windows-portable
+          path: notas-pc/release/TokkipNotas.exe
+          retention-days: 5

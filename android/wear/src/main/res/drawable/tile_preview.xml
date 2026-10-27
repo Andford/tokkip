@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the tile picker shows: Tokkip on a dark disc. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp" android:height="192dp"
+    android:viewportWidth="192" android:viewportHeight="192">
+    <path android:fillColor="#FF000000" android:pathData="M96,0a96,96 0,1 1,-0.01 0z" />
+    <path android:fillColor="#FFC4B5FD"
+        android:pathData="M96,52C120,52 134,61 134,84C134,104 120,113 96,113C72,113 58,104 58,84C58,61 72,52 96,52Z" />
+    <path android:fillColor="#FF17151F" android:pathData="M84,80m-4,0a4,5.5 0,1 1,8 0a4,5.5 0,1 1,-8 0" />
+    <path android:fillColor="#FF17151F" android:pathData="M108,80m-4,0a4,5.5 0,1 1,8 0a4,5.5 0,1 1,-8 0" />
+    <path android:fillColor="#FF4ADE80" android:pathData="M66,132h60a10,10 0,0 1,0 20h-60a10,10 0,0 1,0 -20z" />
+</vector>
