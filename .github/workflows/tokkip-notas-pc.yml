@@ -1,12 +1,12 @@
 name: Tokkip Notas PC
 
 # Builds Tokkip Notas for Windows (the notas-pc/ folder) on every push to the
-# android branch that touches it, and keeps the installer and the portable
+# main branch that touches it, and keeps the installer and the portable
 # .exe as artifacts for a few days. Nothing is published.
 
 on:
   push:
-    branches: [android]
+    branches: [main]
     paths:
       - 'notas-pc/**'
       - '.github/workflows/tokkip-notas-pc.yml'

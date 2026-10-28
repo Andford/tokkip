@@ -37,7 +37,7 @@ npm run pack           # instalador en release/
 ```
 
 El CI (`.github/workflows/tokkip-pc.yml`) compila el instalador en cada push a
-la rama `android` y lo deja como artefacto unos días.
+la rama `main` y lo deja como artefacto unos días.
 
 ## Créditos
 

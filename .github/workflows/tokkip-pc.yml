@@ -1,12 +1,12 @@
 name: Tokkip PC
 
-# Builds Tokkip for Windows (the windows/ folder) on every push to the android
+# Builds Tokkip for Windows (the windows/ folder) on every push to the main
 # branch that touches it, and keeps the installer and the portable .exe as
 # artifacts for a few days. Nothing is published.
 
 on:
   push:
-    branches: [android]
+    branches: [main]
     paths:
       - 'windows/**'
       - 'android/shared/src/main/res/raw/**'
