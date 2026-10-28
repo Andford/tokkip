@@ -1,7 +1,7 @@
-// Live diff — port of DiffEngine.swift (the Mac app).
+// Live diff: what an agent's edit changed in a file.
 //
 // Line diff (LCS) with 3-line context hunks, used for the Edit / MultiEdit /
-// Write tool calls the hooks see. Same size guards as macOS: beyond 200 KB or
+// Write tool calls the hooks see. Size guards: beyond 200 KB or
 // 4 000 lines, or when the LCS table would pass a million cells, only the
 // +N −M counts are kept and the diff is marked `tooLarge`.
 //
@@ -37,7 +37,7 @@ export interface FileDiff {
   isNewFile: boolean;
 }
 
-/** FileDiff.maxBytes / maxLines on macOS. */
+/** Beyond these a diff only counts its lines. */
 export const DIFF_MAX_BYTES = 200 * 1024;
 export const DIFF_MAX_LINES = 4000;
 /** LCS is O(m·n): bail out before the quadratic blowup. */
@@ -104,7 +104,7 @@ export function fromNew(content: string, path: string): FileDiff {
 }
 
 /**
- * HookServer.buildFileDiff — the diff of one Edit, MultiEdit or Write tool call,
+ * buildFileDiff — the diff of one Edit, MultiEdit or Write tool call,
  * or null when the call changes nothing (or is not a file edit at all).
  */
 export function buildFileDiff(tool: string, input: Record<string, unknown>): FileDiff | null {
@@ -287,7 +287,7 @@ export function toOneLine(text: string, maxChars = 200): string {
 
 // ── Diff steps ────────────────────────────────────────────────────────────────
 // A diff shows up in the ticker as a step string the user never sees raw:
-// `"<filename>\t<added>:<removed>:<diffId>"` — same format as macOS.
+// `"<filename>\t<added>:<removed>:<diffId>"`.
 
 export const DIFF_STEP_MARKER = "";
 

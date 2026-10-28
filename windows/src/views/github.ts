@@ -1,7 +1,6 @@
-// The GitHub card once the pulse is in — DOM ports of GitHubPulseCardView,
-// GitHubDetailView, GitHubPRRowView, GitHubRepoCIRowView and
-// GitHubActivityDetailContent (IslandViewContent.swift). Sizes, colours and
-// wording follow the Swift views; the logic lives in core/github.ts.
+// The GitHub card once the pulse is in: the pulse, the detail lists (my pull
+// requests, reviews, CI by repo) and the contribution grid. The logic lives in
+// core/github.ts.
 //
 // Without a pulse (no token scope for it yet, or the first poll still to come)
 // the card stays the stars + repositories overview in integrations.ts.
@@ -138,7 +137,7 @@ function repoRow(repo: GitHubRepoCI): HTMLElement {
   );
 }
 
-// ── Keyboard: Ctrl+↓ Ctrl+↑ Ctrl+O (the Mac's cardSelection) ──────────────────
+// ── Keyboard: Ctrl+↓ Ctrl+↑ Ctrl+O (the selected row) ─────────────────────────
 
 /** The rows of the GitHub list shown in `root`, top to bottom; none without one. */
 export function listRows(root: HTMLElement): HTMLElement[] {

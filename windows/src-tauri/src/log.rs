@@ -1,6 +1,5 @@
 // Small append-only log at %LOCALAPPDATA%\Tokkip\tokkip.log (Windows) or
-// ~/.local/share/tokkip/tokkip.log (Linux) — the equivalent of nbLog() in
-// HookServer.swift. Nothing leaves the machine.
+// ~/.local/share/tokkip/tokkip.log (Linux). Nothing leaves the machine.
 
 use std::io::Write;
 
@@ -23,7 +22,7 @@ pub fn line(message: impl AsRef<str>) {
     }
     let mut options = std::fs::OpenOptions::new();
     options.create(true).append(true);
-    // Readable by us only, like the macOS log.
+    // Readable by us only.
     #[cfg(unix)]
     std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
     if let Ok(mut file) = options.open(path) {

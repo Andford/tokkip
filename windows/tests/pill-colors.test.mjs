@@ -1,6 +1,6 @@
 // A colour of the user's own for each pill's Tokkip (src/core/pill-colors.ts),
-// and how the app state paints with it. Mirrors tests/PillColorsTests.swift so
-// every platform reads the same preference the same way.
+// and how the app state paints with it, so every window reads the same
+// preference the same way.
 
 import { beforeEach, test } from "node:test";
 import assert from "node:assert/strict";

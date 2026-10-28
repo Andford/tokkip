@@ -1,9 +1,9 @@
 // Integration pollers. Tokkip keeps only GitHub (the Rust side of GithubPoller);
 // Spotify and Bienestar live in spotify.rs and google.rs.
 //
-// Same endpoints, same first-run delays and intervals as the Swift pollers. Each
-// one emits an `integration` event; the island owns the badge, the sound and the
-// 60 s auto-clear, exactly as the Swift handlers do.
+// Each poller waits a little after launch, then runs on its own interval and
+// emits an `integration` event; the island owns the badge, the sound and the
+// 60 s auto-clear.
 //
 // Nothing is polled until its key exists in the Credential Manager, and no
 // request goes anywhere the user has not configured.
@@ -62,7 +62,7 @@ pub fn set_paused(on: bool) {
     PAUSED.store(on, Ordering::Relaxed);
 }
 
-/// Spawns every poller with the macOS delays and intervals.
+/// Spawns every poller with its first delay and its interval (seconds).
 pub fn start(app: AppHandle) {
     spawn(app.clone(), "integration_github", 7, 300, poll_github);
     spawn_github_loops(app);
@@ -179,9 +179,9 @@ async fn poll_github(app: AppHandle) {
     emit_github(&app);
 }
 
-// ── GitHub pulse and activity (GithubPoller.swift) ────────────────────────────
+// ── GitHub pulse and activity ─────────────────────────────────────────────────
 //
-// Two more loops next to the stats above, with the Mac cadence: the pulse (my
+// Two more loops next to the stats above: the pulse (my
 // pull requests and their CI, reviews waiting for me, default-branch CI) 10 s
 // after launch, then every 60 s while some CI is running and every 5 min
 // otherwise; the contribution calendar 15 s after launch, then every 30 min.
@@ -353,7 +353,7 @@ fn wake_github_pulse() {
     }
 }
 
-/// The card was opened: fetch now if what it shows is older than the Mac's
+/// The card was opened: fetch now if what it shows is older than its
 /// limits (1 min for the pulse, 5 min for the activity grid). No-op while a
 /// request is already in flight.
 pub fn github_refresh_if_stale(section: &str) {

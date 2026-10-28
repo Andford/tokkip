@@ -1,4 +1,4 @@
-// Global keyboard shortcuts — port of HotKeyCenter.swift + ShortcutLogic.swift.
+// Global keyboard shortcuts.
 //
 // The shortcuts are registered from Rust through tauri-plugin-global-shortcut
 // (RegisterHotKey on Windows, XGrabKey on X11). Wayland has no key grabs: there
@@ -9,7 +9,7 @@
 // same way it handles the tray menu. The wardrobe is the exception: it goes out
 // as its own `open-wardrobe` event, which the wardrobe view listens to.
 //
-// Default keys. The Mac uses ⌃⌥ + a letter. On Windows Ctrl+Alt *is* AltGr on
+// Default keys. On Windows Ctrl+Alt *is* AltGr on
 // most European layouts, so a global Ctrl+Alt+E would swallow every € typed on
 // a French or German keyboard. The defaults below were checked against the
 // AltGr layer of the French (AZERTY), German (QWERTZ), Spanish, Italian,
@@ -19,8 +19,8 @@
 //   Ctrl+Alt+Space   open the chat           Ctrl+Alt+→ / ←  next / previous pill
 //   Ctrl+Alt+A       waiting permission      Ctrl+Alt+S      mute Tokkip
 //   Ctrl+Alt+T       open the terminal       Ctrl+Alt+G      wardrobe
-//   Ctrl+Alt+D       Tokkip to the desktop, or home again (the Mac's ⌃⌥D)
-//   Ctrl+Alt+N       open / close the island (off by default, as on the Mac)
+//   Ctrl+Alt+D       Tokkip to the desktop, or home again
+//   Ctrl+Alt+N       open / close the island (off by default)
 //
 // ⌃⌥[ and ⌃⌥] became the arrows (brackets are AltGr characters almost
 // everywhere) and ⌃⌥M became S (AltGr+M is µ in German). Layouts outside that
@@ -40,15 +40,14 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcut, Modifiers, Shortcut, Sh
 
 use crate::island::WINDOW_LABEL;
 
-/// One global action, as on the Mac (`ShortcutAction`). The ids are the Mac's
-/// raw values and are stored in settings.json: never rename one.
+/// One global action. The ids are stored in settings.json: never rename one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ActionDef {
     pub id: &'static str,
     pub default_keys: &'static str,
     pub enabled_by_default: bool,
-    /// False for the Mac actions this version cannot do yet. Their ids and
-    /// defaults stay reserved so a later port lands on the same keys.
+    /// False for the actions this version cannot do yet. Their ids and
+    /// defaults stay reserved so they land on the same keys later.
     pub ported: bool,
 }
 

@@ -27,7 +27,7 @@ import { DEFAULT_LOOK, SPECIES, loadLook, saveLook, type Skin, type TokkipLook }
 import { colorDot } from "./colors";
 import { statusDot } from "./parts";
 import {
-  LANGUAGES, N_, isRtl, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t, tn,
+  LANGUAGES, N_, onLanguageChange, resolveLanguage, setLanguage, systemLanguages, t, tn,
 } from "../i18n/i18n";
 
 /** Where secrets.rs keeps the keys on this OS. */
@@ -148,7 +148,7 @@ function apiSection(hasKey: boolean): HTMLElement {
 // ── Active pills section ──────────────────────────────────────────────────────
 
 /**
- * The tools you use (Mac 0.1.1–0.1.2): pick the main workspace tool, which is
+ * The tools you use: pick the main workspace tool, which is
  * always on and takes no slot, and declare the agents and chat providers you
  * want as pills. Services are declared in Integrations below, next to their keys.
  */
@@ -165,7 +165,7 @@ function activePillsSection(connected: Record<string, boolean>): HTMLElement {
   });
   const groups = h("div", { style: "display:flex;flex-direction:column;gap:12px" });
 
-  /** Why a pill would show nothing yet, as on the Mac's row. */
+  /** Why a pill would show nothing yet's row. */
   function hint(def: PillDefinition): string | null {
     if (isComingSoon(def.id)) return t("Coming soon");
     if (def.connect.kind === "hooks" && !connected[def.id]) return t("Hooks not installed");
@@ -622,7 +622,7 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
       });
     }
     if (def.id === "integration_spotify") {
-      // As on the Mac's row: said only when there is no Spotify to launch.
+      // Said only when there is no Spotify to launch.
       const hint = h("div", { class: "hint", style: "padding-top:5px" });
       rows.append(hint);
       void Bridge.spotifyInstalled().then((ok) => {
@@ -793,9 +793,9 @@ function generalSection(): HTMLElement {
 }
 
 /**
- * Settings → General → Language, as on the Mac: "System" follows the
- * system's language when Tokkip has it (else English), or one of the ten.
- * Both windows and the tray switch in place, without a restart.
+ * Settings → General → Language: "System" follows Windows (Spanish or English,
+ * else English), or Español / English. Both windows and the tray switch in
+ * place, without a restart.
  */
 function languageRow(): HTMLElement {
   const select = h("select", {}) as HTMLSelectElement;
@@ -1147,8 +1147,7 @@ function applyLanguage() {
   setLanguage(resolveLanguage(settings.language, systemLanguages()));
 }
 
-function applyDirection() {
-  document.documentElement.dir = isRtl() ? "rtl" : "ltr";
+function applyTitle() {
   document.title = t("Settings — Tokkip");
 }
 
@@ -1184,9 +1183,9 @@ async function main() {
     version = boot.version;
   }
   setLanguage(resolveLanguage(settings.language, systemLanguages()));
-  applyDirection();
+  applyTitle();
   onLanguageChange(() => {
-    applyDirection();
+    applyTitle();
     void rerender();
   });
   await render();

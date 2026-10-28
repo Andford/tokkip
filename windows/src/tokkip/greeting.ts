@@ -107,7 +107,7 @@ function openPose(t: number): Pose {
   // Size: grows in as he drops, so he never sticks out of the opening island.
   const size = t < T.drop0 ? 0 : lerp(SIZE * 0.3, SIZE, outBack(seg(t, T.drop0, T.land)));
 
-  // Falls from the notch, lands, bounces once, settles; a hop later.
+  // Falls from the top of the screen, lands, bounces once, settles; a hop later.
   let y: number;
   if (t < T.drop0) y = COMPACT.y;
   else if (t < T.land) y = lerp(COMPACT.y, REST.y, easeIn(seg(t, T.drop0, T.land)));

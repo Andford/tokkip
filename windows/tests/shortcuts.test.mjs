@@ -1,5 +1,5 @@
-// Keyboard shortcuts: the pure logic (src/core/shortcuts.ts, mirroring the
-// Mac's tests/ShortcutTests.swift) and what the island does with them
+// Keyboard shortcuts: the pure logic (src/core/shortcuts.ts) and what the
+// island does with them
 // (src/island/shortcuts.ts), driven through the real bridge.
 
 import { beforeEach, test } from "node:test";
@@ -14,17 +14,17 @@ import {
 import { registerShortcutHandlers, runGlobalShortcut, runIslandKey } from "../src/island/shortcuts.ts";
 import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
 
-const MAC_IDS = [
+const STORED_IDS = [
   "toggleIsland", "openChat", "goToAlert", "jumpToTerminal", "attachFrontWindow",
   "nextPill", "prevPill", "muteToggle", "desktopToggle", "wardrobeToggle",
-  // Tokkip's own, after the Mac's.
+  // Added later, after the first ones.
   "clipboardToggle",
 ];
 
 // ── Defaults (testDefaultsExhaustive, testAllDefaultsHaveModifier, testNoDefaultDuplicates) ──
 
-test("every Mac action has a default, in the Mac's order, with its Mac id", () => {
-  assert.deepEqual(SHORTCUTS.map((d) => d.id), MAC_IDS);
+test("every action has a default, in Settings' order, with its stored id", () => {
+  assert.deepEqual(SHORTCUTS.map((d) => d.id), STORED_IDS);
   for (const d of SHORTCUTS) assert.ok(SHORTCUT_TEXT[d.id], `${d.id} has no label`);
 });
 
@@ -48,7 +48,7 @@ test("no default types a character with AltGr on the checked European layouts", 
   for (const d of SHORTCUTS) {
     assert.deepEqual(altGrClashes(d.defaultKeys), [], `${d.id} = ${d.defaultKeys}`);
   }
-  // The Mac's own letters would not have been safe.
+  // Letters such as M or E would not have been safe.
   assert.deepEqual(altGrClashes("Ctrl+Alt+M"), ["German (QWERTZ)"]);
   assert.ok(altGrClashes("Ctrl+Alt+E").length >= 5);
   assert.ok(altGrClashes("Ctrl+Alt+0").includes("French (AZERTY)"));
@@ -84,7 +84,7 @@ test("every shortcut is on by default (the island toggle too); the agents' ones 
   assert.deepEqual(activeKeys({}).map(([id]) => id), [
     "toggleIsland", "openChat", "nextPill", "prevPill", "muteToggle", "desktopToggle", "wardrobeToggle", "clipboardToggle",
   ]);
-  // The Mac's ⌃⌥D, on the same letter.
+  // Tokkip to the desktop: Ctrl+Alt+D.
   assert.equal(SHORTCUTS.find((d) => d.id === "desktopToggle").defaultKeys, "Ctrl+Alt+D");
 });
 
@@ -264,7 +264,7 @@ test("Ctrl+↓ ↑ walk a card's list, Ctrl+O opens, Ctrl+E is the overview's di
   assert.equal(islandKeyAction(ctrl("e", "KeyE"), { view: "prompt", inTextField: true }), null);
   // In the chat field Ctrl+↑ ↓ keep moving by paragraph.
   assert.equal(islandKeyAction(ctrl("ArrowDown", "ArrowDown"), { view: "prompt", inTextField: true }), null);
-  // Settings lists them in the Mac's order (ShortcutLogic.islandShortcuts).
+  // Settings lists them in this order (ISLAND_SHORTCUTS).
   assert.deepEqual(ISLAND_SHORTCUTS.map((s) => s.keys).slice(0, 5), [
     "Ctrl+→ / Ctrl+←", "Ctrl+1 – Ctrl+9", "Ctrl+↓ / Ctrl+↑", "Ctrl+O", "Ctrl+E",
   ]);
@@ -469,7 +469,7 @@ test("island keys: the highlight walks the list on screen, Ctrl+O opens it, Ctrl
   runIslandKey(host, { kind: "openSelection" });
   assert.deepEqual(did, []);
 
-  // A GitHub list of three: from the top, clamped at the bottom (ShortcutLogic.navigate).
+  // A GitHub list of three: from the top, clamped at the bottom.
   State.cardItemCount = 3;
   runIslandKey(host, { kind: "list", delta: 1 });
   assert.equal(State.cardSelection, 0);

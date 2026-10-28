@@ -1,6 +1,7 @@
-// Interface language (src/i18n): lookup, fallback, interpolation and plurals,
-// both tables complete in every language, every key the code uses being
-// translated, and no known user-facing English left outside t() in the views.
+// Interface language (src/i18n): Spanish and English. Lookup, fallback,
+// interpolation and plurals; es.json complete, with the key's placeholders;
+// every key the code uses translated and none left over; and no known
+// user-facing English left outside t() in the views.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -12,16 +13,14 @@ import { installFakeDom } from "./fakedom.mjs";
 installFakeDom();
 
 const {
-  LANGUAGES, LANGUAGE_CODES, N_, dayMonth, isComplete, isRtl, labels, language, lookup, monthShort,
+  LANGUAGES, N_, dayMonth, isComplete, labels, language, lookup, monthShort,
   onLanguageChange, resolveLanguage, setLanguage, t, tl, tn, weekdayShort,
 } = await import("../src/i18n/i18n.ts");
 const { h, relabel, liveTextCount } = await import("../src/views/dom.ts");
 
 const here = dirname(fileURLToPath(import.meta.url));
 const WINDOWS = join(here, "..");
-const MAC = JSON.parse(readFileSync(join(WINDOWS, "src/i18n/strings.json"), "utf8"));
-const EXTRA = JSON.parse(readFileSync(join(WINDOWS, "src/i18n/extra.json"), "utf8"));
-const OTHERS = LANGUAGE_CODES.filter((l) => l !== "en");
+const ES = JSON.parse(readFileSync(join(WINDOWS, "src/i18n/es.json"), "utf8")).strings;
 
 /** Runs `fn` in `lang`, then puts English back for the other tests. */
 function inLanguage(lang, fn) {
@@ -35,90 +34,74 @@ function inLanguage(lang, fn) {
 
 // ── Lookup ────────────────────────────────────────────────────────────────────
 
-test("English is the key itself, other languages come from either table", () => {
+test("English is the key itself, Spanish comes from es.json", () => {
   assert.equal(language(), "en");
   assert.equal(t("Allow"), "Allow");
-  inLanguage("fr", () => {
-    assert.equal(t("Allow"), "Autoriser"); // the Mac's catalog
-    assert.equal(t("Open the chat"), "Ouvrir le chat"); // extra.json
+  inLanguage("es", () => {
+    assert.equal(t("Allow"), "Permitir");
+    assert.equal(t("Open the chat"), "Abrir el chat");
+    assert.equal(t("Cancel"), "Cancelar");
   });
-  inLanguage("zh-Hans", () => assert.equal(t("Cancel"), "取消"));
 });
 
 test("a string nobody translated falls back to its English text", () => {
-  inLanguage("ru", () => {
+  inLanguage("es", () => {
     assert.equal(t("Some brand new sentence."), "Some brand new sentence.");
     assert.equal(t("Hello {name}", { name: "Tokkip" }), "Hello Tokkip");
   });
 });
 
-test("placeholders are filled in every language, unknown ones are left as they are", () => {
+test("placeholders are filled in both languages, unknown ones are left as they are", () => {
   assert.equal(t("Uploading {name}", { name: "a.pdf" }), "Uploading a.pdf");
   assert.equal(t("Uploading {name}"), "Uploading {name}");
-  inLanguage("hi", () => assert.equal(t("Uploading {name}", { name: "a.pdf" }), "a.pdf अपलोड हो रहा है"));
-  inLanguage("es", () => assert.equal(t("in {h} h {m}", { h: 1, m: 20 }), "en 1 h 20"));
+  inLanguage("es", () => {
+    assert.equal(t("Uploading {name}", { name: "a.pdf" }), "Subiendo a.pdf");
+    assert.equal(t("{time} ago", { time: "5 min" }), "hace 5 min");
+  });
   assert.equal(t("{used}/{max} slots in use — the main tool doesn't take one.", { used: 2, max: 4 }),
     "2/4 slots in use — the main tool doesn't take one.");
 });
 
-test("plurals follow each language's rules", () => {
-  const files = (n) => tn("{count} repo", "{count} repos", n);
-  assert.equal(files(1), "1 repo");
-  assert.equal(files(3), "3 repos");
-  inLanguage("fr", () => {
-    assert.equal(files(1), "1 dépôt");
-    assert.equal(files(0), "0 dépôt"); // French: 0 and 1 are singular
-    assert.equal(files(5), "5 dépôts");
-  });
-  inLanguage("ru", () => {
-    assert.equal(files(1), "1 репозиторий");
-    assert.equal(files(3), "3 репозитория");
-    assert.equal(files(5), "5 репозиториев");
-    assert.equal(files(21), "21 репозиторий");
-  });
-  inLanguage("zh-Hans", () => assert.equal(files(7), "7 个仓库"));
-  // The Mac's plural entry: Spanish one/other.
+test("plurals: one and other, in both languages", () => {
+  const repos = (n) => tn("{count} repo", "{count} repos", n);
+  assert.equal(repos(1), "1 repo");
+  assert.equal(repos(3), "3 repos");
   inLanguage("es", () => {
-    assert.equal(tn("✓ Connected · {count} model", "✓ Connected · {count} models", 1), "✓ Conectado · 1 modelo");
-    assert.equal(tn("✓ Connected · {count} model", "✓ Connected · {count} models", 2), "✓ Conectado · 2 modelos");
+    assert.equal(repos(1), "1 repositorio");
+    assert.equal(repos(0), "0 repositorios");
+    assert.equal(repos(5), "5 repositorios");
   });
 });
 
 test("labels() tables and dates read in the current language", () => {
   const table = labels({ bow: N_("Bow"), hat: N_("Party hat") });
   assert.equal(table.bow, "Bow");
-  inLanguage("fr", () => {
-    assert.equal(table.bow, "Nœud");
+  inLanguage("es", () => {
+    assert.equal(table.bow, "Moño");
     assert.deepEqual(Object.keys(table), ["bow", "hat"]);
     assert.match(monthShort(9), /^oct/);
+    assert.match(dayMonth(8, 28), /^28 sept?/);
   });
   assert.equal(monthShort(9), "Oct");
   assert.equal(weekdayShort(1), "Mon");
   assert.equal(dayMonth(8, 28), "Sep 28");
-  inLanguage("es", () => assert.match(dayMonth(8, 28), /^28 sept?/));
 });
 
 // ── Choosing the language ─────────────────────────────────────────────────────
 
-test("System follows the system's language when Tokkip has it, else English", () => {
-  assert.equal(resolveLanguage("", ["fr-FR", "en-US"]), "fr");
+test("System follows the system's language when it is Spanish or English, else English", () => {
+  assert.equal(resolveLanguage("", ["es-MX", "en-US"]), "es");
   assert.equal(resolveLanguage("", ["de-DE", "es-MX"]), "es");
-  assert.equal(resolveLanguage("", ["pt-PT"]), "pt-BR");
-  assert.equal(resolveLanguage("", ["pt"]), "pt-BR");
-  assert.equal(resolveLanguage("", ["zh-CN"]), "zh-Hans");
-  assert.equal(resolveLanguage("", ["zh-TW"]), "en"); // Traditional is not one of ours
-  assert.equal(resolveLanguage("", ["ar-EG"]), "ar");
-  assert.equal(resolveLanguage("", ["de-DE"]), "en");
+  assert.equal(resolveLanguage("", ["en-GB"]), "en");
+  assert.equal(resolveLanguage("", ["fr-FR"]), "en");
   assert.equal(resolveLanguage("", []), "en");
-  // A picked language wins; one this build doesn't know means System.
-  assert.equal(resolveLanguage("ru", ["fr-FR"]), "ru");
-  assert.equal(resolveLanguage("xx", ["bn-IN"]), "bn");
+  // A picked language wins; one an older build offered ("fr"…) means System.
+  assert.equal(resolveLanguage("en", ["es-MX"]), "en");
+  assert.equal(resolveLanguage("fr", ["es-MX"]), "es");
 });
 
-test("the picker offers the Mac's ten languages, Arabic reads right to left", () => {
-  assert.deepEqual(LANGUAGES.map((l) => l.code), ["en", "zh-Hans", "hi", "es", "ar", "fr", "bn", "pt-BR", "ru", "id"]);
-  assert.equal(isRtl("ar"), true);
-  assert.equal(OTHERS.some((l) => l !== "ar" && isRtl(l)), false);
+test("the picker offers Spanish, then English", () => {
+  assert.deepEqual(LANGUAGES.map((l) => l.code), ["es", "en"]);
 });
 
 test("a language change relabels what was built, in place, and says so once", () => {
@@ -130,13 +113,13 @@ test("a language change relabels what was built, in place, and says so once", ()
   replaced.textContent = "dynamic text"; // some code wrote over it since
   assert.ok(liveTextCount() >= 3);
 
-  setLanguage("fr");
+  setLanguage("es");
   assert.equal(told, 1);
-  assert.equal(button.getAttribute("title"), "Réglages");
-  assert.equal(button.textContent, "Annuler");
-  assert.equal(label.textContent, "Envoi de x.png en cours");
+  assert.equal(button.getAttribute("title"), "Ajustes");
+  assert.equal(button.textContent, "Cancelar");
+  assert.equal(label.textContent, "Subiendo x.png");
   assert.equal(replaced.textContent, "dynamic text");
-  setLanguage("fr"); // same language: nothing to do
+  setLanguage("es"); // same language: nothing to do
   assert.equal(told, 1);
 
   setLanguage("en");
@@ -146,32 +129,21 @@ test("a language change relabels what was built, in place, and says so once", ()
   off();
 });
 
-// ── The tables ────────────────────────────────────────────────────────────────
+// ── es.json ───────────────────────────────────────────────────────────────────
 
 const placeholders = (s) => [...new Set(s.match(/\{\w+\}/g) ?? [])].sort();
 
-for (const [name, table] of [["strings.json", MAC.strings], ["extra.json", EXTRA.strings]]) {
-  test(`${name}: every string in every language, with the key's placeholders`, () => {
-    for (const [key, entry] of Object.entries(table)) {
-      for (const lang of OTHERS) {
-        const value = entry[lang];
-        assert.ok(value !== undefined, `${name}: ${JSON.stringify(key)} has no ${lang}`);
-        const forms = typeof value === "string" ? [value] : Object.values(value);
-        for (const form of forms) {
-          const got = placeholders(form);
-          // A plural form may write the number out ("one" in Arabic).
-          const ok = typeof value === "string"
-            ? JSON.stringify(got) === JSON.stringify(placeholders(key))
-            : got.every((p) => placeholders(key).includes(p));
-          assert.ok(ok, `${name}: ${lang} ${JSON.stringify(form)} for ${JSON.stringify(key)}`);
-        }
-      }
+test("es.json: every text with the key's placeholders", () => {
+  for (const [key, value] of Object.entries(ES)) {
+    const forms = typeof value === "string" ? [value] : Object.values(value);
+    for (const form of forms) {
+      const got = placeholders(form);
+      const ok = typeof value === "string"
+        ? JSON.stringify(got) === JSON.stringify(placeholders(key))
+        : got.every((p) => placeholders(key).includes(p));
+      assert.ok(ok, `${JSON.stringify(form)} for ${JSON.stringify(key)}`);
     }
-  });
-}
-
-test("extra.json never shadows a string of the Mac's", () => {
-  for (const key of Object.keys(EXTRA.strings)) assert.ok(!(key in MAC.strings), key);
+  }
 });
 
 // ── Every key the code uses is translated ─────────────────────────────────────
@@ -215,20 +187,22 @@ function usedKeys() {
   return keys;
 }
 
-test("every string the code shows is translated in every language", () => {
+test("every string the code shows has its Spanish, and es.json has nothing more", () => {
   const keys = usedKeys();
   assert.ok(keys.size > 300, `only ${keys.size} keys found — has the scan broken?`);
   const missing = [...keys].filter(([key]) => !isComplete(key)).map(([key, path]) => `${path}: ${JSON.stringify(key)}`);
   assert.deepEqual(missing, []);
-  // And the hand-written table carries nothing the code no longer uses.
-  const unused = Object.keys(EXTRA.strings).filter((key) => !keys.has(key));
+  // A key the code still writes somewhere (a table of labels, a Rust array)
+  // counts as used even when t() gets it from a variable.
+  const source = [...files(join(WINDOWS, "src"), ".ts"), ...files(join(WINDOWS, "src-tauri/src"), ".rs")].map(code).join("\n");
+  const unused = Object.keys(ES).filter((key) => !keys.has(key) && !source.includes(JSON.stringify(key)));
   assert.deepEqual(unused, []);
 });
 
-test("lookup() answers from the merged tables", () => {
+test("lookup() answers Spanish, and nothing for English", () => {
   assert.equal(lookup("Allow", "en"), undefined);
-  assert.equal(lookup("Allow", "pt-BR"), "Permitir");
-  assert.equal(typeof lookup("{count} repos", "ru"), "object");
+  assert.equal(lookup("Allow", "es"), "Permitir");
+  assert.equal(typeof lookup("{count} repos", "es"), "object");
 });
 
 // ── No English left outside t() ───────────────────────────────────────────────
@@ -244,14 +218,12 @@ const NOT_TEXT = new Set([
   "files", // the kind of a clipboard item (Tokkip)
   "finished", // a task state and a pill badge
   "unknown", // a CI state
-  "Resend", // the service's name (the Mac's "Resend" is a button: send again)
+  "Resend", // the service's name (the "Resend" button sends again)
 ]);
 
 test("no known user-facing English literal outside t() in the views and settings", () => {
   const translated = new Set(
-    [...Object.entries(MAC.strings), ...Object.entries(EXTRA.strings)]
-      .filter(([key, entry]) => OTHERS.some((l) => typeof entry[l] !== "string" || entry[l] !== key))
-      .map(([key]) => key),
+    Object.entries(ES).filter(([key, value]) => typeof value !== "string" || value !== key).map(([key]) => key),
   );
   const offenders = [];
   for (const target of CHECKED) {

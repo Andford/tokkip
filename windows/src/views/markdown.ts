@@ -1,5 +1,4 @@
-// Markdown in the chat's answers, as on the Mac (ChatMarkdown.swift and
-// ChatMarkdownView.swift): headings, paragraphs, fenced code with a copy button,
+// Markdown in the chat's answers: headings, paragraphs, fenced code with a copy button,
 // bullet and numbered lists, quotes and rules, with bold, italic, `code` and
 // links inside the text.
 //
@@ -31,7 +30,7 @@ const isBullet = (s: string) => /^[-*+] /.test(s);
 const ordered = (s: string) => /^(\d+)\.\s+/.exec(s);
 const isQuote = (s: string) => s.startsWith("> ") || s === ">";
 
-/** Same rules as the Mac's parser, line by line. */
+/** Block by block, line by line. */
 export function parseMarkdown(input: string): Block[] {
   const blocks: Block[] = [];
   const lines = input.replace(/\r\n?/g, "\n").split("\n");

@@ -136,7 +136,7 @@ Use light Markdown when it helps: short paragraphs, bullet lists, **bold**, `inl
     )
 }
 
-/// The window context line, as ClaudeService.chat() writes it.
+/// The window context line.
 pub fn window_line(app_name: &str, title: &str, url: Option<&str>) -> String {
     let mut text = format!("Context — App: {app_name}, Window: {title}");
     if let Some(url) = url {
@@ -310,8 +310,8 @@ mod tests {
 
     #[test]
     fn the_prompt_greets_by_first_name_and_claims_web_search_only_for_claude() {
-        let p = system_prompt_for(Some("Louis"), true);
-        assert!(p.starts_with("You are Tokkip, Louis's little companion and personal AI assistant living at the top of their screen."));
+        let p = system_prompt_for(Some("Andy"), true);
+        assert!(p.starts_with("You are Tokkip, Andy's little companion and personal AI assistant living at the top of their screen."));
         assert!(p.contains("web search access"));
         assert!(p.contains("light Markdown"));
         let p = system_prompt_for(None, false);

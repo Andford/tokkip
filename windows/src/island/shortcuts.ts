@@ -1,5 +1,5 @@
-// Keyboard shortcuts → island. Port of IslandWindowController.handleHotKey and
-// handleIslandKey from the macOS app.
+// Keyboard shortcuts → island: the global ones from Rust, and the keys typed
+// inside the open island.
 //
 // Global shortcuts are caught by Rust and arrive as a `shortcut` event with
 // the action id (the wardrobe goes out as `open-wardrobe` instead, for the
@@ -21,15 +21,15 @@ export interface ShortcutHost {
   collapse(): void;
   emote(name: BotEmoteName): void;
   setPinned(on: boolean): void;
-  /** Gives the island the keyboard, so the in-island keys work (Mac: makeKey). */
+  /** Gives the island the keyboard, so the in-island keys work. */
   takeKeyboard(): void;
   /** The wardrobe from any state, or back if it is open (Island.wardrobeAnywhere). */
   wardrobeAnywhere(): void;
   /** False where Tokkip can't leave the island (GNOME on Wayland). */
   canLeaveIsland(): boolean;
-  /** Tokkip out to the desktop, or home (DesktopTokkipController.flyOutOrHome). */
+  /** Tokkip out to the desktop, or home. */
   flyOutOrHome(): void;
-  /** Hands Ctrl+O / Ctrl+E to the view on screen (the Mac posts notifications). */
+  /** Hands Ctrl+O / Ctrl+E to the view on screen. */
   viewCommand(command: ViewCommand): void;
 }
 
@@ -119,7 +119,7 @@ export function runGlobalShortcut(host: ShortcutHost, action: string, resume: ()
       break;
     }
 
-    // The Mac's ⌃⌥D. Sending him out lifts Pause, as the other shortcuts do;
+    // Ctrl+Alt+D. Sending him out lifts Pause, as the other shortcuts do;
     // where he can't leave the island, Tokkip says so.
     case "desktopToggle":
       if (!host.canLeaveIsland()) {
@@ -149,7 +149,7 @@ export function runIslandKey(host: ShortcutHost, action: IslandKeyAction) {
       focusPill(host, pillByNumber(ids, action.number), false);
       break;
     case "list":
-      // Only a card with a list counts its items: the GitHub lists, as on the Mac.
+      // Only a card with a list counts its items: the GitHub lists.
       if (State.view !== "overview" || State.cardItemCount <= 0) return;
       State.cardSelection = navigate(State.cardSelection, action.delta, State.cardItemCount);
       State.notify();

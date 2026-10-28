@@ -1,10 +1,9 @@
 // The desktop Tokkip's own window (tokkip.html): draws him, and turns clicks and
-// drags on him into pokes, flights home, the wardrobe and a new spot. Port of
-// DesktopBotView + the mouse half of DesktopTokkipController (DesktopTokkip.swift).
+// drags on him into pokes, flights home, the wardrobe and a new spot.
 //
 // What he shows comes from the island (DESKTOP_EVENTS.state), where he is from
 // Rust. The page draws only while the window is on screen, at 30 fps awake
-// like the Mac, and a few frames a second asleep — with no cursor polling at
+// and a few frames a second asleep — with no cursor polling at
 // all while he sleeps.
 
 import { Bridge, emitToWindow, onEvent, type DesktopMode } from "../core/bridge";
@@ -74,7 +73,7 @@ class DesktopTokkip {
     canvas.height = Math.round(PANEL_SIZE * dpr);
     this.engine.particleOverhang = 0;
     this.engine.setState("idle", true);
-    // Three pokes: dizzy, and the island shows the confused view (as on macOS).
+    // Three pokes: dizzy, and the island shows the confused view.
     this.engine.onDizzy = () => void emitToWindow(ISLAND, DESKTOP_EVENTS.dizzy);
     this.wireInput();
   }
@@ -94,7 +93,7 @@ class DesktopTokkip {
     await onEvent<Point>(DESKTOP_EVENTS.cursor, (p) => this.notePointer(p));
     await onEvent<boolean>(DESKTOP_EVENTS.visible, (on) => this.setVisible(on));
     await onEvent<string>(DESKTOP_EVENTS.flight, (kind) => {
-      // He fades in on the way out of the island (alphaValue 0 → 1 on macOS).
+      // He fades in on the way out of the island.
       if (kind !== "out") return;
       this.canvas.style.transition = "none";
       this.canvas.style.opacity = "0";

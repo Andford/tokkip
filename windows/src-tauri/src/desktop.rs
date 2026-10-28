@@ -1,6 +1,5 @@
 // Tokkip on the desktop: his own small window, wherever the user dropped him.
-// Window side of DesktopTokkip.swift, plus the geometry half of
-// DesktopTokkipLogic.swift (`logic` below, with its tests).
+// The window side, plus the geometry (`logic` below, with its tests).
 //
 // The island page runs his life cycle (src/island/desktop.ts): fly out, back to
 // the island for an alert, home. This file owns the window — where it is, which
@@ -33,7 +32,7 @@ pub const LABEL: &str = "tokkip";
 pub const SIZE: f64 = 120.0;
 /// Kept between him and the edges of the work area (DesktopTokkipLogic.clampMargin).
 const MARGIN: f64 = 24.0;
-/// To and from the island (DesktopTokkip.swift: 0.45 s, ease in-out).
+/// To and from the island (0.45 s, ease in-out).
 const FLIGHT_MS: u64 = 450;
 /// Settling into his spot after a drop (0.25 s, with a little overshoot).
 const SNAP_MS: u64 = 250;
@@ -146,7 +145,7 @@ pub mod logic {
         })
     }
 
-    /// First visit: the bottom-right corner of the work area, like the Mac.
+    /// First visit: the bottom-right corner of the work area.
     pub fn default_spot(d: &Display, size: f64, margin: f64) -> (f64, f64) {
         let s = size * d.scale;
         let m = margin * d.scale;
@@ -894,8 +893,7 @@ pub fn desktop_tokkip_set_asleep(app: AppHandle, desktop: State<Arc<Desktop>>, a
 mod tests {
     use super::logic::*;
 
-    // Mirrors tests/DesktopTokkipTests.swift (isOverBody, clampOrigin), in the
-    // y-down coordinates every PC uses.
+    // isOverBody and clampOrigin, in the y-down coordinates every PC uses.
 
     #[test]
     fn is_over_body() {

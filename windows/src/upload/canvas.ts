@@ -10,7 +10,7 @@ import { alpha, palette } from "../core/theme";
 import { loadLook, type TokkipLook } from "../tokkip/tokkip";
 import { drawFigure, drawPaw, figure, twinkleShape, type EyeShape, type FigMouth } from "../tokkip/figure";
 import { SCRIPT_FONTS } from "../core/fonts";
-import { N_, isRtl, t } from "../i18n/i18n";
+import { N_, t } from "../i18n/i18n";
 import { SCENE, lerp, seg, type SceneFrame } from "./sequence";
 
 const FONT = `system-ui, "Segoe UI Variable Text", "Segoe UI", ${SCRIPT_FONTS}, sans-serif`;
@@ -36,7 +36,6 @@ function label(
   x.font = font;
   x.fillStyle = color;
   x.textAlign = align;
-  x.direction = isRtl() ? "rtl" : "ltr";
   x.textBaseline = "middle";
   x.fillText(s, px, py);
 }

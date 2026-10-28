@@ -1,5 +1,10 @@
 # Cambios
 
+## Octubre 2026 — Tokkip PC 1.4
+
+- **Español e inglés, con la voz de Tokkip**: Tokkip PC ahora habla solo español e inglés, y en español te habla de tú, en español de México (computadora, lentes, moño, presiona, agrega). Las pastillas junto a Tokkip ahora se llaman **burbujas**, y todo dice **Ajustes**. Si tenías elegido otro idioma, Tokkip PC sigue el de Windows.
+- Se quitaron unos 200 textos que solo existían en la app original para Mac, y las notas internas del código ya describen a Tokkip, no a la app de la que partió.
+
 ## Octubre 2026 — Tokkip 2.0.1 · Tokkip PC 1.3.1
 
 - **Tokkip vuelve a su carita de siempre**, en el teléfono, el reloj, los widgets y la PC: ojos redondos sin brillitos que parpadean en una línea, el ^^ de feliz en arco y los ojos cerrados sin pestañas. Ya no tiene cejas ni el «><»: cuando aprieta los ojos los cierra en una línea. Conserva sus patitas y todos sus movimientos.

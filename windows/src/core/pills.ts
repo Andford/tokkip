@@ -1,10 +1,10 @@
-// Every pill the island can show — port of PillCatalog.swift, the single source
-// of truth on macOS. IDs, names, colours, categories and subtitles are the Mac's,
-// in the Mac's order: they are contract values (settings, hook routing), so an
-// ID here never changes once shipped.
+// Every pill the island can show, the single source of truth for them: IDs,
+// names, colours, categories and subtitles, in Settings' order. IDs are
+// contract values (settings, hook routing), so an ID here never changes once
+// shipped.
 //
-// What is added for Windows and Linux is `support` — not every Mac pill has
-// something behind it here — and `connect`, which says what makes the pill
+// Each pill also says its `support` — not every pill has something behind it
+// on every system — and `connect`, which says what makes the pill
 // "connected": its hooks being installed, a key in the OS credential store, or
 // nothing at all.
 
@@ -25,14 +25,14 @@ export const PILL_CATEGORIES: { id: PillCategory; title: string }[] = [
  * - `yes`: works on Windows and Linux;
  * - `windows`: Windows only (the app behind it has no Linux build);
  * - `linux`: Linux only (what drives it is Linux's: Spotify through MPRIS);
- * - `soon`: can be declared, shows "Coming soon" (macOS has it, this build not yet);
- * - `no`: macOS only, never offered here.
+ * - `soon`: can be declared, shows "Coming soon" (not in this build yet);
+ * - `no`: never offered here (kept so a stored ID stays known).
  */
 export type PillSupport = "yes" | "windows" | "linux" | "soon" | "no";
 
 /** What makes the pill connected. */
 export type PillConnect =
-  /** Hook events: connected once the hooks are installed (Mac #183). */
+  /** Hook events: connected once the hooks are installed. */
   | { kind: "hooks" }
   /** A key in the credential store. */
   | { kind: "key"; key: string }
@@ -59,7 +59,7 @@ const key = (k: string): PillConnect => ({ kind: "key", key: k });
 const none: PillConnect = { kind: "none" };
 const server = (field: "ollamaUrl" | "lmstudioUrl"): PillConnect => ({ kind: "server", field });
 
-/** ChatProvider.accentHex on macOS. */
+/** Each chat provider's colour. */
 const ACCENT = {
   anthropic: "#E07950",
   google: "#4285F4",
@@ -124,7 +124,7 @@ export function isComingSoon(id: string): boolean {
   return pillDefinition(id)?.support === "soon";
 }
 
-/** True for pills whose sessions arrive as hook events (Mac #183). */
+/** True for pills whose sessions arrive as hook events. */
 export function isHookPill(id: string): boolean {
   return pillDefinition(id)?.connect.kind === "hooks";
 }
@@ -154,8 +154,7 @@ export interface Declared {
 /**
  * The declaration as it may be used: a main pill this build can run (else the
  * default), and declared pills this build offers, without duplicates and
- * without the main pill, which never takes a slot. Same rules as
- * AppState.loadIntegrationTasks on macOS.
+ * without the main pill, which never takes a slot.
  */
 export function sanitizeDeclared(d: Declared, os: HostOs = HOST_OS): Declared {
   const mains = new Set(mainPillChoices(os).map((p) => p.id));
@@ -195,8 +194,7 @@ export function chooseMainPill(d: Declared, id: string, os: HostOs = HOST_OS): D
 /**
  * Pill order: the main pill first, then pills from outside the catalog (any
  * other tagged agent), then the catalog's pills in catalog order. Pills of equal
- * rank keep their order. Mirrors sortTasksByCatalog on macOS, with the main
- * pill (not always VS Code here) leading.
+ * rank keep their order, with the main pill (not always VS Code) leading.
  */
 export function orderPills<T extends { id: string }>(tasks: T[], mainPill: string): T[] {
   const index = new Map(PILL_CATALOG.map((p, i) => [p.id, i]));

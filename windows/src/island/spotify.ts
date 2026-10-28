@@ -1,5 +1,4 @@
-// Spotify's reports → the page (src-tauri/src/spotify.rs, Linux). The parts of
-// SpotifyController.swift that touch the app: the pill wears the track's
+// Spotify's reports → the page (src-tauri/src/spotify.rs, Linux): the pill wears the track's
 // title, music starting shows the compact island without a sound, and the
 // card reads the player again whenever it comes on screen (seeks made in
 // Spotify's own window are never signalled).

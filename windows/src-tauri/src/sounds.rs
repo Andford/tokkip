@@ -1,6 +1,5 @@
 // Your own sounds: a file named like one of Tokkip's sounds in the sounds folder
-// replaces it (finish.wav, approval.mp3, greet.m4a…), as on the Mac
-// (SoundEngine.customFolder). The folder is platform::config_dir()/sounds:
+// replaces it (finish.wav, approval.mp3, greet.m4a…). The folder is platform::config_dir()/sounds:
 // ~/.config/tokkip/sounds on Linux, %APPDATA%\Tokkip\sounds on Windows.
 //
 // The page decodes the bytes itself; a file it can't decode falls back to the

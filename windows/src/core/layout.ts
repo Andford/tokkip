@@ -1,6 +1,5 @@
-// Island geometry — ported from IslandTypes.swift + IslandWindowController.islandSize
-// + IslandRootView.botPosition. All values are logical pixels, identical to the
-// macOS app's points.
+// Island geometry: its modes and views, their sizes, and where Tokkip sits in
+// each. All values are logical pixels.
 
 export type IslandMode = "hidden" | "compact" | "expanded";
 
@@ -52,12 +51,13 @@ export interface ViewLayout {
   agentMode: AgentLayoutMode;
 }
 
-// The window is a fixed 720×320 (largest view) like the macOS panel; the island is
-// drawn inside it, glued to the top edge and horizontally centred.
+// The window is a fixed 720×320 (the largest view); the island is drawn inside
+// it, floating just below the top edge (ISLAND_GAP) and horizontally centred.
 export const PANEL_W = 720;
 export const PANEL_H = 320;
 
-// No notch on a PC: these are the hidden/compact sizes from docs/SPEC.md.
+// The compact island's size (the names are older than the island's own look;
+// they are only code).
 export const NOTCH_W = 184;
 export const NOTCH_H = 32;
 export const COMPACT_W = 288; // NOTCH_W + 104
@@ -81,8 +81,7 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   finished: { height: 160, botX: 62, botY: null, botDiameter: 58, agentMode: "column" },
   confused: { height: 160, botX: 76, botY: null, botDiameter: 66, agentMode: "column" },
   upload: { height: 176, botX: 140, botY: 104, botDiameter: 62, agentMode: "column" },
-  // botY 103 = bar top (42 + 58) + 3, so the dot really rides the bar. The Swift
-  // layout says 118 while its own comment says 103; the comment matches the spec.
+  // botY 103 = bar top (42 + 58) + 3, so the dot really rides the bar.
   uploading: { height: 176, botX: 46, botY: 103, botDiameter: 20, agentMode: "none" },
   choose: { height: 176, botX: 60, botY: 101, botDiameter: 52, agentMode: "column" },
   mail: { height: 240, botX: 56, botY: null, botDiameter: 46, agentMode: "column" },
@@ -92,9 +91,8 @@ export const VIEW_LAYOUTS: Record<IslandViewName, ViewLayout> = {
   note: { height: 160, botX: 60, botY: null, botDiameter: 50, agentMode: "column" },
   settings: { height: 160, botX: 54, botY: null, botDiameter: 46, agentMode: "none" },
   greeting: { height: 150, botX: 320, botY: 90, botDiameter: 0, agentMode: "none" },
-  // Mac: 160. The extra 24 hold the two lines with top agent, project, busiest
-  // day, longest session, permissions and questions, which the Mac card leaves
-  // to the shared image.
+  // Tall enough for the two lines with top agent, project, busiest day,
+  // longest session, permissions and questions.
   recap: { height: 184, botX: 62, botY: null, botDiameter: 58, agentMode: "column" },
   wardrobe: { height: 160, botX: 68, botY: null, botDiameter: 58, agentMode: "none" },
   // Tokkip watches over the shelf from the left, the tiles take the rest.
@@ -120,8 +118,8 @@ export function islandSize(
 ): { w: number; h: number } {
   switch (mode) {
     case "hidden":
-      // No notch to hide inside on a PC: the island retracts to zero height and
-      // slides into the top edge of the screen instead of sitting there as a bar.
+      // Hidden: the island retracts to zero height and slides into the top edge
+      // of the screen instead of sitting there as a bar.
       return { w: NOTCH_W, h: 0 };
     case "compact":
       return { w: COMPACT_W, h: NOTCH_H };

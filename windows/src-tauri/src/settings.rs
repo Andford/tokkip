@@ -17,7 +17,7 @@ pub struct Settings {
     pub sound_volume: f64,
     pub auto_close_interval: f64,
     /// Hovering the island opens it all the way, and it folds again shortly
-    /// after the pointer leaves (the Mac's "Open on hover"). Off by default.
+    /// after the pointer leaves ("Open on hover"). Off by default.
     pub open_on_hover: bool,
     pub absence_interval: f64,
     pub active_integrations: Vec<String>,
@@ -54,7 +54,7 @@ pub struct Settings {
     /// default (see shortcuts.rs).
     pub shortcuts: crate::shortcuts::Bindings,
     /// Tokkip's outfit, picked in the wardrobe: "auto" (dresses for the
-    /// season), "none" or an outfit id — the Mac's raw values. The island reads
+    /// season), "none" or an outfit id. The island reads
     /// anything it doesn't know as "auto", so the value is stored as it comes.
     // (An older settings file calls it by the app's first name.)
     #[serde(alias = "mochiOutfit")]
@@ -65,8 +65,8 @@ pub struct Settings {
     /// whatever is not a colour as "no choice".
     pub pill_colors: BTreeMap<String, String>,
     /// Interface language: "" follows the system, else one of i18n::LANGUAGES
-    /// ("fr", "pt-BR", "zh-Hans"…). Kept as it comes, like `tokkip_outfit`: a
-    /// code this build doesn't know reads as "".
+    /// ("es", "en"). Kept as it comes, like `tokkip_outfit`: a code this build
+    /// doesn't know (an older build's "fr"…) reads as "".
     pub language: String,
     /// Tokkip on the desktop: whether he lives there, and his spot. Owned by
     /// the Rust side (desktop.rs) — what a webview sends back is ignored.

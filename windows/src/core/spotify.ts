@@ -1,7 +1,6 @@
 // The Spotify pill on the page: what src-tauri/src/spotify.rs reports (Linux,
-// through MPRIS), and the pure rules the views and Tokkip follow — ports of
-// SpotifyController.swift, NowPlayingViews.swift and the Mac's dance rules
-// (BotCanvasView, DesktopTokkip.swift).
+// through MPRIS), and the pure rules the views and Tokkip follow: the
+// now-playing texts and when Tokkip dances.
 //
 // On Windows, src-tauri/src/spotify_win.rs reports the same state from the
 // system media controls: Spotify's session, or whatever else is playing.
@@ -103,7 +102,7 @@ export function musicPlaying(s: SpotifyState, activeIntegrations: readonly strin
 const DANCE_STATES: ReadonlySet<BotStateName> = new Set(["idle", "working", "thinking", "searching", "finished"]);
 
 /**
- * The island's Tokkip (BotCanvasView, macOS): in the compact island whenever
+ * The island's Tokkip dances: in the compact island whenever
  * music plays, expanded only on the overview with the music pill in front.
  */
 export function islandDances(o: {
@@ -118,7 +117,7 @@ export function islandDances(o: {
   return o.mode === "expanded" && o.view === "overview" && o.focusId === SPOTIFY_ID;
 }
 
-/** Tokkip on the desktop: the compact island's rules (DesktopTokkip.swift). */
+/** Tokkip on the desktop: the compact island's rules. */
 export function desktopDances(music: boolean, state: BotStateName): boolean {
   return music && DANCE_STATES.has(state);
 }

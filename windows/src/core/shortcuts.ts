@@ -1,4 +1,4 @@
-// Keyboard shortcuts — the pure part, port of ShortcutLogic.swift.
+// Keyboard shortcuts — the pure part.
 //
 // Global shortcuts are registered by Rust (src-tauri/src/shortcuts.rs), which
 // owns the same table of defaults; tests/shortcuts.test.mjs keeps the two in
@@ -6,7 +6,7 @@
 // (the recorder in Settings), spots duplicates, and maps the keys pressed
 // inside the open island to what they do.
 //
-// Why Ctrl+Alt+Space / A / T / S / G / ← → rather than the Mac's letters: see
+// Why Ctrl+Alt+Space / A / T / S / G / ← → rather than other letters: see
 // the top of src-tauri/src/shortcuts.rs. In short, Windows reads Ctrl+Alt as
 // AltGr, and AltGr+E, Q, M, W, C, the digits and most punctuation type a
 // character on at least one of the French, German, Spanish, Italian,
@@ -46,7 +46,7 @@ export const SHORTCUT_TEXT = {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-/** Mac `ShortcutAction` raw values. Stored in settings.json: never rename one. */
+/** The actions' ids. Stored in settings.json: never rename one. */
 export type ShortcutId =
   | "toggleIsland"
   | "openChat"
@@ -65,7 +65,7 @@ export interface ShortcutDef {
   id: ShortcutId;
   defaultKeys: string;
   enabledByDefault: boolean;
-  /** False for the Mac actions this version can't do yet: reserved, never registered. */
+  /** False for the actions this version can't do yet: reserved, never registered. */
   ported: boolean;
 }
 
@@ -338,7 +338,7 @@ export function altGrClashes(keys: string): string[] {
 
 // ── Inside the open island ────────────────────────────────────────────────────
 
-/** Same as ShortcutLogic.navigate: next card-list selection, clamped. */
+/** The next card-list selection, clamped. */
 export function navigate(selection: number | null, delta: number, itemCount: number): number | null {
   if (itemCount <= 0) return null;
   if (selection != null) return Math.max(0, Math.min(itemCount - 1, selection + delta));
@@ -357,7 +357,7 @@ export function pillByNumber(ids: readonly string[], n: number): string | null {
   return n >= 1 && n <= ids.length ? ids[n - 1] : null;
 }
 
-/** Shown read-only in Settings, like ShortcutLogic.islandShortcuts, in its order. */
+/** The keys inside the open island, shown read-only in Settings, in this order. */
 export const ISLAND_SHORTCUTS: readonly { keys: string; description: string }[] = [
   { keys: "Ctrl+→ / Ctrl+←", description: SHORTCUT_TEXT.island.nextPrev },
   { keys: "Ctrl+1 – Ctrl+9", description: SHORTCUT_TEXT.island.byNumber },

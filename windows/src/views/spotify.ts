@@ -1,10 +1,9 @@
-// The Spotify pill and card — DOM ports of SpotifyPill / SpotifyCardView
-// (SpotifyViews.swift) and the shared now-playing pieces (NowPlayingViews.swift
-// and MusicControlButton). Sizes, colours and wording are the Mac's.
+// The Spotify pill and card, and the now-playing pieces they share (the
+// controls, the progress bar, the volume).
 //
 // What they show comes from src-tauri/src/spotify.rs (Linux, MPRIS) through
 // island/spotify.ts. A click changes the page's copy at once and Spotify
-// confirms it, as the Mac's controller does.
+// confirms it.
 
 import { h, svg, clear, dot, tint, ink } from "./dom";
 import { ICONS } from "./icons";

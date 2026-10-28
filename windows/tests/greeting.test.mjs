@@ -18,8 +18,8 @@ function assertInside(t, tc, w, h) {
   const left = GREETING_W / 2 - w / 2;
   const right = GREETING_W / 2 + w / 2;
   const at = `t=${t.toFixed(3)} tc=${tc}`;
-  // No check on the top: he drops in from the edge of the screen, like out of
-  // the notch on a Mac, so his head is meant to come out of it.
+  // No check on the top: he drops in from the edge of the screen, so his head
+  // is meant to come out of it.
   assert.ok(b.bottom <= h + SLACK, `${at}: bottom ${b.bottom.toFixed(1)} below the island (${h.toFixed(1)})`);
   assert.ok(b.left >= left - SLACK, `${at}: left ${b.left.toFixed(1)} outside ${left.toFixed(1)}`);
   assert.ok(b.right <= right + SLACK, `${at}: right ${b.right.toFixed(1)} outside ${right.toFixed(1)}`);

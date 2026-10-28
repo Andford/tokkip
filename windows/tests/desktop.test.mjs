@@ -1,5 +1,5 @@
 // Tokkip on the desktop: the pure logic and the life cycle (src/tokkip/desktop-logic.ts).
-// The first half mirrors tests/DesktopTokkipTests.swift; the geometry of the
+// The first half is the logic; the geometry of the
 // window itself (clamping, saved spots, the island's home zone) is tested in
 // src-tauri/src/desktop.rs, where it lives.
 
@@ -57,7 +57,7 @@ test("isOverBody: the round body, not the square window", () => {
 
 const sign = (v) => (v === 0 ? 0 : v < 0 ? -1 : 1);
 
-/** The Mac test's AppKit points (y up from the menu-bar screen's bottom) → y down. */
+/** Points measured y-up from the main screen's bottom edge → y down, as a PC reports them. */
 const topDown = (p, desktopTop) => ({ x: p.x, y: desktopTop - p.y });
 
 test("lookOrigin: the window centre, in desktop coordinates", () => {
@@ -68,9 +68,9 @@ test("lookOrigin: the window centre, in desktop coordinates", () => {
 });
 
 test("gaze signs across a real arrangement of screens", () => {
-  // Menu-bar MacBook 1512×982 at (0,0); external 2560×1440 above it at
-  // (-500, 982); portrait 1080×1920 on the left at (-1080, -600). AppKit
-  // coordinates as in the Swift test, turned y-down like a PC reports them.
+  // A laptop screen 1512×982 at (0,0); external 2560×1440 above it at
+  // (-500, 982); portrait 1080×1920 on the left at (-1080, -600). Written
+  // y-up, turned y-down like a PC reports them.
   const top = 982;
   const look = (bot, mouse) => {
     const g = gaze(topDown(bot, top), topDown(mouse, top));
@@ -82,7 +82,7 @@ test("gaze signs across a real arrangement of screens", () => {
   assert.deepEqual(look(islandOnTop, { x: -1000, y: 0 }), [-1, -1], "cursor on the portrait screen");
   assert.deepEqual(look(islandOnTop, { x: 780, y: 2500 }), [0, 1], "cursor above Tokkip");
   // Tokkip on the desktop of the portrait screen, cursor on the external screen above.
-  const panelMin = topDown({ x: -700, y: -200 + 120 }, top); // AppKit minY is the bottom edge
+  const panelMin = topDown({ x: -700, y: -200 + 120 }, top); // y-up: minY is the bottom edge
   const desktopOnLeft = lookOrigin(panelMin.x, panelMin.y, 120);
   const mouseAbove = topDown({ x: 1000, y: 2000 }, top);
   assert.ok(mouseAbove.x > desktopOnLeft.x && mouseAbove.y < desktopOnLeft.y,
@@ -102,7 +102,7 @@ test("a permission or a question sends him back to the island", () => {
   assert.equal(alertActive({ pendingApproval: null, tasks: [{ state: "working" }] }), false);
   assert.equal(alertActive({ pendingApproval: { requestId: "r" }, tasks: [] }), true);
   assert.equal(alertActive({ pendingApproval: null, tasks: [{ state: "idle" }, { state: "question" }] }), true);
-  // The question card (#216) is the same card with `questions`: it flies him home too.
+  // The question card is the same card with `questions`: it flies him home too.
   const question = {
     requestId: "q", sessionId: "s", pillId: "integration_claude", tool: "AskUserQuestion", command: "",
     questions: [{ question: "Which?", options: [{ label: "A", description: "" }], multiSelect: false }],
@@ -346,7 +346,7 @@ test("sent home in the instant before an alert takes him: home wins", async () =
   assert.deepEqual(w.flying, [], "and he doesn't come back out");
 });
 
-// ── The desktop shortcut (flyOutOrHome, ⌃⌥D on the Mac) ───────────────────────
+// ── The desktop shortcut (flyOutOrHome, Ctrl+Alt+D) ───────────────────────────
 
 test("the desktop shortcut: out from the island, home from the desktop", async () => {
   const w = world();

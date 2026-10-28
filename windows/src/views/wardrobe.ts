@@ -1,4 +1,4 @@
-// Wardrobe view — port of WardrobeView (IslandViewContent.swift). Opened with a
+// Wardrobe view. Opened with a
 // right-click on Tokkip or from the tray menu. Resting the pointer on a button
 // tries the outfit on Tokkip; a click keeps it.
 

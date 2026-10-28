@@ -434,12 +434,6 @@ select option {
   color: var(--c-on-error-container);
 }
 
-/* Arabic: the window reads right to left (main.ts sets <html dir="rtl">);
-   diffs, paths, keys and addresses stay left to right. */
-html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="text"]) {
-  direction: ltr;
-}
-
 /* ── Tokkip's look ─────────────────────────────────────────────────────── */
 
 .tk-wrap {

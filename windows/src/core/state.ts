@@ -1,4 +1,4 @@
-// App state — mirror of AppState.swift (the parts the island needs).
+// App state: what the island shows, and the settings it follows.
 
 import type { BotEmoteName, BotStateName, IslandMode, IslandViewName } from "./layout";
 import type { EyeShape } from "../tokkip/figure";
@@ -131,13 +131,13 @@ export interface Settings {
   shortcuts: Bindings;
   /**
    * Tokkip's outfit: "auto" (dresses for the season), "none" or an outfit id.
-   * Same raw values as the Mac's "tokkipOutfit"; read it through parseOutfit.
+   * Stored as "tokkipOutfit"; read it through parseOutfit.
    */
   tokkipOutfit: string;
   /**
    * A colour of the user's own for a pill's Tokkip, by pill ID ("#RRGGBB").
    * Empty means the catalog's colours; read it through core/pill-colors.ts.
-   * Same key and values as the Mac's "pillColors".
+   * Stored as "pillColors".
    */
   pillColors: Record<string, string>;
   /**
@@ -180,9 +180,9 @@ export const DEFAULT_SETTINGS: Settings = {
 
 type Listener = () => void;
 
-/** Live diffs kept per pill (oldest dropped first) — same cap as macOS. */
+/** Live diffs kept per pill (oldest dropped first). */
 export const MAX_DIFFS_PER_PILL = 50;
-/** A pill's diffs are forgotten after an hour without a new one, as on macOS. */
+/** A pill's diffs are forgotten after an hour without a new one. */
 export const DIFF_TTL_MS = 3_600_000;
 
 class AppState {
@@ -194,7 +194,7 @@ class AppState {
 
   stateOverride: BotStateName | null = null;
 
-  /** Cursor in logical screen pixels, origin top-left (like AppState.mousePosition). */
+  /** Cursor in logical screen pixels, origin top-left */
   mouse = { x: 0, y: 0 };
   /** Cursor relative to the island's top-left corner. */
   mouseInIsland = { x: 0, y: 0 };
@@ -232,13 +232,13 @@ class AppState {
   private sessionDiffTimers = new Map<string, number>();
   /** Never reset, so an id can never point at a newer diff than the one tapped. */
   private nextDiffId = 0;
-  /** Ctrl+↑ / Ctrl+↓: the highlighted row of the card's list (AppState.cardSelection). */
+  /** Ctrl+↑ / Ctrl+↓: the highlighted row of the card's list */
   cardSelection: number | null = null;
-  /** Rows in the list on screen, 0 when there is none (AppState.cardItemCount). */
+  /** Rows in the list on screen, 0 when there is none */
   cardItemCount = 0;
   /**
    * Tokkip is out of the island — on the desktop, flying, or being dragged
-   * there — so the island's own Tokkip is hidden (AppState.tokkipOnDesktop).
+   * there — so the island's own Tokkip is hidden.
    */
   tokkipOnDesktop = false;
 
@@ -292,7 +292,7 @@ class AppState {
 
   /**
    * A permission card or a question comes up: its pill comes to the front, and
-   * the pill that was there is remembered (HookServer.focusBeforeApproval).
+   * the pill that was there is remembered.
    */
   beginApproval(info: ApprovalInfo) {
     this.pendingApproval = info;
@@ -390,7 +390,7 @@ class AppState {
   /**
    * Loads the catalog pills: the main pill always, the declared ones, and none
    * of the others — a pill that is mid-session stays until its session ends.
-   * Safe to call any number of times. AppState.loadIntegrationTasks on macOS.
+   * Safe to call any number of times.
    */
   loadIntegrationTasks() {
     const d = sanitizeDeclared(this.settings, this.os);
@@ -415,7 +415,7 @@ class AppState {
 
   /**
    * A session is over. The main and declared pills are put back as they were;
-   * any other pill goes away (AppState.removeTask on macOS).
+   * any other pill goes away.
    */
   removeTask(id: string) {
     const idx = this.tasks.findIndex((t) => t.id === id);
@@ -443,7 +443,7 @@ class AppState {
   /**
    * Creates the pill of a tagged agent on its first event; no-op if it exists.
    * Inserted right after the main pill so it is in the visible slice(0,4). A
-   * catalog agent wears its catalog colour, as on macOS.
+   * catalog agent wears its catalog colour.
    */
   upsertExternalAgent(id: string, name: string, color: string) {
     if (this.tasks.some((t) => t.id === id)) return;
@@ -457,8 +457,7 @@ class AppState {
 
   /**
    * The pill a Claude Code session belongs to (VS Code or Cursor). It is made
-   * for the session when it is neither the main pill nor declared, as
-   * upsertWorkspaceTask does on macOS.
+   * for the session when it is neither the main pill nor declared.
    */
   upsertWorkspacePill(id: string, name: string, cwd: string): AgentTask | null {
     let t = this.tasks.find((x) => x.id === id);
@@ -491,7 +490,7 @@ class AppState {
 
   /**
    * What the island opens on. A card waiting for an answer comes first, so
-   * reopening a folded island shows it again (Mac #117, #290).
+   * reopening a folded island shows it again.
    */
   defaultView(): IslandViewName {
     if (this.pendingApproval) return this.pendingApproval.questions ? "question" : "approval";

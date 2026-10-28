@@ -146,7 +146,7 @@ fn is_gnome(desktop: &str) -> bool {
 
 /// GNOME's "Large text" (text-scaling-factor > 1) makes WebKitGTK draw every
 /// font larger inside a window sized in fixed pixels, so the island's content
-/// was cut off (#122). The island's layout is its own, so it asks GDK to undo
+/// was cut off. The island's layout is its own, so it asks GDK to undo
 /// that factor for this process only. An explicit GDK_DPI_SCALE always wins.
 fn follow_gnome_text_scaling() {
     if std::env::var_os("GDK_DPI_SCALE").is_some()
@@ -227,7 +227,7 @@ pub fn relay_socket_path() -> Option<PathBuf> {
 // ── Who we are ────────────────────────────────────────────────────────────────
 
 /// The account's full name: the first field of the passwd GECOS entry
-/// ("Louis Raille,,,"), or nothing when it is unset.
+/// ("Ana López,,,"), or nothing when it is unset.
 pub fn user_full_name() -> Option<String> {
     unsafe {
         let mut pwd: libc::passwd = std::mem::zeroed();
@@ -387,8 +387,7 @@ pub fn make_non_activating(win: &WebviewWindow) {
         layer::gtk_layer_set_layer(ptr, layer::LAYER_OVERLAY);
         // Top edge only: the compositor centres the surface horizontally.
         layer::gtk_layer_set_anchor(ptr, layer::EDGE_TOP, 1);
-        // -1: sit right against the screen edge, over any top panel, the way
-        // the Mac island sits in the notch.
+        // -1: sit right against the screen edge, over any top panel.
         layer::gtk_layer_set_exclusive_zone(ptr, -1);
         layer::gtk_layer_set_keyboard_mode(ptr, layer::KEYBOARD_NONE);
     }

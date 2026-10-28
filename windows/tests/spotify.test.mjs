@@ -53,7 +53,7 @@ test("a play/pause click freezes or restarts the clock where it is", () => {
   assert.equal(withPlaying(same, true, 99), same, "no change, same object");
 });
 
-test("times read like the Mac's player", () => {
+test("times read like a music player's", () => {
   assert.equal(formatTime(0), "0:00");
   assert.equal(formatTime(65.9), "1:05");
   assert.equal(formatTime(599), "9:59");
@@ -62,7 +62,7 @@ test("times read like the Mac's player", () => {
   assert.equal(formatTime(Number.NaN), "0:00");
 });
 
-test("the volume icon has the Mac's thresholds", () => {
+test("the volume icon has its thresholds", () => {
   assert.deepEqual([0, 1, 33, 34, 66, 67, 100].map(volumeLevel), [0, 1, 1, 2, 2, 3, 3]);
 });
 
@@ -89,7 +89,7 @@ test("music counts only when it plays on a declared Spotify pill", () => {
   assert.ok(!musicPlaying(playing({ track: null }), [SPOTIFY_ID]));
 });
 
-test("the island's Tokkip dances by the Mac's rules", () => {
+test("the island's Tokkip dances by the rules", () => {
   const base = { music: true, state: "idle", mode: "compact", view: "overview", focusId: "integration_claude" };
   // Compact: whenever music plays, in the calm and busy states.
   for (const state of ["idle", "working", "thinking", "searching", "finished"]) {
@@ -248,9 +248,9 @@ test("the idle card: not playing, or not installed with a way to get it", () => 
   card.el.find("BUTTON")[0].fire("click");
   assert.ok(sent("spotify_open").length > 0);
 
-  setLanguage("fr");
+  setLanguage("es");
   card.sync();
-  assert.ok(card.el.textContent.includes(lookup("Get Spotify", "fr")));
+  assert.ok(card.el.textContent.includes(lookup("Get Spotify", "es")));
 });
 
 test("the playing card: title, artist · album, times, and the controls", () => {

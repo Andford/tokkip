@@ -1,5 +1,4 @@
 // The island: DOM shell, sizing animation, Tokkip placement, mouse handling.
-// Mirrors IslandRootView.swift + IslandWindowController.swift.
 
 import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onTextDrop } from "../core/bridge";
@@ -97,7 +96,7 @@ export class Island {
   /** Last shape handed to Rust for the click-through test. */
   private pushedRect = { x: -1, y: -1, w: -1, h: -1 };
 
-  // Bot hover → love (IslandWindowController.botHoverIn)
+  // Hovering Tokkip → love
   private botHovering = false;
   private botHoverTimer: number | null = null;
   private lastLoveTime = 0;
@@ -115,7 +114,7 @@ export class Island {
   /** Where a press on Tokkip started: moving past DRAG_THRESHOLD drags him out. */
   private botPress: { x: number; y: number } | null = null;
 
-  /** The next reveal from hidden makes no peek (music starting, as on macOS). */
+  /** The next reveal from hidden makes no peek (music starting). */
   private silentReveal = false;
 
   /** Drop sequence bookkeeping: last tick played, and whether the ✓ has fired. */
@@ -157,7 +156,7 @@ export class Island {
 
   /**
    * Folds a card that is waiting for an answer down to the compact island,
-   * without answering it (Mac #290). Nothing is decided: the request keeps
+   * without answering it. Nothing is decided: the request keeps
    * waiting, the island stays on screen, and opening it shows the card again.
    */
   foldApproval() {
@@ -185,7 +184,7 @@ export class Island {
       },
       // Tokkip has no agent sessions, so no terminal to bring forward.
       openTerminal: () => {},
-      // The ↗ button — same targets as openAgentTarget() on macOS.
+      // The ↗ button: the pill's app or page.
       openTarget: () => {
         const task = State.focusTask;
         if (!task) return;
@@ -267,7 +266,7 @@ export class Island {
     this.contentEl = h("div", { id: "content" }, this.header.el, this.viewsEl);
 
     // The drop sequence draws the card, the bar and its own Tokkip. It sits under
-    // the header, which stays visible on top of it exactly as on macOS.
+    // the header, which stays visible on top of it.
     this.uploadCanvas = new UploadCanvas({
       ask: () => {
         State.promptContext = State.droppedFile
@@ -375,7 +374,7 @@ export class Island {
     return State.mode === "expanded" && UploadSeq.isActive && UPLOAD_VIEWS.has(State.view);
   }
 
-  /** Navigating out of the drop flow ends the sequence, as on macOS. */
+  /** Navigating out of the drop flow ends the sequence. */
   private stopSequenceIfLeaving(view: IslandViewName) {
     if (UploadSeq.isActive && !UPLOAD_VIEWS.has(view)) UploadSeq.deactivate();
   }
@@ -447,7 +446,7 @@ export class Island {
   }
 
   /**
-   * Right-click on the desktop Tokkip (macOS openWardrobeFromDesktop): opens the
+   * Right-click on the desktop Tokkip: opens the
    * wardrobe from any state, or goes back if it is already open.
    */
   wardrobeFromDesktop() {
@@ -495,7 +494,7 @@ export class Island {
     State.notify();
   }
 
-  /** The island takes the keyboard, so its own shortcuts work (Mac: makeKey).
+  /** The island takes the keyboard, so its own shortcuts work.
    *  It gives it back when it closes, or when the chat is left. */
   takeKeyboard() {
     void Bridge.focusWindow(true);
@@ -506,7 +505,7 @@ export class Island {
     return this.desktop.supported;
   }
 
-  /** The desktop shortcut (macOS DesktopTokkipController.flyOutOrHome). */
+  /** The desktop shortcut: Tokkip out to the desktop, or home. */
   flyOutOrHome() {
     // The greeting and the drop sequence draw a Tokkip of their own: he stays
     // for them, as he does for a drag (canDragOut).
@@ -591,7 +590,7 @@ export class Island {
   /**
    * Tokkip eats the file. Nothing here waits on the file system: the copy into
    * the inbox runs in the background and swaps the path in when it lands, so a
-   * slow disk can never stall the animation — same as FileDropHandler on macOS.
+   * slow disk can never stall the animation.
    */
   private swallow(path: string) {
     const name = path.split(/[\\/]/).pop() || "file";
@@ -809,8 +808,7 @@ export class Island {
     });
 
     // Only keys typed into the island itself land here, never Escape typed in
-    // a terminal — so it may fold a waiting card away, as Escape in the notch
-    // does on macOS.
+    // a terminal — so it may fold a waiting card away.
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && State.mode === "expanded") {
         if (State.pendingApproval) this.foldApproval();
@@ -1144,7 +1142,7 @@ export class Island {
     }
     // Only the main Tokkip is dressed — the one of the main tool's pill (Settings →
     // Active pills): a focused integration pill shows its own colours, unless
-    // the wardrobe is open (BotCanvasView.showOutfit, macOS).
+    // the wardrobe is open.
     // In the wardrobe the hovered outfit swaps in at once, without the drop-in.
     const inWardrobe = State.mode === "expanded" && State.view === "wardrobe";
     const mainFocused = State.focusId == null || State.focusId === State.mainPillId;
@@ -1160,7 +1158,7 @@ export class Island {
     const breath = breathFrame(Wellness.breathing, Date.now());
     this.engine.setBreathing(breath.active, breath.fill);
     // Dances while music plays: always in the compact island, expanded only on
-    // the music pill's card (BotCanvasView, macOS). Asked every frame.
+    // the music pill's card. Asked every frame.
     this.engine.setDancing(!breath.active && islandDances({
       music: State.spotifyPlaying,
       state: State.effectiveState,
@@ -1179,7 +1177,7 @@ export class Island {
     ctx.restore();
   }
 
-  /** BotCanvasView.lookX / lookY — tanh of the distance to the bot. */
+  /** Where Tokkip looks: tanh of the distance to the pointer. */
   private lookX(): number {
     const rect = this.islandRect();
     const botScreenX = rect.x + this.botCx.value;

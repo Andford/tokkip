@@ -1,6 +1,6 @@
 // Agents other than Claude Code, as the island shows them. Ids, names and colours
-// are PillCatalog.swift's (pill `agent_<id>`), so a pill looks the same on every
-// platform.
+// are the pill catalog's (pill `agent_<id>`), so a pill looks the same
+// everywhere.
 
 export interface KnownAgent {
   name: string;
@@ -21,13 +21,13 @@ export const KNOWN_AGENTS: Record<string, KnownAgent> = {
 };
 
 /**
- * Agents whose permission requests get an Allow / Deny card, as on the Mac.
+ * Agents whose permission requests get an Allow / Deny card.
  * Must match `takes_decisions` in the relay (hook/src/reply.rs): any other
  * agent's request is handed straight back to its terminal.
  */
 export const APPROVAL_AGENTS = new Set(["codex", "copilot", "muse"]);
 
-/** Same rule as HookServer.validateAgent on macOS. "claude" is reserved. */
+/** An agent name a hook sent, made safe to use as a pill id. "claude" is reserved. */
 export function validateAgent(raw: string | undefined): string | null {
   if (!raw || raw.length > 24 || raw === "claude") return null;
   if (!/^[a-z0-9-]+$/.test(raw)) return null;

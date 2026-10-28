@@ -1,11 +1,10 @@
-// Tokkip on the desktop — the pure logic, port of
-// the Mac app's DesktopTokkipLogic.swift and of the life cycle in
-// DesktopTokkipController (DesktopTokkip.swift). No DOM, no Tauri: the island
+// Tokkip on the desktop — the pure logic: where he may stand and look, and
+// his life cycle out and back (DesktopTokkipController). No DOM, no Tauri: the island
 // wires it up in src/island/desktop.ts, the desktop window draws him in
 // src/desktop/main.ts, and Rust owns the window (src-tauri/src/desktop.rs).
 //
-// Coordinates are y-down everywhere on a PC, so the Mac's DesktopSpace flip is
-// not needed: a point on the desktop is used as the OS reports it.
+// Coordinates are y-down everywhere: a point on the desktop is used as the OS
+// reports it.
 
 import type { BotEmoteName, BotStateName } from "../core/layout";
 import type { Outfit } from "./wardrobe";
@@ -52,7 +51,7 @@ export const SLEEP_MOUSE_DISTANCE = 150;
 /** Clickable body radius, as a fraction of the window side. */
 export const BODY_RADIUS_FRACTION = 0.24;
 
-/** Surprised, then off to the island (DesktopTokkip.swift: 0.45 s). */
+/** Surprised, then off to the island (0.45 s). */
 export const RETRACT_DELAY_MS = 450;
 /** Pause in the island after the alert is answered, before flying back (0.6 s). */
 export const RETURN_DELAY_MS = 600;
@@ -90,7 +89,7 @@ export function lookOrigin(panelMinX: number, panelMinY: number, panelSize = PAN
   return { x: panelMinX + panelSize / 2, y: panelMinY + panelSize / 2 };
 }
 
-/** BotCanvasView.lookX / lookY: x right +, y up +. */
+/** Where he looks: x right +, y up +. */
 export function gaze(bot: Point, mouse: Point): { lookX: number; lookY: number } {
   return {
     lookX: Math.tanh((mouse.x - bot.x) / 260),
@@ -109,7 +108,7 @@ export function agentActive(state: BotStateName): boolean {
 }
 
 /**
- * What sends him back to the island (the Mac's pendingApproval /
+ * What sends him back to the island (State.pendingApproval /
  * pendingQuestion): the island's card waiting for an answer — a permission
  * from any agent, or a question Claude Code asked (#216, the same card with
  * `questions`), folded or not — or an agent asking a question by notification.
@@ -258,8 +257,7 @@ export class DesktopTokkipController {
   }
 
   /**
-   * The desktop shortcut (DesktopTokkipController.flyOutOrHome, ⌃⌥D on the
-   * Mac): out to his spot from the island, home from the desktop. In flight,
+   * The desktop shortcut (Ctrl+Alt+D): out to his spot from the island, home from the desktop. In flight,
    * or away for an alert, nothing.
    */
   async flyOutOrHome(): Promise<void> {

@@ -1,6 +1,6 @@
 // GitHub pulse, alerts and contribution grid (src/core/github.ts and the alert
 // handling in src/island/integrations.ts). The Rust half — parsing and alert
-// detection — is tested in src-tauri/src/github.rs, like GitHubPulseTests.swift.
+// detection — is tested in src-tauri/src/github.rs.
 
 import { beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS, State } from "../src/core/state.ts";
 
 const GITHUB = "integration_github";
 
-// ── Fixtures (GitHubActivityTests.swift) ──────────────────────────────────────
+// ── Fixtures ──────────────────────────────────────────────────────────────────
 
 const day = (date, count, level, weekday) => ({ date, count, level, weekday });
 const activity = {
@@ -152,7 +152,7 @@ test("card data is read defensively", () => {
   assert.deepEqual(readStats({ totalRepos: 3, totalStars: 10 }), { totalRepos: 3, totalStars: 10 });
 });
 
-// ── Alerts (AppState.handleGitHubEvents) ──────────────────────────────────────
+// ── Alerts ─────────────────────────────────────────────────────────────────────
 
 test("the loudest event decides the badge and the sound", () => {
   assert.equal(gitHubAlert([]), null);
@@ -184,7 +184,7 @@ beforeEach(() => {
 test("an alert badges the GitHub pill when another pill is on screen", () => {
   emit("github-alerts", [{ kind: "mainFailed", repo: "a/b" }]);
   assert.equal(github().pillBadge, "error");
-  assert.equal(github().state, "idle", "Tokkip's state is left alone, as on macOS");
+  assert.equal(github().state, "idle", "Tokkip's state is left alone");
 });
 
 test("no badge while the GitHub pill is the one on screen", () => {

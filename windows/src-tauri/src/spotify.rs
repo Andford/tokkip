@@ -1,7 +1,6 @@
-// The Spotify pill — port of SpotifyController.swift, Linux only.
+// The Spotify pill on Linux.
 //
-// The Mac listens to Spotify's distributed notification and drives it over
-// AppleScript. Linux has MPRIS instead: Spotify owns
+// Linux has MPRIS: Spotify owns
 // `org.mpris.MediaPlayer2.spotify` on the session bus, publishes its track,
 // playback status, shuffle, loop status and volume as properties, and takes
 // PlayPause, Next, Previous, SetPosition… as method calls.
@@ -10,8 +9,8 @@
 // bus and wakes only for Spotify's PropertiesChanged and Seeked signals and for
 // the bus telling us Spotify started or quit (NameOwnerChanged). Position is
 // not signalled, so it is read when the status or the track changes and when
-// the card comes on screen; the page runs it on from a timestamp while playing,
-// as the Mac's `position(at:)` does. Turning the pill off ends the thread.
+// the card comes on screen; the page runs it on from a timestamp while playing.
+// Turning the pill off ends the thread.
 //
 // Windows reads the system media controls instead (spotify_win.rs): Spotify's
 // session, or whatever else is playing, through the same PlayerState.
@@ -83,11 +82,11 @@ fn find<'a>(map: &'a [(String, Value)], key: &str) -> Option<&'a Value> {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-/// The track Spotify has loaded (SpotifyTrack on macOS).
+/// The track Spotify has loaded.
 #[derive(Serialize, Clone, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Track {
-    /// spotify:track:…, spotify:episode:…, spotify:ad:… — the Mac's ids.
+    /// spotify:track:…, spotify:episode:…, spotify:ad:…
     pub id: String,
     pub title: String,
     pub artist: String,
@@ -115,7 +114,7 @@ pub struct PlayerState {
     /// Unix milliseconds.
     pub position_at: f64,
     pub shuffle: bool,
-    /// LoopStatus is not "None" (the Mac's `repeating`).
+    /// LoopStatus is not "None".
     pub repeat: bool,
     /// 0…100.
     pub volume: i32,
@@ -275,7 +274,7 @@ pub fn parse_metadata(map: &[(String, Value)]) -> Option<Track> {
     })
 }
 
-/// "/com/spotify/track/ID" → "spotify:track:ID", the id the Mac gets. Older
+/// "/com/spotify/track/ID" → "spotify:track:ID", Spotify's usual id. Older
 /// Spotify builds already gave "spotify:track:ID"; failing both, the page URL.
 pub fn spotify_id(trackid: &str, url: Option<&str>) -> String {
     if trackid.starts_with("spotify:") {
@@ -944,7 +943,7 @@ mod linux {
         if !done {
             return false;
         }
-        // Spotify doesn't always signal these: show them at once, as the Mac does.
+        // Spotify doesn't always signal these: show them at once.
         let optimistic: Option<(String, Value)> = match action {
             "seek" => state.track.as_ref().map(|t| {
                 let target = v.clamp(0.0, (t.duration - 1.0).max(0.0));
