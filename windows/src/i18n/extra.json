@@ -3162,6 +3162,72 @@
    "pt-BR": "Olá!",
    "ru": "Привет!",
    "id": "Halo!"
+  },
+  "Appearance": {
+   "zh-Hans": "外观",
+   "hi": "रूप-रंग",
+   "es": "Apariencia",
+   "ar": "المظهر",
+   "fr": "Apparence",
+   "bn": "চেহারা",
+   "pt-BR": "Aparência",
+   "ru": "Оформление",
+   "id": "Tampilan"
+  },
+  "Theme": {
+   "zh-Hans": "主题",
+   "hi": "थीम",
+   "es": "Tema",
+   "ar": "السمة",
+   "fr": "Thème",
+   "bn": "থিম",
+   "pt-BR": "Tema",
+   "ru": "Тема",
+   "id": "Tema"
+  },
+  "Light": {
+   "zh-Hans": "浅色",
+   "hi": "हल्का",
+   "es": "Claro",
+   "ar": "فاتح",
+   "fr": "Clair",
+   "bn": "হালকা",
+   "pt-BR": "Claro",
+   "ru": "Светлая",
+   "id": "Terang"
+  },
+  "Dark": {
+   "zh-Hans": "深色",
+   "hi": "गहरा",
+   "es": "Oscuro",
+   "ar": "داكن",
+   "fr": "Sombre",
+   "bn": "গাঢ়",
+   "pt-BR": "Escuro",
+   "ru": "Тёмная",
+   "id": "Gelap"
+  },
+  "Same as Tokkip": {
+   "zh-Hans": "与 Tokkip 相同",
+   "hi": "Tokkip जैसा",
+   "es": "Como Tokkip",
+   "ar": "مثل Tokkip",
+   "fr": "Comme Tokkip",
+   "bn": "Tokkip-এর মতো",
+   "pt-BR": "Igual ao Tokkip",
+   "ru": "Как у Tokkip",
+   "id": "Sama dengan Tokkip"
+  },
+  "The island, Settings and Tokkip on the desktop all follow it. Colors grow from the one you pick.": {
+   "zh-Hans": "岛、设置和桌面上的 Tokkip 都会跟随。配色由你选的颜色生成。",
+   "hi": "आइलैंड, सेटिंग्स और डेस्कटॉप पर Tokkip सब इसी का पालन करते हैं। रंग आपके चुने रंग से बनते हैं।",
+   "es": "La isla, Ajustes y Tokkip en el escritorio lo siguen. Los colores nacen del que elijas.",
+   "ar": "الجزيرة والإعدادات وTokkip على سطح المكتب تتبعه كلها. تنبع الألوان من اللون الذي تختاره.",
+   "fr": "L'île, les Réglages et Tokkip sur le bureau le suivent. Les couleurs naissent de celle que tu choisis.",
+   "bn": "আইল্যান্ড, সেটিংস আর ডেস্কটপের Tokkip সবাই এটি মেনে চলে। রং তৈরি হয় আপনার বেছে নেওয়া রং থেকে।",
+   "pt-BR": "A ilha, os Ajustes e o Tokkip na área de trabalho seguem isso. As cores nascem da que você escolher.",
+   "ru": "Остров, Настройки и Tokkip на рабочем столе следуют этому. Цвета рождаются из выбранного вами.",
+   "id": "Pulau, Pengaturan, dan Tokkip di desktop mengikutinya. Warna tumbuh dari warna yang kamu pilih."
   }
  }
 }

@@ -2,7 +2,7 @@
 // colours and wording are copied from the Swift views so both platforms read
 // identically.
 
-import { h, svg, clear, dot } from "./dom";
+import { h, svg, clear, dot, tint, ink } from "./dom";
 import { ICONS } from "./icons";
 import { Ticker } from "./ticker";
 import { State, type AgentTask } from "../core/state";
@@ -432,22 +432,22 @@ function buildPill(task: AgentTask, actions: ViewActions): HTMLElement {
     canvas,
     h("span", { class: "lbl", text: label }),
   );
-  pill.style.borderColor = `${task.color}24`;
+  pill.style.borderColor = `${tint(task.color, 14)}`;
   pill.addEventListener("mouseenter", () => {
-    pill.style.background = `${task.color}2e`;
-    pill.style.borderColor = `${task.color}8c`;
-    pill.style.boxShadow = `0 2px 10px ${task.color}59`;
-    (pill.querySelector(".lbl") as HTMLElement).style.color = lighten(task.color, 0.3);
+    pill.style.background = `${tint(task.color, 18)}`;
+    pill.style.borderColor = `${tint(task.color, 55)}`;
+    pill.style.boxShadow = `0 2px 10px ${tint(task.color, 35)}`;
+    (pill.querySelector(".lbl") as HTMLElement).style.color = ink(task.color);
   });
   pill.addEventListener("mouseleave", () => {
     pill.style.background = "";
-    pill.style.borderColor = `${task.color}24`;
+    pill.style.borderColor = `${tint(task.color, 14)}`;
     pill.style.boxShadow = "";
     (pill.querySelector(".lbl") as HTMLElement).style.color = "";
   });
 
   if (task.pillBadge) {
-    const colors = { approval: "#F5A524", finished: "#22C55E", error: "#F4505E" } as const;
+    const colors = { approval: "var(--c-warn)", finished: "var(--c-success)", error: "var(--c-error)" } as const;
     const icons = { approval: ICONS.bang, finished: ICONS.check, error: ICONS.xmark } as const;
     const inner = h("i", { style: `background:${colors[task.pillBadge]}` }, svg(icons[task.pillBadge], 6, { stroke: task.pillBadge === "finished" ? 3 : 0 }));
     const badge = h("div", { class: "pill-badge" }, inner);
@@ -457,13 +457,6 @@ function buildPill(task: AgentTask, actions: ViewActions): HTMLElement {
   return pill;
 }
 
-function lighten(hex: string, amount: number): string {
-  const v = parseInt(hex.replace("#", ""), 16);
-  const c = [(v >> 16) & 255, (v >> 8) & 255, v & 255].map((x) =>
-    Math.min(255, Math.round(x + amount * 255)),
-  );
-  return `rgb(${c[0]},${c[1]},${c[2]})`;
-}
 
 // ── Empty ─────────────────────────────────────────────────────────────────────
 
@@ -635,7 +628,7 @@ function buildQuestion(actions: ViewActions): ViewHost {
       row.append(
         h("button", {
           class: "link-btn",
-          style: "color:#8e939c",
+          style: "color:var(--c-on-surface-variant)",
           text: tl("Answer in terminal"),
           onclick: () => actions.answerInTerminal(),
         }),
@@ -756,7 +749,7 @@ function buildSettings(actions: ViewActions): ViewHost {
       h("div", { class: "grow" }),
       h("button", {
         class: "link-btn",
-        style: "color:#8e939c;font-size:11.5px",
+        style: "color:var(--c-on-surface-variant);font-size:11.5px",
         text: tl("Settings…"),
         onclick: () => actions.openSettingsWindow(),
       }),
@@ -777,11 +770,11 @@ function buildSettings(actions: ViewActions): ViewHost {
       segButtons.forEach((b, i) => b.classList.toggle("on", s.autoCloseInterval === [10, 15, 30][i]));
       clear(claudeBadge);
       claudeBadge.append(
-        dot(s.hooksInstalled ? "#22C55E" : "#F4505E", 6),
+        dot(s.hooksInstalled ? "var(--c-success)" : "var(--c-error)", 6),
         h("span", { text: "Claude Code" }),
       );
       clear(apiBadge);
-      apiBadge.append(dot("#F4505E", 6), h("span", { text: "API" }));
+      apiBadge.append(dot("var(--c-error)", 6), h("span", { text: "API" }));
     },
   };
 }

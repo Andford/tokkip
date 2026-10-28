@@ -9,7 +9,7 @@ car and the PC, plus Tokkip Notas, a Notion-style notebook. Spanish first.
 - `android/shared` — the character (`mx.loperstack.tokkip.character`), sounds (`res/raw`, synthesised by `android/tools/make_sounds.py`), wellness logic shared with the watch.
 - `android/wear`, `android/watchface` — the watch app and the Watch Face Format face.
 - `android/notas` — Tokkip Notas for Android (`mx.loperstack.tokkipnotas`).
-- `windows/` — Tokkip PC, the island at the top of the screen (Tauri 2: Rust in `src-tauri/`, TypeScript in `src/`).
+- `windows/` — Tokkip PC, the island at the top of the screen (Tauri 2: Rust in `src-tauri/`, TypeScript in `src/`). Its look is Material 3 Expressive: colours from `src/core/theme.ts` (a scheme grown from one seed, light or dark, written as `--c-*` CSS variables; canvases use `palette()`), tokens in `src/core/tokens.css`, icons from Material Symbols in `src/views/icons.ts`, the shape behind Tokkip in `src/tokkip/shapes.ts`. Use the tokens, never fixed colours (brand marks aside). Bundled third-party works are listed in `windows/THIRD-PARTY-NOTICES.md`.
 - `notas-pc/` — Tokkip Notas for Windows (Tauri 2, Preact). `notas-sync/` — `sync.php`, its sync server for the user's own hosting.
 - Tokkip Healthy PC (the PC cleaner) lives in its own repo, Andford/tokkiphealthypc.
 

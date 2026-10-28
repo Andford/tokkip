@@ -5,7 +5,7 @@ import { Tracked, Spring, clamp } from "../core/anim";
 import { Bridge, IS_TAURI, onDragDrop, onTextDrop } from "../core/bridge";
 import {
   EXPANDED_CORNER, EXPANDED_W, NOTCH_W, PANEL_H, PANEL_W,
-  ROUNDED_CORNER, VIEW_LAYOUTS, botGlowColor, botGlowOpacity, botPosition, chatPromptHeight,
+  ISLAND_GAP, ROUNDED_CORNER, VIEW_LAYOUTS, botGlowColor, botPosition, chatPromptHeight,
   islandSize,
   QUESTION_PICKER_H,
   type BotEmoteName, type IslandMode, type IslandViewName,
@@ -19,6 +19,7 @@ import { TokkipMotion, hexToRGB } from "../tokkip/motion";
 import { Greeting } from "../tokkip/greeting";
 import { createMiniBot, pruneMiniBots, syncMiniBotStates, tickMiniBots } from "../tokkip/minibots";
 import { SeasonCache, parseOutfit } from "../tokkip/wardrobe";
+import { STATE_SHAPES, shapePath, type ShapeSpec } from "../tokkip/shapes";
 import { UploadCanvas } from "../upload/canvas";
 import { PRE_PROGRESS, UploadSeq } from "../upload/sequence";
 import { buildHeader, buildViews, type ViewActions, type ViewHost } from "../views/views";
@@ -54,6 +55,13 @@ export class Island {
   private viewsEl!: HTMLElement;
   private botCanvas!: HTMLCanvasElement;
   private botGlow!: HTMLElement;
+  private botShape!: SVGPathElement;
+  /** The shape behind Tokkip: the one it's leaving, the one it's becoming, how far, how turned. */
+  private shapeFrom: ShapeSpec = STATE_SHAPES.idle;
+  private shapeTo: ShapeSpec = STATE_SHAPES.idle;
+  private shapeK = 1;
+  private shapeTurn = 0;
+  private shapeLast = performance.now();
   private greetingCanvas!: HTMLCanvasElement;
   private miniGrid!: HTMLElement;
   private countdown!: HTMLElement;
@@ -245,6 +253,8 @@ export class Island {
 
     this.wakeStrip = h("div", { id: "wake-strip" });
     this.botGlow = h("div", { id: "bot-glow" });
+    this.botGlow.innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path/></svg>';
+    this.botShape = this.botGlow.querySelector("path") as SVGPathElement;
     this.botCanvas = h("canvas", { id: "bot-canvas" });
     this.greetingCanvas = h("canvas", { id: "greeting-canvas" });
     this.miniGrid = h("div", { id: "mini-grid" });
@@ -687,7 +697,8 @@ export class Island {
     const r = this.radius.value;
     this.islandEl.style.width = `${w}px`;
     this.islandEl.style.height = `${hh}px`;
-    this.islandEl.style.borderRadius = `0 0 ${r}px ${r}px`;
+    this.islandEl.style.borderRadius = `${Math.min(r, hh / 2)}px`;
+    this.islandEl.classList.toggle("away", hh < 2);
     this.islandEl.style.transform = `translateX(-50%)`;
     // These follow the island as it resizes, so they belong here rather than in
     // the state-driven DOM sync.
@@ -708,7 +719,7 @@ export class Island {
   private islandRect(): { x: number; y: number; w: number; h: number } {
     const w = this.width.value;
     const hh = this.height.value;
-    return { x: (PANEL_W - w) / 2, y: 0, w, h: hh };
+    return { x: (PANEL_W - w) / 2, y: ISLAND_GAP, w, h: hh };
   }
 
   // ── Window collapse (hidden → tiny wake strip, zero polling) ────────────────
@@ -1022,7 +1033,7 @@ export class Island {
       ? settling
       : settling ||
         !this.botCx.settled || !this.botCy.settled || !this.botSize.settled ||
-        greetingActive || this.engine.busy || UploadSeq.isActive || viewAnimating;
+        greetingActive || this.engine.busy || UploadSeq.isActive || viewAnimating || this.shapeBusy;
 
     if (busy) {
       requestAnimationFrame(this.frame);
@@ -1054,17 +1065,46 @@ export class Island {
 
     if (State.mode === "expanded" && State.view !== "uploading" && !greetingActive && !this.uploadActive && !away) {
       const d = p.diameter;
-      const color = botGlowColor(State.effectiveState);
+      const state = State.effectiveState;
+      const size = d * 1.4;
       this.botGlow.style.display = "block";
-      this.botGlow.style.width = `${d * 2.2}px`;
-      this.botGlow.style.height = `${d * 2.2}px`;
-      this.botGlow.style.left = `${this.botCx.value - d * 1.1}px`;
-      this.botGlow.style.top = `${this.botCy.value - d * 1.1}px`;
-      this.botGlow.style.background = `radial-gradient(circle, ${color} 0%, transparent 62%)`;
-      this.botGlow.style.opacity = String(botGlowOpacity(State.effectiveState));
+      this.botGlow.style.width = `${size}px`;
+      this.botGlow.style.height = `${size}px`;
+      this.botGlow.style.left = `${this.botCx.value - size / 2}px`;
+      this.botGlow.style.top = `${this.botCy.value - size / 2}px`;
+      this.botGlow.style.setProperty(
+        "--shape-fill",
+        state === "idle" ? "color-mix(in srgb, var(--c-primary-container) 70%, var(--c-surface-container-highest))"
+          : state === "sleeping" ? "var(--c-surface-container-highest)"
+          : `color-mix(in srgb, ${botGlowColor(state)} 34%, var(--c-surface-container-highest))`,
+      );
+      this.botGlow.style.opacity = state === "sleeping" ? "0.8" : "1";
+      this.stepShape(STATE_SHAPES[state]);
     } else {
       this.botGlow.style.display = "none";
     }
+  }
+
+  /** Melts the shape behind Tokkip towards `target`, turning it as that shape turns. */
+  private stepShape(target: ShapeSpec) {
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - this.shapeLast) / 1000);
+    this.shapeLast = now;
+    if (target !== this.shapeTo) {
+      this.shapeFrom = this.shapeTo;
+      this.shapeTo = target;
+      this.shapeK = 0;
+    }
+    this.shapeK = Math.min(1, this.shapeK + dt / 0.6);
+    const k = 1 - Math.pow(1 - this.shapeK, 3);
+    const spin = this.shapeFrom.spin * (1 - k) + this.shapeTo.spin * k;
+    this.shapeTurn = (this.shapeTurn + spin * dt) % 360;
+    this.botShape.setAttribute("d", shapePath(50, this.shapeFrom, this.shapeTo, k, this.shapeTurn));
+  }
+
+  /** Still moving: the shape is melting into another, or it turns. */
+  private get shapeBusy(): boolean {
+    return State.mode === "expanded" && (this.shapeK < 1 || this.shapeTo.spin > 0);
   }
 
   private drawBot(dt: number) {

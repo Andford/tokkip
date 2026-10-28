@@ -1,24 +1,9 @@
-/* Settings window — same palette as the island, laid out as a normal window. */
+/* Settings window — Tokkip PC's Material 3 tokens (core/tokens.css), laid out as a normal window. */
+
+@import "../core/tokens.css";
 
 :root {
-  /* Makes Windows render the native dropdown and scrollbars dark — without it
-     the <select> popup is white text on white. */
-  color-scheme: dark;
-
-  /* Then the scripts of the other interface languages (see src/style.css). */
-  --font: system-ui, "Segoe UI Variable Text", "Segoe UI", "Nirmala UI", "Microsoft YaHei UI",
-    "Microsoft YaHei", "Noto Sans", "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Arabic",
-    "Noto Sans CJK SC", "Noto Sans SC", "Droid Sans Fallback", sans-serif;
-  --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
-  --ink: #f5f6f8;
-  --dim: #9398a1;
-  --dim-2: #6b7079;
-  --bg: #0b0c0e;
-  --card: #141518;
-  --hairline: rgba(255, 255, 255, 0.07);
-  --green: #22c55e;
-  --red: #f4505e;
-  --amber: #f5a524;
+  --bg: var(--c-surface);
 }
 
 * {
@@ -45,7 +30,7 @@ body.settings-window {
 }
 
 h1 {
-  font: 600 17px var(--font);
+  font: 600 22px var(--display);
   letter-spacing: -0.01em;
 }
 
@@ -57,16 +42,16 @@ h1 .version {
 
 section {
   background: var(--card);
-  border: 1px solid var(--hairline);
-  border-radius: 14px;
-  padding: 16px 18px;
+  border: 0;
+  border-radius: var(--r-l);
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 section > h2 {
-  font: 600 13px var(--font);
+  font: 600 15px var(--display);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -107,32 +92,28 @@ button {
   padding: 7px 14px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
-  color: var(--ink);
+  background: var(--c-secondary-container);
+  color: var(--c-on-secondary-container);
   cursor: pointer;
-  transition: background 0.14s, transform 0.08s;
+  transition: background 0.14s var(--ease), border-radius 0.3s var(--spring), filter 0.14s;
 }
 
 button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
+  filter: brightness(1.06);
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.96);
+  border-radius: 10px;
 }
 
 button.primary {
-  background: var(--ink);
-  color: #0b0c0e;
-}
-
-button.primary:hover:not(:disabled) {
-  background: #fff;
+  background: var(--c-primary);
+  color: var(--c-on-primary);
 }
 
 button.danger {
-  background: rgba(244, 80, 94, 0.16);
-  color: #ff8d97;
+  background: var(--c-error-container);
+  color: var(--c-on-error-container);
 }
 
 button:disabled {
@@ -150,49 +131,77 @@ code,
 
 .switch {
   position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.15);
-  flex: 0 0 36px;
+  width: 52px;
+  height: 32px;
+  flex: 0 0 52px;
   padding: 0;
+  border-radius: 16px;
+  border: 2px solid var(--c-outline);
+  background: var(--c-surface-container-highest);
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.switch:active:not(:disabled) {
+  border-radius: 16px;
 }
 
 .switch.on {
-  background: var(--green);
+  background: var(--c-primary);
+  border-color: var(--c-primary);
 }
 
 .switch::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
+  top: 50%;
+  left: 6px;
   width: 16px;
   height: 16px;
+  margin-top: -8px;
   border-radius: 50%;
-  background: #fff;
-  transition: transform 0.18s;
+  background: var(--c-outline);
+  transition: transform 0.32s var(--spring), width 0.2s var(--ease), height 0.2s var(--ease),
+    margin 0.2s var(--ease), background 0.2s var(--ease);
 }
 
 .switch.on::after {
-  transform: translateX(16px);
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+  transform: translateX(14px);
+  background: var(--c-on-primary);
 }
 
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
-  width: 140px;
+  width: 160px;
+  height: 24px;
+  background: transparent;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 16px;
+  border-radius: 8px;
+  background: var(--c-secondary-container);
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: #fff;
+  width: 4px;
+  height: 24px;
+  margin-top: -4px;
+  border-radius: 2px;
+  background: var(--c-primary);
+  box-shadow: -4px 0 0 0 var(--c-secondary-container), -204px 0 0 200px var(--c-primary);
+  clip-path: inset(4px -400px 4px -400px);
+}
+
+input[type="range"]:active::-webkit-slider-thumb {
+  clip-path: none;
+  box-shadow: -4px 0 0 0 transparent, -204px 0 0 200px var(--c-primary);
 }
 
 input[type="number"],
@@ -200,11 +209,12 @@ input[type="text"],
 input[type="password"],
 select {
   font: 400 12.5px var(--font);
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
+  background: var(--c-surface-container-highest);
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--c-outline);
+  border-radius: 8px 8px 4px 4px;
   color: var(--ink);
-  padding: 5px 8px;
+  padding: 6px 10px;
 }
 
 input::placeholder {
@@ -214,19 +224,21 @@ input::placeholder {
 input:focus,
 select:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: var(--c-primary);
+  border-bottom-width: 1px;
+  box-shadow: inset 0 -1px 0 var(--c-primary);
 }
 
 /* The popup is drawn by the OS: give it an explicit pair of colours rather than
    inheriting white on white. */
 select option {
-  background-color: #1a1c20;
+  background-color: var(--c-surface-container-high);
   color: var(--ink);
 }
 
 .diff {
   font: 400 11.5px/1.5 var(--mono);
-  background: #08090b;
+  background: var(--c-surface-container-lowest);
   border: 1px solid var(--hairline);
   border-radius: 10px;
   padding: 10px 12px;
@@ -237,11 +249,11 @@ select option {
 }
 
 .diff .add {
-  color: #86efac;
+  color: var(--c-success);
 }
 
 .diff .del {
-  color: #ff8d97;
+  color: var(--c-on-error-container);
 }
 
 .diff .ctx {
@@ -255,18 +267,18 @@ select option {
 }
 
 .notice.ok {
-  background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  background: color-mix(in srgb, var(--c-success) 14%, transparent);
+  color: var(--c-success);
 }
 
 .notice.err {
-  background: rgba(244, 80, 94, 0.14);
-  color: #ff8d97;
+  background: var(--c-error-container);
+  color: var(--c-on-error-container);
 }
 
 .notice.warn {
-  background: rgba(245, 165, 36, 0.13);
-  color: #fbc06a;
+  background: color-mix(in srgb, var(--c-warn) 16%, transparent);
+  color: var(--c-warn);
 }
 
 /* Active pills — one group per catalog category, one row per pill. */
@@ -302,7 +314,7 @@ select option {
 }
 
 .color-dot:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid var(--c-primary);
   outline-offset: 2px;
 }
 
@@ -385,7 +397,7 @@ select option {
   min-width: 118px;
   padding: 5px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--c-surface-container-highest);
   border: 1px solid var(--hairline);
   color: var(--ink);
   text-align: center;
@@ -393,7 +405,7 @@ select option {
 }
 
 .keycap.recording {
-  border-color: rgba(255, 255, 255, 0.4);
+  border-color: var(--c-primary);
   color: var(--dim);
 }
 
@@ -406,20 +418,20 @@ select option {
   font: 500 10.5px var(--font);
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--c-surface-container-highest);
   color: var(--dim);
   white-space: nowrap;
   flex: 0 0 auto;
 }
 
 .tag.warn {
-  background: rgba(245, 165, 36, 0.13);
-  color: #fbc06a;
+  background: color-mix(in srgb, var(--c-warn) 16%, transparent);
+  color: var(--c-warn);
 }
 
 .tag.err {
-  background: rgba(244, 80, 94, 0.14);
-  color: #ff8d97;
+  background: var(--c-error-container);
+  color: var(--c-on-error-container);
 }
 
 /* Arabic: the window reads right to left (main.ts sets <html dir="rtl">);
@@ -439,7 +451,7 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
 .tk-preview {
   flex: 0 0 auto;
   border-radius: 18px;
-  background: radial-gradient(circle at 50% 70%, rgba(94, 200, 192, 0.18), transparent 70%), rgba(255, 255, 255, 0.03);
+  background: radial-gradient(circle at 50% 70%, color-mix(in srgb, var(--c-primary) 18%, transparent), transparent 70%), var(--c-surface-container-low);
   cursor: pointer;
 }
 
@@ -467,8 +479,8 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
 }
 
 .tk-chip.on {
-  background: rgba(94, 200, 192, 0.3);
-  box-shadow: inset 0 0 0 1px rgba(94, 200, 192, 0.6);
+  background: var(--c-primary-container);
+  box-shadow: inset 0 0 0 1px var(--c-primary);
 }
 
 .tk-swatch {
@@ -476,11 +488,11 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
   height: 20px;
   padding: 0;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 1px var(--c-outline-variant);
 }
 
 .tk-swatch.on {
-  box-shadow: 0 0 0 2px #0b0c0e, 0 0 0 4px #5ec8c0;
+  box-shadow: 0 0 0 2px var(--c-surface-container-high), 0 0 0 4px var(--c-primary);
 }
 
 .tk-color {
@@ -499,4 +511,72 @@ html[dir="rtl"] :is(.diff, .path, .keycap, input[type="password"], input[type="t
 .tk-controls .row > label {
   flex: 0 0 100%;
   min-width: 0;
+}
+
+/* ── Appearance ─────────────────────────────────────────────────────────── */
+
+.appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seg-row {
+  display: inline-flex;
+  border: 1px solid var(--c-outline);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.seg-row .seg-btn {
+  border-radius: 0;
+  background: transparent;
+  color: var(--c-on-surface);
+  padding: 7px 16px;
+  min-width: 76px;
+}
+
+.seg-row .seg-btn + .seg-btn {
+  border-left: 1px solid var(--c-outline);
+}
+
+.seg-row .seg-btn.on {
+  background: var(--c-secondary-container);
+  color: var(--c-on-secondary-container);
+}
+
+.seg-row .seg-btn.on::before {
+  content: "✓ ";
+}
+
+.seed-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seed {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--seed) 0 50%, color-mix(in srgb, var(--seed) 55%, white) 50% 75%,
+    color-mix(in srgb, var(--seed) 60%, black) 75%);
+  transition: border-radius 0.35s var(--spring), box-shadow 0.2s var(--ease);
+}
+
+.seed.own {
+  background: radial-gradient(circle, var(--seed) 0 38%, transparent 40%),
+    conic-gradient(var(--seed) 0 50%, color-mix(in srgb, var(--seed) 55%, white) 50% 75%,
+      color-mix(in srgb, var(--seed) 60%, black) 75%);
+}
+
+.seed:hover:not(:disabled) {
+  border-radius: 12px;
+  filter: none;
+}
+
+.seed.on {
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px var(--c-surface-container-high), 0 0 0 4px var(--c-primary);
 }

@@ -6,6 +6,7 @@
 // own Tokkip waits hidden.
 
 import { State } from "../core/state";
+import { alpha, palette } from "../core/theme";
 import { loadLook, type TokkipLook } from "../tokkip/tokkip";
 import { drawFigure, drawPaw, figure, twinkleShape, type EyeShape, type FigMouth } from "../tokkip/figure";
 import { SCRIPT_FONTS } from "../core/fonts";
@@ -115,9 +116,10 @@ export class UploadCanvas {
     x.clearRect(0, 0, SCENE.W, SCENE.H);
     const look = loadLook();
 
-    x.fillStyle = "#000000";
+    const P = palette();
+    x.fillStyle = P.surfaceContainer;
     x.fillRect(0, 0, SCENE.W, SCENE.H);
-    x.fillStyle = "#0D0E10";
+    x.fillStyle = P.surfaceContainerHigh;
     x.beginPath();
     x.roundRect(C.x, C.y, C.w, C.h, C.r);
     x.fill();
@@ -138,7 +140,8 @@ export class UploadCanvas {
     x.save();
     x.globalAlpha = f.zone;
     // A border of round dots that drift around the card.
-    x.strokeStyle = f.near > 0.3 ? "rgba(47,191,138,.75)" : "rgba(255,255,255,.18)";
+    const P = palette();
+    x.strokeStyle = f.near > 0.3 ? alpha(P.primary, 0.75) : P.outlineVariant;
     x.lineWidth = 3;
     x.lineCap = "round";
     x.setLineDash([0.1, 9]);
@@ -151,7 +154,7 @@ export class UploadCanvas {
     if (f.zoneText > 0) {
       x.globalAlpha = f.zone * f.zoneText;
       const title = fitted(x, t("Drop your files here"), TEXT_RIGHT - TEXT_X, 600, 14);
-      label(x, title.s, TEXT_X, 82, title.font, "#E3E5E9");
+      label(x, title.s, TEXT_X, 82, title.font, palette().onSurface);
       const labels = CHIPS.map((c) => t(c));
       let size = 11;
       const widths = () => {
@@ -165,11 +168,11 @@ export class UploadCanvas {
       }
       let cx = TEXT_X;
       labels.forEach((l, i) => {
-        x.fillStyle = "rgba(255,255,255,.08)";
+        x.fillStyle = palette().surfaceContainerHighest;
         x.beginPath();
         x.roundRect(cx, 98, ws[i]!, 20, 10);
         x.fill();
-        label(x, l, cx + 9, 108, `500 ${size}px ${FONT}`, "#B9BDC4");
+        label(x, l, cx + 9, 108, `500 ${size}px ${FONT}`, palette().onSurfaceVariant);
         cx += ws[i]! + 6;
       });
     }
@@ -188,11 +191,11 @@ export class UploadCanvas {
     const name = State.droppedFile?.name ?? t("file");
     const right = C.x + C.w - 22;
     const head = fitted(x, t("Uploading {name}", { name }), right - x0 - 60, 500, 12.5);
-    label(x, head.s, x0, 60, head.font, "#A9ADB5");
-    if (f.check <= 0) label(x, `${Math.round(f.progress * 100)} %`, right, 60, `600 12.5px ${FONT}`, "#A9ADB5", "right");
+    label(x, head.s, x0, 60, head.font, palette().onSurfaceVariant);
+    if (f.check <= 0) label(x, `${Math.round(f.progress * 100)} %`, right, 60, `600 12.5px ${FONT}`, palette().onSurfaceVariant, "right");
 
     // Stepping stones still to walk, then the ground he has covered.
-    x.fillStyle = "rgba(255,255,255,.14)";
+    x.fillStyle = palette().outlineVariant;
     for (let px = x0; px <= x1; px += 12) {
       x.beginPath();
       x.arc(px, y, 2, 0, Math.PI * 2);
@@ -200,8 +203,8 @@ export class UploadCanvas {
     }
     if (fill > x0 + 1) {
       const g = x.createLinearGradient(x0, 0, fill, 0);
-      g.addColorStop(0, "rgba(47,191,138,.35)");
-      g.addColorStop(1, TEAL);
+      g.addColorStop(0, alpha(palette().primary, 0.35));
+      g.addColorStop(1, palette().primary);
       x.strokeStyle = g;
       x.lineWidth = 4;
       x.lineCap = "round";
@@ -214,11 +217,11 @@ export class UploadCanvas {
       x.save();
       x.translate(right - 9, 60);
       x.scale(f.check, f.check);
-      x.fillStyle = TEAL;
+      x.fillStyle = palette().primary;
       x.beginPath();
       x.arc(0, 0, 9, 0, Math.PI * 2);
       x.fill();
-      x.strokeStyle = "#07130E";
+      x.strokeStyle = palette().onPrimary;
       x.lineWidth = 2.2;
       x.lineCap = "round";
       x.lineJoin = "round";
@@ -241,23 +244,24 @@ export class UploadCanvas {
     const name = State.droppedFile?.name ?? t("file");
     const maxW = TEXT_RIGHT - ASK.x;
     const ready = fitted(x, t("{name} is ready.", { name }), maxW, 600, 14);
-    label(x, ready.s, ASK.x, 78, ready.font, "#F5F6F8");
+    const P = palette();
+    label(x, ready.s, ASK.x, 78, ready.font, P.onSurface);
     const what = fitted(x, t("What do you want to do with it?"), maxW, 400, 12.5);
-    label(x, what.s, ASK.x, 98, what.font, "#9398A1");
+    label(x, what.s, ASK.x, 98, what.font, P.onSurfaceVariant);
 
-    x.fillStyle = "#F5F6F8";
+    x.fillStyle = P.primary;
     x.beginPath();
     x.roundRect(ASK.x, BUTTON_Y, ASK.w, BUTTON_H, BUTTON_H / 2);
     x.fill();
     const ask = fitted(x, t("Ask a question about it"), ASK.w - 16, 600, 12.5);
-    label(x, ask.s, ASK.x + ASK.w / 2, BUTTON_Y + BUTTON_H / 2, ask.font, "#0B0C0E", "center");
+    label(x, ask.s, ASK.x + ASK.w / 2, BUTTON_Y + BUTTON_H / 2, ask.font, P.onPrimary, "center");
 
-    x.fillStyle = "rgba(255,255,255,.1)";
+    x.fillStyle = P.secondaryContainer;
     x.beginPath();
     x.roundRect(CANCEL.x, BUTTON_Y, CANCEL.w, BUTTON_H, BUTTON_H / 2);
     x.fill();
     const cancel = fitted(x, t("Cancel"), CANCEL.w - 16, 500, 12.5);
-    label(x, cancel.s, CANCEL.x + CANCEL.w / 2, BUTTON_Y + BUTTON_H / 2, cancel.font, "#F1F2F4", "center");
+    label(x, cancel.s, CANCEL.x + CANCEL.w / 2, BUTTON_Y + BUTTON_H / 2, cancel.font, P.onSecondaryContainer, "center");
     x.restore();
   }
 

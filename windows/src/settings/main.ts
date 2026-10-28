@@ -5,6 +5,10 @@
 // First: older storage keys move to Tokkip's before anything reads them.
 import "../core/legacy";
 import "./settings.css";
+import { SEEDS, loadTheme, saveTheme, seedOf, type ThemeMode } from "../core/theme";
+import { watchTheme } from "../core/theme";
+
+watchTheme();
 import { Bridge, onEvent, type ShortcutsReport } from "../core/bridge";
 import { CUSTOM_SERVER_KEY, providerDef, urlExposure } from "../core/providers";
 import {
@@ -642,6 +646,56 @@ function integrationsSection(present: Record<string, boolean>): HTMLElement {
   return h("section", {}, h("h2", {}, h("span", { text: t("Integrations") })), note, list);
 }
 
+// ── Appearance ────────────────────────────────────────────────────────────────
+
+/**
+ * Settings → Appearance: light, dark or as Windows is, and the colour the
+ * scheme grows from (Tokkip's own, or one of a few). Every window follows.
+ */
+function appearanceSection(): HTMLElement {
+  const body = h("div", { class: "appearance" });
+  const modes: { id: ThemeMode; label: string }[] = [
+    { id: "system", label: N_("System") },
+    { id: "light", label: N_("Light") },
+    { id: "dark", label: N_("Dark") },
+  ];
+  function draw() {
+    const prefs = loadTheme();
+    clear(body);
+    const modeRow = h("div", { class: "seg-row", role: "radiogroup" });
+    for (const m of modes) {
+      modeRow.append(h("button", {
+        class: "seg-btn" + (prefs.mode === m.id ? " on" : ""),
+        role: "radio",
+        "aria-checked": String(prefs.mode === m.id),
+        text: t(m.label),
+        onclick: () => { saveTheme({ ...loadTheme(), mode: m.id }); draw(); },
+      }));
+    }
+    const seeds = h("div", { class: "seed-row" });
+    for (const c of SEEDS) {
+      const on = prefs.seed.toUpperCase() === c.toUpperCase();
+      seeds.append(h("button", {
+        class: "seed" + (on ? " on" : "") + (c === "" ? " own" : ""),
+        style: `--seed:${c || seedOf({ ...prefs, seed: "" })}`,
+        title: c ? c : t("Same as Tokkip"),
+        "aria-label": c ? c : t("Same as Tokkip"),
+        "aria-pressed": String(on),
+        onclick: () => { saveTheme({ ...loadTheme(), seed: c }); draw(); },
+      }));
+    }
+    body.append(
+      h("div", { class: "row" }, h("label", { text: t("Theme") }), modeRow),
+      h("div", { class: "row" }, h("label", { text: t("Color") }), seeds),
+      h("div", { class: "hint", text: t("The island, Settings and Tokkip on the desktop all follow it. Colors grow from the one you pick.") }),
+    );
+  }
+  draw();
+  window.addEventListener("tokkip-theme", draw);
+  window.addEventListener("storage", (e) => { if (e.key === "tokkip.theme") draw(); });
+  return h("section", {}, h("h2", {}, h("span", { text: t("Appearance") })), body);
+}
+
 // ── General section ───────────────────────────────────────────────────────────
 
 function generalSection(): HTMLElement {
@@ -1187,6 +1241,7 @@ async function render() {
   root.append(
     h("h1", {}, h("span", { text: "Tokkip" }), h("span", { class: "version", text: version })),
     tokkipSection(),
+    appearanceSection(),
     apiSection(hasKey),
     chatProvidersSection(chatKeys, keyChanged),
     localSection(customKey),

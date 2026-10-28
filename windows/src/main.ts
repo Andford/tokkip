@@ -3,6 +3,7 @@
 // First: older storage keys move to Tokkip's before anything reads them.
 import "./core/legacy";
 import "./style.css";
+import { watchTheme } from "./core/theme";
 import { Bridge, IS_TAURI, onEvent } from "./core/bridge";
 import { Sound } from "./core/sound";
 import { State, type Settings } from "./core/state";
@@ -22,6 +23,7 @@ function applyLanguage() {
 async function main() {
   const root = document.getElementById("root");
   if (!root) return;
+  watchTheme();
 
   void Sound.preload();
 
@@ -109,6 +111,8 @@ async function main() {
   // page wake the island so the visuals can be checked with `npm run dev`.
   if (!IS_TAURI) {
     document.addEventListener("click", () => Sound.resume(), { once: true });
+    // For checking the visuals in a plain browser: open any view from the console.
+    (window as unknown as { tokkip: unknown }).tokkip = { island, State };
   }
 }
 

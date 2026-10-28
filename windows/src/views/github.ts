@@ -83,7 +83,7 @@ export function githubPulseCard(
       { class: "int-stats gh-rows" },
       statButton(svg(ICONS.pull, 10, { stroke: 2.2 }), prColor, GH_STRINGS.myPRs, myPRsValue(pulse.myPRs),
         () => show("myPRs")),
-      statButton(svg(ICONS.eye, 10, { stroke: 2.2 }), reviews > 0 ? "#8AB4F8" : "#6B7079", GH_STRINGS.toReview,
+      statButton(svg(ICONS.eye, 10, { stroke: 2.2 }), reviews > 0 ? "var(--c-link)" : "var(--c-outline)", GH_STRINGS.toReview,
         String(reviews), () => show("toReview")),
       statButton(svg(main.failing ? ICONS.octagonX : ICONS.seal, 10, { evenOdd: true }), main.color,
         GH_STRINGS.mainCI, main.value, () => show("mainCI")),

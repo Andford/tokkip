@@ -95,7 +95,7 @@ export function buildClipboard(actions: ViewActions): ViewHost {
   const foot = h("div", { class: "clip-foot" }, h("span", { class: "clip-hint", text: tl(S.hint) }), toast);
   const wrap = h("div", { class: "clip-wrap" }, head, shelf, empty, foot);
   const cardEl = h("div", { class: "card wash clip-card" }, wrap);
-  cardEl.style.setProperty("--wash", "rgba(94,200,192,0.45)");
+  cardEl.style.setProperty("--wash", "color-mix(in srgb, var(--c-primary) 45%, transparent)");
   const el = h("div", { class: "view clip-view" }, cardEl);
 
   // A wheel scrolls the row sideways: there is nothing below to scroll to.

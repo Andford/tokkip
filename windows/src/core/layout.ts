@@ -63,8 +63,10 @@ export const NOTCH_H = 32;
 export const COMPACT_W = 288; // NOTCH_W + 104
 export const EXPANDED_W = 640;
 
-export const ROUNDED_CORNER = 14; // hidden / compact
-export const EXPANDED_CORNER = 22;
+export const ROUNDED_CORNER = 16; // compact: a full pill (NOTCH_H / 2)
+export const EXPANDED_CORNER = 28; // Material's extra-large corner
+/** The island floats this far below the top of the screen (style.css --gap). */
+export const ISLAND_GAP = 8;
 
 /** Invisible hover strip that wakes the island when hidden. */
 export const WAKE_STRIP_W = 240;

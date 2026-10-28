@@ -1,6 +1,7 @@
 // Minimal DOM helpers — no framework, as specified.
 
 import { Msg, onLanguageChange } from "../i18n/i18n";
+import { ICONS, ICON_VIEWBOX } from "./icons";
 
 type Attrs = Record<string, string | number | boolean | EventListener | Msg | undefined>;
 type Child = Node | string | Msg | null | undefined | false;
@@ -105,19 +106,28 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+const MATERIAL = new Set<string>(Object.values(ICONS));
+
+/**
+ * An icon in currentColor. ICONS are Material Symbols (filled, 960-unit grid,
+ * a touch larger so they read like the old 24-unit glyphs); any other path is
+ * on a 24×24 grid and may be stroked.
+ */
 export function svg(
   path: string,
   size = 14,
   opts: { fill?: string; stroke?: number; evenOdd?: boolean } = {},
 ): SVGSVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  el.setAttribute("viewBox", "0 0 24 24");
-  el.setAttribute("width", String(size));
-  el.setAttribute("height", String(size));
+  const material = MATERIAL.has(path);
+  const px = material ? Math.round(size * 1.15 * 2) / 2 : size;
+  el.setAttribute("viewBox", material ? ICON_VIEWBOX : "0 0 24 24");
+  el.setAttribute("width", String(px));
+  el.setAttribute("height", String(px));
   el.setAttribute("aria-hidden", "true");
   const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
   p.setAttribute("d", path);
-  if (opts.stroke) {
+  if (opts.stroke && !material) {
     p.setAttribute("fill", "none");
     p.setAttribute("stroke", "currentColor");
     p.setAttribute("stroke-width", String(opts.stroke));
@@ -125,11 +135,20 @@ export function svg(
     p.setAttribute("stroke-linejoin", "round");
   } else {
     p.setAttribute("fill", opts.fill ?? "currentColor");
-    // Lets a filled glyph carry a cut-out (checkmark.seal.fill, xmark.octagon.fill).
-    if (opts.evenOdd) p.setAttribute("fill-rule", "evenodd");
+    if (opts.evenOdd && !material) p.setAttribute("fill-rule", "evenodd");
   }
   el.append(p);
   return el;
+}
+
+/** `color` (a hex or a CSS variable) at `pct` % over what is behind it. */
+export function tint(color: string, pct: number): string {
+  return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+}
+
+/** `color` pulled toward the text colour, so it reads on light and dark. */
+export function ink(color: string): string {
+  return `color-mix(in srgb, ${color} 70%, var(--c-on-surface))`;
 }
 
 export function clear(el: Element) {

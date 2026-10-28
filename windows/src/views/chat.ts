@@ -232,7 +232,7 @@ export function buildPrompt(onHeightChange: () => void): ViewHost {
   body.append(chipRow, log, picker.el, modelRow, bar);
 
   const el = h("div", { class: "view" }, h("div", { class: "card wash chat-card" }, body));
-  (el.querySelector(".card") as HTMLElement).style.setProperty("--wash", "rgba(99,102,241,0.5)");
+  (el.querySelector(".card") as HTMLElement).style.setProperty("--wash", "color-mix(in srgb, var(--c-tertiary) 50%, transparent)");
 
   let sending = false;
   let renderedCount = -1;

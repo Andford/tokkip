@@ -12,6 +12,7 @@ import { closeCurve } from "../core/anim";
 import { Sound } from "../core/sound";
 import { COMPACT_W, NOTCH_H } from "../core/layout";
 import { t } from "../i18n/i18n";
+import { palette } from "../core/theme";
 
 // ── Timing (seconds) ──────────────────────────────────────────────────────────
 
@@ -249,7 +250,7 @@ function drawCard(x: CanvasRenderingContext2D, p: Pose) {
   if (p.card <= 0) return;
   x.save();
   x.globalAlpha = p.card;
-  x.fillStyle = "#141518";
+  x.fillStyle = palette().surfaceContainer;
   x.beginPath();
   x.roundRect(CARD.x, CARD.y, CARD.w, CARD.h, CARD.r);
   x.fill();
@@ -290,7 +291,7 @@ function drawBubble(x: CanvasRenderingContext2D, p: Pose) {
   if (p.bubble <= 0.01) return;
   const text = t("Hello!");
   x.save();
-  x.font = `700 17px system-ui, "Segoe UI", sans-serif`;
+  x.font = `600 17px "Fredoka", system-ui, "Segoe UI", sans-serif`;
   const w = Math.max(64, x.measureText(text).width + 26);
   const h = 32;
   const bx = p.x + p.size * 1.25;
@@ -298,14 +299,14 @@ function drawBubble(x: CanvasRenderingContext2D, p: Pose) {
   x.translate(bx, by + h / 2);
   x.scale(p.bubble, p.bubble);
   x.translate(0, -h / 2);
-  x.fillStyle = "#FFFFFF";
+  x.fillStyle = palette().inverseSurface;
   x.beginPath();
   x.roundRect(0, 0, w, h, h / 2);
   x.moveTo(10, h - 6);
   x.lineTo(-6, h + 8);
   x.lineTo(22, h - 2);
   x.fill();
-  x.fillStyle = "#1A1C22";
+  x.fillStyle = palette().inverseOnSurface;
   x.textAlign = "center";
   x.textBaseline = "middle";
   x.fillText(text, w / 2, h / 2 + 1);

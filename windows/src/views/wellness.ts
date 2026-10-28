@@ -3,7 +3,7 @@
 // the breathing. The card is built once and updated in place: a text field or
 // a button must never be rebuilt under the pointer.
 
-import { h, svg, clear } from "./dom";
+import { h, svg, clear, tint } from "./dom";
 import { ICONS } from "./icons";
 import type { AgentTask } from "../core/state";
 import {
@@ -16,7 +16,6 @@ import { createMiniBot } from "../tokkip/minibots";
 import { language, t, tl } from "../i18n/i18n";
 
 /** calendar, on the 24×24 grid of views/icons.ts. */
-const CALENDAR_ICON = "M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2zm12 8H5v9h14v-9z";
 
 export interface WellnessHost {
   el: HTMLElement;
@@ -57,15 +56,15 @@ export function buildWellnessPill(task: AgentTask, onTap: () => void): { el: HTM
   const mini = createMiniBot(task, 24);
   const label = h("span", { class: "lbl" });
   const pill = h("div", { class: "pill wl-pill", onclick: onTap }, mini, label);
-  pill.style.borderColor = `${color}24`;
+  pill.style.borderColor = `${tint(color, 14)}`;
   pill.addEventListener("mouseenter", () => {
-    pill.style.background = `${color}2e`;
-    pill.style.borderColor = `${color}8c`;
-    pill.style.boxShadow = `0 2px 10px ${color}59`;
+    pill.style.background = `${tint(color, 18)}`;
+    pill.style.borderColor = `${tint(color, 55)}`;
+    pill.style.boxShadow = `0 2px 10px ${tint(color, 35)}`;
   });
   pill.addEventListener("mouseleave", () => {
     pill.style.background = "";
-    pill.style.borderColor = `${color}24`;
+    pill.style.borderColor = `${tint(color, 14)}`;
     pill.style.boxShadow = "";
   });
   const sync = () => {
@@ -86,7 +85,7 @@ export function buildWellnessCard(): WellnessHost {
     tasks: h("button", { class: "wl-tab", onclick: () => WellnessControl.setTab("tasks") }, svg(ICONS.check, 9, { stroke: 2.6 }), h("span", { text: tl("Tasks") }), badge),
     focus: h("button", { class: "wl-tab", onclick: () => WellnessControl.setTab("focus") }, svg(ICONS.timer, 9), h("span", { text: tl("Focus") })),
     breathe: h("button", { class: "wl-tab", onclick: () => WellnessControl.setTab("breathe") }, h("i", { class: "wl-tab-dot" }), h("span", { text: tl("Breathe") })),
-    agenda: h("button", { class: "wl-tab", onclick: () => WellnessControl.setTab("agenda") }, svg(CALENDAR_ICON, 9), h("span", { text: tl("Agenda") })),
+    agenda: h("button", { class: "wl-tab", onclick: () => WellnessControl.setTab("agenda") }, svg(ICONS.calendar, 9), h("span", { text: tl("Agenda") })),
   };
   tabs.tasks.title = t("Tasks");
   tabs.focus.title = t("Focus");
@@ -179,7 +178,7 @@ export function buildWellnessCard(): WellnessHost {
     const c = 2 * Math.PI * RING_R;
     ringFill.style.strokeDasharray = `${c}`;
     ringFill.style.strokeDashoffset = `${c * (1 - pomodoroProgress(p, now))}`;
-    ringFill.style.stroke = p.phase === "focus" || p.phase === "idle" ? WELLNESS_COLOR : "#4ADE80";
+    ringFill.style.stroke = p.phase === "focus" || p.phase === "idle" ? WELLNESS_COLOR : "var(--c-success)";
     const next = orderedTasks(Wellness.tasks).find((x) => !x.done);
     const today = p.today > 0 ? t("{count} today", { count: p.today }) : "";
     working.textContent = next && p.phase === "focus" ? t("On: {task}", { task: next.text }) : today;
@@ -371,7 +370,7 @@ function buildRing(size: number): { ring: SVGSVGElement; fill: SVGCircleElement 
     return c;
   };
   const track = circle("track");
-  track.setAttribute("stroke", "rgba(255,255,255,0.08)");
+  track.style.stroke = "var(--c-surface-container-highest)";
   const fill = circle("fill");
   fill.setAttribute("stroke-linecap", "round");
   fill.setAttribute("transform", "rotate(-90 23 23)");

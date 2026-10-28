@@ -4,7 +4,7 @@
 // Cal.com is the one simplification: macOS shows a three-level calendar
 // (month → day → booking); here it is the list of upcoming bookings.
 
-import { h, svg, clear, dot } from "./dom";
+import { h, svg, clear, dot, tint } from "./dom";
 import { ICONS } from "./icons";
 import { State, type AgentTask } from "../core/state";
 import { Bridge } from "../core/bridge";
@@ -34,7 +34,7 @@ function header(color: string, name: string, kind: string, extra?: Node): HTMLEl
 /** Highlighted first row + plain rows, the layout every list card shares. */
 function listRow(accent: string, first: boolean, ...children: Node[]): HTMLElement {
   const row = h("div", { class: first ? "int-row first" : "int-row" }, dot(accent, 5), ...children);
-  if (first) row.style.background = `${accent}14`;
+  if (first) row.style.background = `${tint(accent, 8)}`;
   return row;
 }
 
@@ -64,12 +64,12 @@ export function idleStatus(
   info: { configured: boolean; error: string | null } | undefined,
   chatModel: string,
 ): { label: string; color: string } {
-  if (isComingSoon(id)) return { label: t("Coming soon"), color: "#6B7079" };
-  if (info?.error) return { label: info.error, color: "#F4505E" };
+  if (isComingSoon(id)) return { label: t("Coming soon"), color: "var(--c-outline)" };
+  if (info?.error) return { label: info.error, color: "var(--c-error)" };
   const configured = info?.configured ?? false;
   const def = pillDefinition(id);
-  const ok = (label: string) => ({ label, color: "#22C55E" });
-  const missing = (label: string) => ({ label, color: "#F4505E" });
+  const ok = (label: string) => ({ label, color: "var(--c-success)" });
+  const missing = (label: string) => ({ label, color: "var(--c-error)" });
   // Pills driven by hooks never have a key: they are connected once the hooks
   // are in place (Mac #183). A session replaces this card; nothing is loading.
   if (def?.connect.kind === "hooks") return configured ? ok(t("Hooks installed")) : missing(t("Hooks not installed"));
@@ -93,7 +93,7 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
     actions.append(
       h("button", {
         class: "link-btn",
-        style: `color:${task.color}d9`,
+        style: `color:${tint(task.color, 85)}`,
         text: t("Open {name}", { name: task.name }),
         onclick: () => void Bridge.openUrl(OPEN_URLS[task.id]),
       }),
@@ -106,7 +106,7 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
     actions.append(
       h("button", {
         class: "link-btn",
-        style: `color:${task.color}d9`,
+        style: `color:${tint(task.color, 85)}`,
         text: t("Refresh"),
         // A hook pill has nothing to poll: look at its hooks again instead.
         onclick: () => void (hookPill ? refreshHookPills() : Bridge.refreshIntegration(task.id)),
@@ -114,7 +114,7 @@ function idleCard(task: AgentTask, openSettings: () => void): HTMLElement {
     );
   } else if (!configured) {
     actions.append(
-      h("button", { class: "link-btn", style: "color:#8e939c", text: t("Settings…"), onclick: openSettings }),
+      h("button", { class: "link-btn", style: "color:var(--c-on-surface-variant)", text: t("Settings…"), onclick: openSettings }),
     );
   }
 
@@ -137,7 +137,7 @@ function vercelCard(onDetail: () => void): HTMLElement {
   const deployments = arr("integration_vercel", "deployments");
   const rows = h("div", { class: "int-rows" });
   deployments.slice(0, 3).forEach((d, i) => {
-    const accent = d.state === "READY" ? "#22C55E" : "#F4505E";
+    const accent = d.state === "READY" ? "var(--c-success)" : "var(--c-error)";
     const name = h("span", { class: "int-name", text: String(d.projectName ?? "") });
     const ago = h("span", { class: "int-ago", text: timeAgo(d.createdAt) });
     if (i === 0) {
@@ -157,7 +157,7 @@ function vercelCard(onDetail: () => void): HTMLElement {
 function vercelDetail(onBack: () => void): HTMLElement {
   const d = arr("integration_vercel", "deployments")[0] ?? {};
   const success = d.state === "READY";
-  const accent = success ? "#22C55E" : "#F4505E";
+  const accent = success ? "var(--c-success)" : "var(--c-error)";
   const status = success ? t("Ready") : d.state === "CANCELED" ? t("Canceled") : t("Error");
   const body = h("div", { class: "int-detail-body" });
   if (d.commitMessage) body.append(h("div", { class: "int-commit", text: String(d.commitMessage) }));
@@ -183,7 +183,7 @@ function vercelDetail(onBack: () => void): HTMLElement {
       h("button", { class: "int-back", onclick: onBack }, svg(ICONS.chevronLeft, 10, { stroke: 2.4 })),
       dot(accent, 6),
       h("b", { text: String(d.projectName ?? t("Deployment")) }),
-      h("span", { class: "int-badge", style: `color:${accent};background:${accent}24`, text: status }),
+      h("span", { class: "int-badge", style: `color:${accent};background:${tint(accent, 14)}`, text: status }),
     ),
     body,
   );
@@ -201,7 +201,7 @@ function resendCard(): HTMLElement {
   const rows = h("div", { class: "int-rows" });
   emails.slice(0, 3).forEach((e, i) => {
     const delivered = e.lastEvent === "delivered";
-    const accent = delivered ? "#22C55E" : "#F4505E";
+    const accent = delivered ? "var(--c-success)" : "var(--c-error)";
     const to = Array.isArray(e.to) ? String(e.to[0] ?? "?") : "?";
     const short = to.split("@")[0];
     const cells: Node[] = [
@@ -211,7 +211,7 @@ function resendCard(): HTMLElement {
     if (i === 0 && e.subject) cells.push(h("span", { class: "int-sub", text: String(e.subject) }));
     rows.append(listRow(accent, i === 0, ...cells));
   });
-  return h("div", { class: "int-card" }, header("#22C55E", "Resend", t("Emails"), extra), rows);
+  return h("div", { class: "int-card" }, header("var(--c-success)", "Resend", t("Emails"), extra), rows);
 }
 
 // ── GitHub ────────────────────────────────────────────────────────────────────
@@ -234,12 +234,12 @@ function githubCard(): HTMLElement {
   return h(
     "div",
     { class: "int-card" },
-    header("#F4505E", "GitHub", t("Overview")),
+    header("var(--c-error)", "GitHub", t("Overview")),
     h(
       "div",
       { class: "int-stats" },
-      statRow(ICONS.star, "#F5A524", t("Total stars"), fmt(stars)),
-      statRow(ICONS.stack, "#6B7079", t("Repositories"), String(repos)),
+      statRow(ICONS.star, "var(--c-warn)", t("Total stars"), fmt(stars)),
+      statRow(ICONS.stack, "var(--c-outline)", t("Repositories"), String(repos)),
     ),
   );
 }
@@ -253,7 +253,7 @@ function stripeCard(): HTMLElement {
   const rows = h("div", { class: "int-rows tight" });
   for (const p of arr("integration_stripe", "payments")) {
     const success = p.status === "succeeded";
-    const accent = success ? "#22C55E" : "#F4505E";
+    const accent = success ? "var(--c-success)" : "var(--c-error)";
     rows.append(
       h(
         "div",
@@ -262,7 +262,7 @@ function stripeCard(): HTMLElement {
         h("span", { class: "int-name", text: String(p.description ?? t("Payment")) }),
         h("span", {
           class: "int-amount",
-          style: "color:#22c55e",
+          style: "color:var(--c-success)",
           text: `+${(Number(p.amount ?? 0) / 100).toFixed(2)}`,
         }),
         h("span", { class: "int-ago", text: timeAgo(p.createdAt) }),
@@ -300,7 +300,7 @@ function notionCard(): HTMLElement {
       ),
     );
   }
-  return h("div", { class: "int-card" }, header("#E8E8E8", "Notion", t("Recent")), rows);
+  return h("div", { class: "int-card" }, header("var(--c-on-surface)", "Notion", t("Recent")), rows);
 }
 
 // ── Cal.com ───────────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ function n8nCard(task: AgentTask, onDetail: () => void, openSettings: () => void
   const hasActivity = task.steps.length > 0 && (task.state === "finished" || task.state === "error");
   if (!hasActivity) return idleCard(task, openSettings);
   const success = task.state === "finished";
-  const accent = success ? "#22C55E" : "#F4505E";
+  const accent = success ? "var(--c-success)" : "var(--c-error)";
   return h(
     "div",
     { class: "int-card" },
@@ -348,7 +348,7 @@ function n8nCard(task: AgentTask, onDetail: () => void, openSettings: () => void
         "button",
         {
           class: "int-pill",
-          style: `background:${accent}1a;border-color:${accent}38`,
+          style: `background:${tint(accent, 10)};border-color:${tint(accent, 22)}`,
           onclick: onDetail,
         },
         dot(accent, 5),
@@ -361,7 +361,7 @@ function n8nCard(task: AgentTask, onDetail: () => void, openSettings: () => void
 
 function n8nDetail(task: AgentTask, onBack: () => void): HTMLElement {
   const success = task.state === "finished";
-  const accent = success ? "#22C55E" : "#F4505E";
+  const accent = success ? "var(--c-success)" : "var(--c-error)";
   const detail = task.steps[1];
   return h(
     "div",
@@ -374,7 +374,7 @@ function n8nDetail(task: AgentTask, onBack: () => void): HTMLElement {
       h("b", { text: task.steps[0] ?? t("Workflow") }),
       h("span", {
         class: "int-badge",
-        style: `color:${accent};background:${accent}24`,
+        style: `color:${accent};background:${tint(accent, 14)}`,
         text: success ? t("Success") : t("Failed"),
       }),
     ),
