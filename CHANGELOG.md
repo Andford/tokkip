@@ -1,5 +1,9 @@
 # Cambios
 
+## Octubre 2026 — Tokkip 2.0.1 · Tokkip PC 1.3.1
+
+- **Tokkip vuelve a su carita de siempre**, en el teléfono, el reloj, los widgets y la PC: ojos redondos sin brillitos que parpadean en una línea, el ^^ de feliz en arco y los ojos cerrados sin pestañas. Ya no tiene cejas ni el «><»: cuando aprieta los ojos los cierra en una línea. Conserva sus patitas y todos sus movimientos.
+
 ## Octubre 2026 — Tokkip 2.0 · Tokkip PC 1.2 · Tokkip Notas 0.4
 
 - **Tokkip se mueve a su manera**: un motor de animación nuevo, hecho para Tokkip, igual en el teléfono, el reloj, los widgets y la PC. Brinca, se estira, estornuda, tararea, mira a los lados, baila cuatro pasos distintos con la música, levanta las patitas, hace berrinche con vapor, gira de gusto al terminar algo y se marea con estrellitas.

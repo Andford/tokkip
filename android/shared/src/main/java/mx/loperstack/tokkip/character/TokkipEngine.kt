@@ -1137,14 +1137,9 @@ class TokkipEngine {
                     for (sd in intArrayOf(-1, 1)) {
                         eyeGlow(pose, sd * 46f, -6f)
                         withTransform({ translate(sd * 46f, -6f) }) {
-                            drawBrow(face, sd.toFloat(), ink)
                             withTransform({ scale(eyeScale, eyeScale, Offset.Zero) }) {
                                 drawEye(eye, sd.toFloat(), ink, open, t)
-                                if ((eye == Eye.OPEN && open > 0.5f) || eye == Eye.WIDE) glint(pose, 0f, 0f)
-                                if (rest == Rest.TIRED && !dizzy.value) drawArc(
-                                    Color(0x665B4B8A), 20f, 140f, false, Offset(-16f, 8f), Size(32f, 16f),
-                                    style = Stroke(4.5f, cap = StrokeCap.Round),
-                                )
+                                if (eye == Eye.OPEN && open >= 0.35f) glint(pose, 0f, 0f)
                             }
                         }
                     }
@@ -1178,92 +1173,64 @@ class TokkipEngine {
         }
     }
 
-    private fun DrawScope.drawBrow(face: Face, side: Float, ink: Color) {
-        if (abs(face.brow) < 0.05f && face.browUp < 0.05f) return
-        val alpha = min(1f, abs(face.brow) * 2f + face.browUp * 2f)
-        withTransform({
-            translate(0f, -27f - face.browUp * 9f)
-            rotate(deg(-side * 0.42f * face.brow), Offset.Zero)
-        }) {
-            drawPath(Path().apply { moveTo(-11f, 1f); quadraticTo(0f, -3f, 11f, 1f) }, ink, alpha = alpha, style = Stroke(5f, cap = StrokeCap.Round))
-        }
+    // Tokkip's first face, the one that is his: round ink eyes with no shine that
+    // blink to a line; happy and closed eyes are simple arcs. No brows. The PC
+    // draws the same face (windows/src/tokkip/figure.ts).
+
+    private val eyeLine = Stroke(6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+    private fun DrawScope.eyeLineShut(ink: Color) = drawLine(ink, Offset(-12f, 0f), Offset(12f, 0f), 6f, StrokeCap.Round)
+
+    /** A round eye of radius `r`; less than a third open, it is a line. */
+    private fun DrawScope.roundEye(open: Float, ink: Color, r: Float = 12f) {
+        if (open < 0.35f) return eyeLineShut(ink)
+        val h = r * min(1f, open)
+        drawOval(ink, Offset(-r, -h), Size(r * 2f, h * 2f))
     }
 
-    private fun DrawScope.openEye(open: Float, ink: Color) {
-        if (open < 0.22f) {
-            drawPath(Path().apply { moveTo(-11f, 1f); quadraticTo(0f, 4f, 11f, 1f) }, ink, style = Stroke(5.5f, cap = StrokeCap.Round))
-            return
-        }
-        drawOval(ink, Offset(-11f, -13.5f * open), Size(22f, 27f * open))
-        if (open > 0.6f) {
-            drawCircle(Color.White.copy(alpha = 0.92f), 3.6f, Offset(-3.5f, -5f))
-            drawCircle(Color.White.copy(alpha = 0.92f), 1.7f, Offset(4f, 4.5f))
-        }
-    }
-
-    private fun crescent() = Path().apply {
-        moveTo(-13f, 4f); quadraticTo(0f, -16f, 13f, 4f); quadraticTo(0f, -6f, -13f, 4f); close()
-    }
+    /** A happy eye: an arc bent upwards (^). */
+    private fun DrawScope.happyArc(ink: Color) =
+        drawArc(ink, 207f, 126f, false, Offset(-13f, -5f), Size(26f, 26f), style = eyeLine)
 
     /** One eye, centred on (0, 0); `side` −1 is the screen's left. */
     private fun DrawScope.drawEye(eye: Eye, side: Float, ink: Color, open: Float, t: Float) {
-        val st = Stroke(5.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         when (eye) {
-            Eye.OPEN -> openEye(open, ink)
-            Eye.WIDE -> if (open < 0.3f) openEye(open, ink) else {
+            Eye.OPEN -> roundEye(open, ink)
+            Eye.WIDE, Eye.SPARKLE -> if (open < 0.35f) eyeLineShut(ink) else {
                 drawCircle(ink, 15f, Offset.Zero)
-                drawCircle(Color.White.copy(alpha = 0.92f), 5f, Offset(-4.5f, -5f))
-                drawCircle(Color.White.copy(alpha = 0.92f), 2.4f, Offset(3f, 4.5f))
+                drawCircle(Color.White, 5f, Offset(-4f, -5f))
             }
-            Eye.DOT -> {
-                drawCircle(ink, 6.5f, Offset(0f, 1f))
-                drawCircle(Color.White.copy(alpha = 0.9f), 1.8f, Offset(-2f, -1f))
-            }
-            Eye.HAPPY -> drawPath(crescent(), ink)
-            Eye.CLOSED -> {
-                drawPath(Path().apply { moveTo(-12f, 0f); quadraticTo(0f, 8f, 12f, 0f) }, ink, style = st)
-                val lashes = Path().apply { for (lx in floatArrayOf(-7f, 0f, 7f)) { moveTo(lx, if (lx == 0f) 4.5f else 3f); lineTo(lx * 1.25f, if (lx == 0f) 10f else 8.5f) } }
-                drawPath(lashes, ink, style = Stroke(3f, cap = StrokeCap.Round))
-            }
-            Eye.LINE, Eye.FLAT -> drawLine(ink, Offset(-12f, 0f), Offset(12f, 0f), 5.5f, StrokeCap.Round)
-            Eye.SQUINT -> drawPath(Path().apply { moveTo(-side * 9f, -9f); lineTo(side * 8f, 0f); lineTo(-side * 9f, 9f) }, ink, style = st)
+            Eye.DOT -> roundEye(open, ink, 10f)
+            Eye.HAPPY -> happyArc(ink)
+            Eye.CLOSED -> drawArc(ink, 27f, 126f, false, Offset(-12f, -14f), Size(24f, 24f), style = eyeLine)
+            Eye.LINE, Eye.FLAT, Eye.SQUINT -> eyeLineShut(ink)
             Eye.SPIRAL -> {
                 val p = Path()
                 var a = 0f
-                val spin = t * 7f * side
-                while (a <= PI_F * 4.2f) {
-                    val rr = 1f + a * 1.05f
+                val spin = t * 8f * side
+                while (a < 14f) {
+                    val rr = a * 1.05f
                     if (a == 0f) p.moveTo(cos(a + spin) * rr, sin(a + spin) * rr) else p.lineTo(cos(a + spin) * rr, sin(a + spin) * rr)
-                    a += 0.2f
+                    a += 0.25f
                 }
-                drawPath(p, ink, style = Stroke(3.2f, cap = StrokeCap.Round))
+                drawPath(p, ink, style = Stroke(3.5f, cap = StrokeCap.Round))
             }
-            Eye.HEART -> {
-                val k = 1.3f * (1f + 0.08f * sin(t * 10f))
-                withTransform({ scale(k, k, Offset.Zero) }) {
-                    drawPath(heart(14f), Color(0xFFE5486F))
-                    drawOval(Color.White.copy(alpha = 0.75f), Offset(-7.6f, -6.8f), Size(5.2f, 3.6f))
-                }
+            Eye.HEART -> withTransform({ translate(0f, 2f); scale(1.35f, 1.35f, Offset.Zero) }) {
+                drawPath(Path().apply {
+                    moveTo(0f, 6f); cubicTo(-14f, -4f, -8f, -16f, 0f, -8f); cubicTo(8f, -16f, 14f, -4f, 0f, 6f); close()
+                }, Color(0xFFE2466E))
             }
-            Eye.STAR -> withTransform({ rotate(deg(sin(t * 3f) * 0.25f * side), Offset.Zero) }) {
-                drawPath(star(16f, 7f), Color(0xFFF5B83D))
-                drawCircle(Color.White.copy(alpha = 0.7f), 2.4f, Offset(-3f, -4f))
+            Eye.STAR -> withTransform({ rotate(deg(t * 2f * side), Offset.Zero) }) {
+                drawPath(star(15f, 15f * 0.45f), Color(0xFFF2B42B))
             }
             Eye.SLEEPY -> {
-                clipPath(Path().apply { addRect(androidx.compose.ui.geometry.Rect(-16f, -1f, 16f, 19f)) }) {
-                    drawOval(ink, Offset(-11f, -12f), Size(22f, 24f))
-                }
-                drawLine(ink, Offset(-13f, -1f), Offset(13f, -1f), 4.5f, StrokeCap.Round)
+                drawArc(ink, 0f, 180f, true, Offset(-11f, -9f), Size(22f, 22f))
+                drawLine(ink, Offset(-13f, 1f), Offset(13f, 1f), 4f, StrokeCap.Round)
             }
-            Eye.WINK -> if (side > 0) drawPath(crescent(), ink) else openEye(open, ink)
-            Eye.SPARKLE -> {
-                openEye(max(0.7f, open), ink)
-                val k = 0.75f + 0.25f * sin(t * 9f + side)
-                withTransform({ translate(-3f, -5f); scale(k, k, Offset.Zero) }) { drawPath(twinkle(6.5f), Color.White) }
-            }
+            Eye.WINK -> if (side > 0) happyArc(ink) else roundEye(1f, ink)
             Eye.TEARY -> {
-                openEye(open, ink)
-                drawOval(Color(0xD978BEFF), Offset(-11f, 7f), Size(22f, 8f))
+                roundEye(open, ink)
+                // A tear runs down one side now and then.
                 val k = (t * 0.7f + if (side > 0) 0.5f else 0f) % 1f
                 if (k < 0.6f) {
                     val y = 14f + k * 40f
@@ -1280,12 +1247,6 @@ class TokkipEngine {
         val pink = Color(0xFFE98A97)
         val mouthInk = if (pose.species == Species.MAPACHE) Color(0xFF3A2E2C) else ink
         when (lips) {
-            Lips.GRIN -> {
-                drawPath(Path().apply {
-                    moveTo(-21f, y - 8f); quadraticTo(0f, y - 4f, 21f, y - 8f); quadraticTo(18f, y + 20f, 0f, y + 20f); quadraticTo(-18f, y + 20f, -21f, y - 8f); close()
-                }, mouthInk)
-                drawOval(pink, Offset(-10f, y + 6.5f), Size(20f, 11f))
-            }
             Lips.GAPE -> {
                 drawOval(mouthInk, Offset(-14f, y - 6f), Size(28f, 30f))
                 drawOval(pink, Offset(-9f, y + 13f), Size(18f, 10f))
@@ -1295,7 +1256,7 @@ class TokkipEngine {
             Lips.POUT -> drawCircle(mouthInk, 5.5f, Offset(5f, y + 2f))
             else -> with(TokkipArt) {
                 mouth(pose, when (lips) {
-                    Lips.SMILE -> Mouth.SMILE; Lips.BIG -> Mouth.BIG; Lips.OPEN -> Mouth.OPEN; Lips.O -> Mouth.O
+                    Lips.SMILE -> Mouth.SMILE; Lips.BIG, Lips.GRIN -> Mouth.BIG; Lips.OPEN -> Mouth.OPEN; Lips.O -> Mouth.O
                     Lips.SLEEP_O -> Mouth.SLEEP_O; Lips.FLAT -> Mouth.FLAT; Lips.FROWN -> Mouth.FROWN; Lips.WAVY -> Mouth.WAVY
                     Lips.CAT -> Mouth.CAT; else -> Mouth.TONGUE
                 })

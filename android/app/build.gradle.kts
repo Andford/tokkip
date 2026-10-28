@@ -12,8 +12,8 @@ android {
         applicationId = "mx.loperstack.tokkip"
         minSdk = 31
         targetSdk = 35
-        versionCode = 30
-        versionName = "2.0.0"
+        versionCode = 31
+        versionName = "2.0.1"
     }
 
     // One stable key for every CI build, so a new APK installs over the old one

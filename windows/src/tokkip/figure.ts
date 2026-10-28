@@ -119,182 +119,137 @@ export function twinkleShape(x: CanvasRenderingContext2D, r: number) {
 
 // ── Eyes ──────────────────────────────────────────────────────────────────────
 
-const HEART_RED = "#E5486F";
-const STAR_GOLD = "#F5B83D";
+// Tokkip's first face, the one that is his: round ink eyes with no shine that
+// blink to a line; happy and closed eyes are simple arcs. The few extras the
+// motion engine asks for (sparkle, teary, squint) are drawn in the same style.
+// No brows. The phone draws the same face (TokkipEngine.kt).
+
+const HEART_RED = "#E2466E";
+const STAR_GOLD = "#F2B42B";
 const TEAR_BLUE = "rgba(120,190,255,.85)";
+const EYE_LINE = 6;
 
-function shine(x: CanvasRenderingContext2D, big: number, small: number, dx = 0) {
-  x.fillStyle = "rgba(255,255,255,.92)";
+function line(x: CanvasRenderingContext2D) {
   x.beginPath();
-  x.arc(-3.5 + dx, -5, big, 0, Math.PI * 2);
-  x.fill();
+  x.moveTo(-12, 0);
+  x.lineTo(12, 0);
+  x.stroke();
+}
+
+/** A round eye of radius `r`; less than a third open, it is a line. */
+function roundEye(x: CanvasRenderingContext2D, open: number, r = 12) {
+  if (open < 0.35) return line(x);
   x.beginPath();
-  x.arc(4 + dx, 4.5, small, 0, Math.PI * 2);
+  x.ellipse(0, 0, r, r * Math.min(1, open), 0, 0, Math.PI * 2);
   x.fill();
 }
 
-function openEye(x: CanvasRenderingContext2D, open: number, ink: string) {
-  if (open < 0.22) {
-    x.beginPath();
-    x.moveTo(-11, 1);
-    x.quadraticCurveTo(0, 4, 11, 1);
-    x.stroke();
-    return;
-  }
-  x.fillStyle = ink;
+/** A happy eye: an arc bent upwards (^). */
+function happyArc(x: CanvasRenderingContext2D) {
   x.beginPath();
-  x.ellipse(0, 0, 11, 13.5 * open, 0, 0, Math.PI * 2);
-  x.fill();
-  if (open > 0.6) shine(x, 3.6, 1.7);
+  x.arc(0, 8, 13, Math.PI * 1.15, Math.PI * 1.85);
+  x.stroke();
 }
 
-/** A happy closed eye: a little crescent, thick in the middle. */
-function crescent(x: CanvasRenderingContext2D, ink: string) {
-  x.fillStyle = ink;
+function eyeHeart(x: CanvasRenderingContext2D) {
   x.beginPath();
-  x.moveTo(-13, 4);
-  x.quadraticCurveTo(0, -16, 13, 4);
-  x.quadraticCurveTo(0, -6, -13, 4);
-  x.closePath();
-  x.fill();
+  x.moveTo(0, 6);
+  x.bezierCurveTo(-14, -4, -8, -16, 0, -8);
+  x.bezierCurveTo(8, -16, 14, -4, 0, 6);
 }
 
 /** One eye, centred on (0, 0). `side` is −1 for his right (screen left), +1 for the other. */
-function drawEye(x: CanvasRenderingContext2D, f: Figure, side: -1 | 1, ink: string) {
+function drawEye(x: CanvasRenderingContext2D, f: Figure, side: -1 | 1, ink: string, raccoon: boolean) {
   x.strokeStyle = ink;
   x.fillStyle = ink;
   x.lineCap = "round";
   x.lineJoin = "round";
-  x.lineWidth = 5.5;
+  x.lineWidth = EYE_LINE;
   const t = f.t;
   switch (f.eye) {
     case "open":
-      openEye(x, f.open, ink);
+      roundEye(x, f.open);
+      // The raccoon's eyes sit in his dark mask: a dot of light keeps them there.
+      if (raccoon && f.open >= 0.35) {
+        x.fillStyle = "rgba(255,255,255,.9)";
+        x.beginPath();
+        x.arc(-4, -5, 3.6, 0, Math.PI * 2);
+        x.fill();
+      }
       return;
     case "wide":
-      if (f.open < 0.3) return openEye(x, f.open, ink);
+    case "sparkle":
+      if (f.open < 0.35) return line(x);
       x.beginPath();
       x.arc(0, 0, 15, 0, Math.PI * 2);
       x.fill();
-      shine(x, 5, 2.4, -1);
+      x.fillStyle = "#fff";
+      x.beginPath();
+      x.arc(-4, -5, 5, 0, Math.PI * 2);
+      x.fill();
       return;
     case "dot":
-      x.beginPath();
-      x.arc(0, 1, 6.5, 0, Math.PI * 2);
-      x.fill();
-      x.fillStyle = "rgba(255,255,255,.9)";
-      x.beginPath();
-      x.arc(-2, -1, 1.8, 0, Math.PI * 2);
-      x.fill();
+      roundEye(x, f.open, 10);
       return;
     case "smile":
-      crescent(x, ink);
+      happyArc(x);
       return;
     case "closed":
       x.beginPath();
-      x.moveTo(-12, 0);
-      x.quadraticCurveTo(0, 8, 12, 0);
+      x.arc(0, -2, 12, Math.PI * 0.15, Math.PI * 0.85);
       x.stroke();
-      x.lineWidth = 3;
-      for (const lx of [-7, 0, 7]) {
-        x.beginPath();
-        x.moveTo(lx, lx === 0 ? 4.5 : 3);
-        x.lineTo(lx * 1.25, lx === 0 ? 10 : 8.5);
-        x.stroke();
-      }
       return;
     case "line":
-      x.beginPath();
-      x.moveTo(-12, 0);
-      x.lineTo(12, 0);
-      x.stroke();
-      return;
     case "squint":
-      // ">" and "<": eyes screwed shut.
-      x.beginPath();
-      x.moveTo(-side * 9, -9);
-      x.lineTo(side * 8, 0);
-      x.lineTo(-side * 9, 9);
-      x.stroke();
+      line(x);
       return;
-    case "spiral": {
-      x.lineWidth = 3.2;
+    case "spiral":
+      x.lineWidth = 3.5;
       x.beginPath();
-      const spin = t * 7 * side;
-      for (let a = 0; a <= Math.PI * 4.2; a += 0.2) {
-        const r = 1 + a * 1.05;
-        x.lineTo(Math.cos(a + spin) * r, Math.sin(a + spin) * r);
+      for (let a = 0; a < 14; a += 0.25) {
+        const r = a * 1.05;
+        x.lineTo(Math.cos(a + t * 8 * side) * r, Math.sin(a + t * 8 * side) * r);
       }
       x.stroke();
       return;
-    }
-    case "heart": {
-      const k = 1.3 * (1 + 0.08 * Math.sin(t * 10));
+    case "heart":
       x.save();
-      x.scale(k, k);
       x.fillStyle = HEART_RED;
-      heartShape(x, 14);
-      x.fill();
-      x.fillStyle = "rgba(255,255,255,.75)";
-      x.beginPath();
-      x.ellipse(-5, -5, 2.6, 1.8, -0.5, 0, Math.PI * 2);
+      x.translate(0, 2);
+      x.scale(1.35, 1.35);
+      eyeHeart(x);
       x.fill();
       x.restore();
       return;
-    }
     case "star":
       x.save();
-      x.rotate(Math.sin(t * 3) * 0.25 * side);
       x.fillStyle = STAR_GOLD;
-      starShape(x, 16, 7);
-      x.fill();
-      x.fillStyle = "rgba(255,255,255,.7)";
-      x.beginPath();
-      x.arc(-3, -4, 2.4, 0, Math.PI * 2);
+      x.rotate(t * 2 * side);
+      starShape(x, 15, 15 * 0.45);
       x.fill();
       x.restore();
       return;
     case "sleepy":
-      x.save();
       x.beginPath();
-      x.rect(-16, -1, 32, 20);
-      x.clip();
-      x.beginPath();
-      x.ellipse(0, 0, 11, 12, 0, 0, Math.PI * 2);
+      x.arc(0, 2, 11, 0, Math.PI);
       x.fill();
-      x.restore();
-      x.lineWidth = 4.5;
+      x.lineWidth = 4;
       x.beginPath();
-      x.moveTo(-13, -1);
-      x.lineTo(13, -1);
+      x.moveTo(-13, 1);
+      x.lineTo(13, 1);
       x.stroke();
       return;
     case "wink":
-      if (side > 0) crescent(x, ink);
-      else openEye(x, f.open, ink);
+      if (side > 0) happyArc(x);
+      else roundEye(x, 1);
       return;
-    case "sparkle": {
-      openEye(x, Math.max(0.7, f.open), ink);
-      const k = 0.75 + 0.25 * Math.sin(t * 9 + side);
-      x.save();
-      x.translate(-3, -5);
-      x.scale(k, k);
-      x.fillStyle = "#fff";
-      twinkleShape(x, 6.5);
-      x.fill();
-      x.restore();
-      return;
-    }
     case "teary": {
-      openEye(x, f.open, ink);
-      x.fillStyle = TEAR_BLUE;
-      x.beginPath();
-      x.ellipse(0, 11, 11, 4, 0, 0, Math.PI * 2);
-      x.fill();
+      roundEye(x, f.open);
       // A tear runs down one side now and then.
-      const k = ((t * 0.7 + (side > 0 ? 0.5 : 0)) % 1);
+      const k = (t * 0.7 + (side > 0 ? 0.5 : 0)) % 1;
       if (k < 0.6) {
         const y = 14 + k * 40;
+        x.fillStyle = TEAR_BLUE;
         x.globalAlpha *= 1 - k / 0.6;
         x.beginPath();
         x.moveTo(side * 8, y - 6);
@@ -305,22 +260,6 @@ function drawEye(x: CanvasRenderingContext2D, f: Figure, side: -1 | 1, ink: stri
       return;
     }
   }
-}
-
-function drawBrow(x: CanvasRenderingContext2D, f: Figure, side: -1 | 1, ink: string) {
-  if (Math.abs(f.brow) < 0.05 && f.browUp < 0.05) return;
-  x.save();
-  x.translate(0, -27 - f.browUp * 9);
-  x.rotate(-side * 0.42 * f.brow);
-  x.strokeStyle = ink;
-  x.globalAlpha *= Math.min(1, Math.abs(f.brow) * 2 + f.browUp * 2);
-  x.lineWidth = 5;
-  x.lineCap = "round";
-  x.beginPath();
-  x.moveTo(-11, 1);
-  x.quadraticCurveTo(0, -3, 11, 1);
-  x.stroke();
-  x.restore();
 }
 
 // ── Mouth ─────────────────────────────────────────────────────────────────────
@@ -335,18 +274,10 @@ function drawFigMouth(x: CanvasRenderingContext2D, f: Figure, ink: string, y: nu
   x.lineJoin = "round";
   switch (f.mouth) {
     case "grin":
-      x.beginPath();
-      x.moveTo(-21, y - 8);
-      x.quadraticCurveTo(0, y - 4, 21, y - 8);
-      x.quadraticCurveTo(18, y + 20, 0, y + 20);
-      x.quadraticCurveTo(-18, y + 20, -21, y - 8);
-      x.closePath();
-      x.fill();
-      x.fillStyle = pink;
-      x.beginPath();
-      x.ellipse(0, y + 12, 10, 5.5, 0, 0, Math.PI * 2);
-      x.fill();
-      break;
+      // His first face's big smile.
+      x.restore();
+      drawMouth(x, "big", ink, f.t, y);
+      return;
     case "gape": {
       const g = Math.max(0, Math.min(1, f.gape));
       x.beginPath();
@@ -451,7 +382,7 @@ export function drawFigure(x: CanvasRenderingContext2D, look: TokkipLook, f: Fig
   for (const sd of [-1, 1]) {
     x.beginPath();
     if (robot) x.roundRect(sd * 60 - 10, 22, 20, 8, 4);
-    else x.ellipse(sd * 70, 18, 17 + f.blush * 3, 9 + f.blush * 2, 0, 0, Math.PI * 2);
+    else x.ellipse(sd * 70, 18, 17, 9, 0, 0, Math.PI * 2);
     x.fill();
   }
   x.shadowBlur = 0;
@@ -464,9 +395,8 @@ export function drawFigure(x: CanvasRenderingContext2D, look: TokkipLook, f: Fig
   for (const sd of [-1, 1] as const) {
     x.save();
     x.translate(sd * 46, -6);
-    if (!f.mini) drawBrow(x, f, sd, ink);
     x.scale(f.eyeScale, f.eyeScale);
-    drawEye(x, f, sd, ink);
+    drawEye(x, f, sd, ink, look.species === "mapache");
     x.restore();
   }
   drawNose(x, look);
