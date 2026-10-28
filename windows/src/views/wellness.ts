@@ -96,8 +96,9 @@ export function buildWellnessCard(): WellnessHost {
   // ── Tasks ──
   const input = h("input", {
     class: "wl-input", type: "text", maxlength: "200", autocomplete: "off", spellcheck: "false",
+    // tl(): follows the language, which the island learns after this is built.
+    placeholder: tl("New task…"),
   }) as HTMLInputElement;
-  input.placeholder = t("New task…");
   const addBtn = h("button", { class: "wl-add", title: tl("Add") }, svg(ICONS.plus, 9, { stroke: 2.6 }));
   const submit = () => {
     if (WellnessControl.addTask(input.value)) input.value = "";
