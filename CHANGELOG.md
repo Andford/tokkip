@@ -1,5 +1,11 @@
 # Cambios
 
+## Octubre 2026 — Tokkip 2.1
+
+- **Despertador de Tokkip**, en Sueño: tus alarmas con hora, días (una vez, entre semana, fin de semana o los que escojas), nombre y posponer de 5, 9, 10 o 15 minutos. Suena con su propia melodía de kalimba y caja de música, por el canal de alarma, así que se escucha aunque el teléfono esté en silencio.
+- Cuando suena aparece encima de la pantalla bloqueada: un amanecer, la hora y Tokkip estirándose. **Despertar suave** (sube poco a poco en un minuto), vibración y **Apagar respirando**: para apagarla respiras tres veces con Tokkip, así no la apagas dormido. Al final te da los buenos días.
+- Se reprograma sola al reiniciar el teléfono o al cambiar la hora. «Probar» la hace sonar en ese momento para que la escuches.
+
 ## Octubre 2026 — Tokkip PC 1.4
 
 - **Español e inglés, con la voz de Tokkip**: Tokkip PC ahora habla solo español e inglés, y en español te habla de tú, en español de México (computadora, lentes, moño, presiona, agrega). Las pastillas junto a Tokkip ahora se llaman **burbujas**, y todo dice **Ajustes**. Si tenías elegido otro idioma, Tokkip PC sigue el de Windows.

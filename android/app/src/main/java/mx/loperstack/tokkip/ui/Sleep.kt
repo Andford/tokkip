@@ -179,6 +179,9 @@ fun SleepScreen(data: AppData, color: Color, actions: Actions) {
         for (t in personalTips(data.sleep, goal)) TipCard(t, highlight = true)
         TipCard(dailyTip(now).let { it.copy(title = "Consejo del día · ${it.title}") }, highlight = false)
 
+        Text("Despertador", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 22.dp, bottom = 8.dp))
+        AlarmsPanel(data)
+
         Text("Tu horario", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 22.dp, bottom = 8.dp))
         GoalPanel(goal, data.bedReminder)
 

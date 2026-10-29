@@ -39,9 +39,10 @@ def noise(dur, lo=0.0, d=0.03):
     w = np.convolve(w, np.ones(6) / 6, mode="same")
     return w * env(n, a=0.002, d=d)
 
-def save(name, x, vol=0.55):
+def save(name, x, vol=0.55, tail=True):
     x = x / (np.max(np.abs(x)) + 1e-9) * vol
-    tail = np.linspace(1, 0, min(len(x), 200)); x[-len(tail):] *= tail
+    if tail:
+        fade = np.linspace(1, 0, min(len(x), 200)); x[-len(fade):] *= fade
     with wave.open(os.path.join(OUT, name + ".wav"), "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes((x * 32767).astype(np.int16).tobytes())
@@ -175,3 +176,19 @@ save("rate", seq(tone(E5, E5, 0.06, "soft"), tone(A5, A5, 0.06, "soft"), tone(E6
 save("think", seq(tone(880, 940, 0.09, "sine", d=0.05, vib=0.01), tone(990, 1050, 0.09, "sine", d=0.05, vib=0.01), tone(1100, 1180, 0.12, "sine", d=0.06, vib=0.01), gap=0.05), 0.35)
 save("greeting", at([(0, kalimba(784.0)), (0.12, kalimba(1046.5)), (0.24, kalimba(1318.5)), (0.36, tone(1500, 2400, 0.12, "tri", d=0.05) * 0.5)], 1.0), 0.5)
 print("ok pc")
+
+# ── The alarm: a wake-up tune on kalimba and music box, 4 s that loop seamlessly
+# (every note's tail wraps round to the start). Chords C, G, Am, F underneath.
+def loop(parts, total):
+    o = np.zeros(int(SR * total))
+    for start, s in parts:
+        idx = (int(SR * start) + np.arange(len(s))) % len(o)
+        np.add.at(o, idx, s)
+    return o
+
+A6 = 1760.0
+WAKE = [C6, E6, G6, E6, C6, D6, E6, G6, A6, G6, E6, D6, C6, D6, E6, C6]
+save("alarm_wake", loop([(i * 0.25, kalimba(f, 1.1) * (1.0 if i % 4 == 0 else 0.8)) for i, f in enumerate(WAKE)]
+                        + [(i * 1.0, musicbox(f, 1.6) * 0.55) for i, f in enumerate([261.6, 196.0, 220.0, 174.6])]
+                        + [(i * 1.0 + 0.5, musicbox(f * 2, 1.0) * 0.25) for i, f in enumerate([329.6, 293.7, 261.6, 220.0])], 4.0), 0.6, tail=False)
+print("ok alarm")

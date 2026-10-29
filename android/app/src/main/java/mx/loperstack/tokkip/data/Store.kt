@@ -49,6 +49,9 @@ data class AppData(
     val sleepGoal: SleepGoal = SleepGoal(),
     /** A nudge 30 min before bedtime. */
     val bedReminder: Boolean = false,
+    /** The alarm clock (data/Alarms.kt), and the one put off, if any. */
+    val alarms: List<WakeAlarm> = emptyList(),
+    val snooze: Snooze? = null,
     /** Tokkip drawn flat (2D) or with the PC's gradient. */
     val tokkipFlat: Boolean = true,
     /** "auto" (the season's hat), "NONE", or an Outfit name. */
@@ -200,6 +203,7 @@ object Store {
         _state.value = _state.value.copy(habits = habitsOf(prefs.getString("habits", null)), notify = notifyOf(prefs.getString("notify", null)),
             money = moneyOf(prefs.getString("money", null)), budget = budgetOf(prefs.getString("budget", null)),
             debts = debtsOf(prefs.getString("debts", null)),
+            alarms = alarmsOf(prefs.getString("alarms", null)), snooze = snoozeOf(prefs.getString("alarmSnooze", null)),
             screen = screenSettingsOf(prefs.getString("screen", null)), screenDays = screenDaysOf(prefs.getString("screenDays", null)),
             doom = prefs.getInt("doom", 0), doomAt = prefs.getLong("doomAt", 0), doomTop = prefs.getString("doomTop", "") ?: "",
             doomSession = prefs.getInt("doomSession", 0),
@@ -303,6 +307,20 @@ object Store {
         prefs.edit().putString("sleep", sleepJson(list)).apply()
         applyLook()
         changed()
+    }
+
+    /** The alarms changed: kept, and the next one handed to Android (wellness/WakeAlarm.kt). */
+    fun setAlarms(list: List<WakeAlarm>) {
+        val clean = list.take(ALARM_LIMIT)
+        _state.value = _state.value.copy(alarms = clean)
+        prefs.edit().putString("alarms", alarmsJson(clean)).apply()
+        mx.loperstack.tokkip.wellness.WakeAlarm.sync(app)
+    }
+
+    fun setSnooze(s: Snooze?) {
+        _state.value = _state.value.copy(snooze = s)
+        prefs.edit().putString("alarmSnooze", snoozeJson(s)).apply()
+        mx.loperstack.tokkip.wellness.WakeAlarm.sync(app)
     }
 
     fun setSleepGoal(goal: SleepGoal, reminder: Boolean) {
