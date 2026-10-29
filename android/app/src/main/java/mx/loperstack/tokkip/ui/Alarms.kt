@@ -50,7 +50,7 @@ import mx.loperstack.tokkip.data.ALARM_LIMIT
 import mx.loperstack.tokkip.data.AppData
 import mx.loperstack.tokkip.data.SNOOZE_CHOICES
 import mx.loperstack.tokkip.data.Store
-import mx.loperstack.tokkip.data.WEEK
+import mx.loperstack.tokkip.data.ALARM_WEEK
 import mx.loperstack.tokkip.data.WEEKDAYS
 import mx.loperstack.tokkip.data.WakeAlarm
 import mx.loperstack.tokkip.data.daysText
@@ -203,7 +203,7 @@ private fun AlarmSheet(start: WakeAlarm, isNew: Boolean, onSave: (WakeAlarm) -> 
         Label("Se repite", Ink.Dim, 13.sp)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            for ((day, letter) in WEEK) {
+            for ((day, letter) in ALARM_WEEK) {
                 val on = day in a.days
                 Text(
                     if (day == Calendar.WEDNESDAY) "Mi" else letter,

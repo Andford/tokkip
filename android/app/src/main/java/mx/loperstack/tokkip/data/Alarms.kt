@@ -33,7 +33,7 @@ const val ALARM_LIMIT = 20
 val SNOOZE_CHOICES = listOf(5, 9, 10, 15)
 
 /** Monday first, the way a Mexican week reads. */
-val WEEK = listOf(
+val ALARM_WEEK = listOf(
     Calendar.MONDAY to "L", Calendar.TUESDAY to "M", Calendar.WEDNESDAY to "M", Calendar.THURSDAY to "J",
     Calendar.FRIDAY to "V", Calendar.SATURDAY to "S", Calendar.SUNDAY to "D",
 )
@@ -70,7 +70,7 @@ fun daysText(days: Set<Int>): String = when {
     days.size == 7 -> "Todos los días"
     days == WEEKDAYS -> "Entre semana"
     days == WEEKEND -> "Fin de semana"
-    else -> WEEK.filter { it.first in days }.joinToString(" ") { (d, l) -> if (d == Calendar.WEDNESDAY) "Mi" else l }
+    else -> ALARM_WEEK.filter { it.first in days }.joinToString(" ") { (d, l) -> if (d == Calendar.WEDNESDAY) "Mi" else l }
 }
 
 /** "Suena en 7 h 20 min", "Suena en 25 min", "Suena en menos de un minuto". */
