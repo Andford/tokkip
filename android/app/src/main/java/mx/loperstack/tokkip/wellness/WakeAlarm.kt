@@ -36,6 +36,9 @@ import mx.loperstack.tokkip.MainActivity
 import mx.loperstack.tokkip.data.Snooze
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.data.WakeAlarm as Alarm
+import mx.loperstack.tokkip.data.Tune
+import mx.loperstack.tokkip.data.TUNE_DEFAULT
+import mx.loperstack.tokkip.data.pickTune
 import mx.loperstack.tokkip.data.hhmm
 import mx.loperstack.tokkip.data.nextOf
 import mx.loperstack.tokkip.ui.AlarmActivity
@@ -116,7 +119,8 @@ object WakeAlarm {
         context.startForegroundService(
             Intent(context, WakeAlarmService::class.java).setAction(ACTION_RING).putExtra(EXTRA_ID, a.id).putExtra(EXTRA_PREVIEW, true)
                 .putExtra("minute", a.minute).putExtra("label", a.label).putExtra("gentle", a.gentle)
-                .putExtra("vibrate", a.vibrate).putExtra("breathe", a.breathe).putExtra("snoozeMin", a.snoozeMin),
+                .putExtra("vibrate", a.vibrate).putExtra("breathe", a.breathe).putExtra("snoozeMin", a.snoozeMin)
+                .putExtra("tunes", a.tunes.map { it.ref }.toTypedArray()),
         )
     }
 
@@ -171,6 +175,7 @@ class WakeAlarmService : Service() {
                         id, intent.getIntExtra("minute", 0), label = intent.getStringExtra("label") ?: "",
                         gentle = intent.getBooleanExtra("gentle", true), vibrate = intent.getBooleanExtra("vibrate", true),
                         breathe = intent.getBooleanExtra("breathe", false), snoozeMin = intent.getIntExtra("snoozeMin", 9),
+                        tunes = intent.getStringArrayExtra("tunes")?.map { Tune(it) }?.takeIf { it.isNotEmpty() } ?: listOf(Tune(TUNE_DEFAULT)),
                     )
                 } else WakeAlarm.rang(this, id)
                 if (alarm == null) return stopNow()
@@ -209,7 +214,7 @@ class WakeAlarmService : Service() {
         runCatching {
             startActivity(Intent(this, AlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION))
         }
-        play(a.gentle)
+        play(pickTune(a.tunes), a.gentle)
         if (a.vibrate) vibrate()
         // Ten minutes is enough: it stops by itself, as other alarm clocks do.
         handler.postDelayed({ stopNow() }, 10 * 60_000L)
@@ -247,20 +252,41 @@ class WakeAlarmService : Service() {
         return b.build()
     }
 
-    private fun play(gentle: Boolean) {
-        val uri = Uri.parse("android.resource://$packageName/${mx.loperstack.tokkip.shared.R.raw.alarm_wake}")
-        player = runCatching {
-            MediaPlayer().apply {
-                setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                setDataSource(this@WakeAlarmService, uri)
-                setWakeMode(this@WakeAlarmService, PowerManager.PARTIAL_WAKE_LOCK)
-                isLooping = true
-                prepare()
-                volume = if (gentle) 0.08f else 1f
-                setVolume(volume, volume)
-                start()
-            }
-        }.getOrNull()
+    private fun raw(id: Int): Uri = Uri.parse("android.resource://$packageName/$id")
+
+    /** Where a tune's sound is: one of Tokkip's own, or the song you chose from your phone. */
+    private fun uriOf(t: Tune): Uri = with(mx.loperstack.tokkip.shared.R.raw) {
+        when (t.ref) {
+            "lofi_cafe" -> raw(wake_lofi_cafe)
+            "lofi_lluvia" -> raw(wake_lofi_lluvia)
+            "lofi_amanecer" -> raw(wake_lofi_amanecer)
+            "lofi_jardin" -> raw(wake_lofi_jardin)
+            else -> if (t.isFile) Uri.parse(t.ref) else raw(alarm_wake)
+        }
+    }
+
+    private fun play(tune: Tune, gentle: Boolean) {
+        // A song that's gone (deleted, or its permission lost) must never leave you asleep: Tokkip's own plays instead.
+        player = open(uriOf(tune), gentle) ?: open(raw(mx.loperstack.tokkip.shared.R.raw.alarm_wake), gentle)
+        rampUp(gentle)
+    }
+
+    private fun open(uri: Uri, gentle: Boolean): MediaPlayer? {
+        val mp = MediaPlayer()
+        return runCatching {
+            mp.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            mp.setDataSource(this, uri)
+            mp.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK)
+            mp.isLooping = true
+            mp.prepare()
+            volume = if (gentle) 0.08f else 1f
+            mp.setVolume(volume, volume)
+            mp.start()
+            mp
+        }.getOrElse { mp.release(); null }
+    }
+
+    private fun rampUp(gentle: Boolean) {
         // Gentle: from a whisper to full over a minute.
         if (gentle) {
             val step = object : Runnable {

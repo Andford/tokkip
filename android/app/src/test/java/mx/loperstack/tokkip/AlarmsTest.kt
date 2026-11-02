@@ -1,6 +1,9 @@
 package mx.loperstack.tokkip
 
 import mx.loperstack.tokkip.data.Snooze
+import mx.loperstack.tokkip.data.Tune
+import mx.loperstack.tokkip.data.TUNE_DEFAULT
+import mx.loperstack.tokkip.data.pickTune
 import mx.loperstack.tokkip.data.WEEKDAYS
 import mx.loperstack.tokkip.data.WEEKEND
 import mx.loperstack.tokkip.data.WakeAlarm
@@ -75,5 +78,18 @@ class AlarmsTest {
         val s = Snooze("a", thu0630)
         assertEquals(s, snoozeOf(snoozeJson(s)))
         assertNull(snoozeOf(snoozeJson(null)))
+    }
+
+    @Test fun tunes_survive_a_round_trip_and_old_alarms_ring_with_tokkip() {
+        val mine = Tune("content://media/external/audio/media/42", "Mi canción")
+        val a = WakeAlarm("a", 420, tunes = listOf(Tune("lofi_cafe"), mine))
+        assertEquals(a.tunes, alarmsOf(alarmsJson(listOf(a))).single().tunes)
+        // Saved before there were tunes, or with one we don't know: Tokkip's own.
+        assertEquals(listOf(Tune(TUNE_DEFAULT)), alarmsOf("""[{"id":"x","minute":420}]""").single().tunes)
+        assertEquals(listOf(Tune(TUNE_DEFAULT)), alarmsOf("""[{"id":"x","minute":420,"tunes":[{"ref":"nope"}]}]""").single().tunes)
+        // Several: any of them, never something else.
+        val r = kotlin.random.Random(1)
+        repeat(20) { assert(pickTune(a.tunes, r) in a.tunes) }
+        assertEquals(Tune(TUNE_DEFAULT), pickTune(emptyList()))
     }
 }

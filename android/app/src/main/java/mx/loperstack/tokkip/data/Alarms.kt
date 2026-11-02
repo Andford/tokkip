@@ -24,7 +24,33 @@ data class WakeAlarm(
     /** To turn it off you breathe with Tokkip (three breaths) instead of one tap. */
     val breathe: Boolean = false,
     val snoozeMin: Int = 9,
+    /** What it can ring with; with more than one, a different one each morning. */
+    val tunes: List<Tune> = listOf(Tune(TUNE_DEFAULT)),
 )
+
+/**
+ * A sound for an alarm: one of Tokkip's own (`ref` is its key in [ALARM_TUNES])
+ * or a song from the phone (`ref` is its content:// address, `name` its file name).
+ */
+data class Tune(val ref: String, val name: String = "") {
+    val isFile get() = ref.startsWith("content:")
+}
+
+const val TUNE_DEFAULT = "tokkip"
+const val TUNE_LIMIT = 12
+
+/** Tokkip's own wake-up tunes, in the order the editor shows them. */
+val ALARM_TUNES = listOf(
+    TUNE_DEFAULT to "Tokkip",
+    "lofi_cafe" to "Café lo-fi",
+    "lofi_lluvia" to "Lluvia lo-fi",
+    "lofi_amanecer" to "Amanecer lo-fi",
+    "lofi_jardin" to "Jardín lo-fi",
+)
+
+/** The tune for this ring: one of the chosen, at random. */
+fun pickTune(tunes: List<Tune>, random: kotlin.random.Random = kotlin.random.Random): Tune =
+    tunes.takeIf { it.isNotEmpty() }?.random(random) ?: Tune(TUNE_DEFAULT)
 
 /** An alarm put off: when it rings again. */
 data class Snooze(val id: String, val at: Long)
@@ -93,7 +119,8 @@ fun alarmsJson(list: List<WakeAlarm>): String = JSONArray().apply {
         JSONObject()
             .put("id", a.id).put("minute", a.minute).put("days", JSONArray(a.days.sorted()))
             .put("enabled", a.enabled).put("label", a.label).put("gentle", a.gentle)
-            .put("vibrate", a.vibrate).put("breathe", a.breathe).put("snoozeMin", a.snoozeMin),
+            .put("vibrate", a.vibrate).put("breathe", a.breathe).put("snoozeMin", a.snoozeMin)
+            .put("tunes", JSONArray().apply { for (t in a.tunes) put(JSONObject().put("ref", t.ref).put("name", t.name)) }),
     )
 }.toString()
 
@@ -115,6 +142,13 @@ fun alarmsOf(json: String?): List<WakeAlarm> {
                 vibrate = o.optBoolean("vibrate", true),
                 breathe = o.optBoolean("breathe", false),
                 snoozeMin = o.optInt("snoozeMin", 9).takeIf { it in SNOOZE_CHOICES } ?: 9,
+                tunes = o.optJSONArray("tunes")?.let { t ->
+                    (0 until t.length()).mapNotNull { k ->
+                        val x = t.optJSONObject(k) ?: return@mapNotNull null
+                        val ref = x.optString("ref")
+                        Tune(ref, x.optString("name").take(80)).takeIf { it.isFile || ALARM_TUNES.any { (key, _) -> key == ref } }
+                    }.distinctBy { it.ref }.take(TUNE_LIMIT)
+                }?.takeIf { it.isNotEmpty() } ?: listOf(Tune(TUNE_DEFAULT)),
             )
         }.take(ALARM_LIMIT)
     }.getOrDefault(emptyList())

@@ -58,6 +58,13 @@ import mx.loperstack.tokkip.data.hhmm
 import mx.loperstack.tokkip.data.inText
 import mx.loperstack.tokkip.data.nextOf
 import mx.loperstack.tokkip.data.nextRing
+import mx.loperstack.tokkip.data.ALARM_TUNES
+import mx.loperstack.tokkip.data.TUNE_LIMIT
+import mx.loperstack.tokkip.data.Tune
+import android.content.Intent
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import java.util.Calendar
 import java.util.UUID
 import mx.loperstack.tokkip.wellness.WakeAlarm as Ringer
@@ -231,6 +238,9 @@ private fun AlarmSheet(start: WakeAlarm, isNew: Boolean, onSave: (WakeAlarm) -> 
         SheetSwitch("Apagar respirando", "Para apagarla respiras tres veces con Tokkip; así no la apagas dormido", a.breathe) { a = a.copy(breathe = it) }
 
         Spacer(Modifier.height(8.dp))
+        TunePicker(a.tunes) { a = a.copy(tunes = it) }
+
+        Spacer(Modifier.height(8.dp))
         Label("Posponer", Ink.Dim, 13.sp)
         Spacer(Modifier.height(8.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -271,4 +281,62 @@ private fun SheetSwitch(title: String, why: String, on: Boolean, set: (Boolean) 
         }
         Switch(checked = on, onCheckedChange = set, colors = SwitchDefaults.colors(checkedTrackColor = Ink.Violet))
     }
+}
+
+/**
+ * What the alarm rings with: Tokkip's own tunes and songs from your phone.
+ * Choose several and each morning one of them plays, at random.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TunePicker(tunes: List<Tune>, set: (List<Tune>) -> Unit) {
+    val context = LocalContext.current
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        // Keep the right to read it after a restart, so it can ring at 6 a.m.
+        runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        val name = runCatching {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null
+            }
+        }.getOrNull()?.substringBeforeLast('.') ?: "Mi canción"
+        if (tunes.none { it.ref == uri.toString() } && tunes.size < TUNE_LIMIT) set(tunes + Tune(uri.toString(), name.take(80)))
+    }
+
+    Label("Sonido", Ink.Dim, 13.sp)
+    Spacer(Modifier.height(8.dp))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for ((ref, name) in ALARM_TUNES) {
+            val on = tunes.any { it.ref == ref }
+            TuneChip(name, on) {
+                Haptics.click(context)
+                // There's always at least one: an alarm without sound can't wake you.
+                if (!on) set(tunes + Tune(ref)) else if (tunes.size > 1) set(tunes.filterNot { it.ref == ref })
+            }
+        }
+        for (t in tunes.filter { it.isFile }) {
+            TuneChip("♪ ${t.name} ✕", true) {
+                if (tunes.size > 1) {
+                    set(tunes - t)
+                    runCatching { context.contentResolver.releasePersistableUriPermission(android.net.Uri.parse(t.ref), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                }
+            }
+        }
+        if (tunes.size < TUNE_LIMIT) TuneChip("+ De tu teléfono", false) { pick.launch(arrayOf("audio/*")) }
+    }
+    Spacer(Modifier.height(6.dp))
+    Label(
+        if (tunes.size > 1) "Cada vez suena una al azar de las ${tunes.size} que elegiste" else "Elige varias y cada mañana suena una distinta",
+        Ink.Dim2, 12.sp,
+    )
+    Spacer(Modifier.height(12.dp))
+}
+
+@Composable
+private fun TuneChip(text: String, on: Boolean, onClick: () -> Unit) {
+    Text(
+        text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, color = if (on) Ink.OnViolet else Ink.Text,
+        modifier = Modifier.clip(Squircle(14.dp)).background(if (on) Ink.VioletSoft else Ink.Card)
+            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }
