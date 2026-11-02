@@ -37,6 +37,7 @@ import mx.loperstack.tokkip.data.Snooze
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.data.WakeAlarm as Alarm
 import mx.loperstack.tokkip.data.Tune
+import mx.loperstack.tokkip.shared.R.raw as SoundRaw
 import mx.loperstack.tokkip.data.TUNE_DEFAULT
 import mx.loperstack.tokkip.data.pickTune
 import mx.loperstack.tokkip.data.hhmm
@@ -255,15 +256,14 @@ class WakeAlarmService : Service() {
     private fun raw(id: Int): Uri = Uri.parse("android.resource://$packageName/$id")
 
     /** Where a tune's sound is: one of Tokkip's own, or the song you chose from your phone. */
-    private fun uriOf(t: Tune): Uri = with(mx.loperstack.tokkip.shared.R.raw) {
+    private fun uriOf(t: Tune): Uri =
         when (t.ref) {
-            "lofi_cafe" -> raw(wake_lofi_cafe)
-            "lofi_lluvia" -> raw(wake_lofi_lluvia)
-            "lofi_amanecer" -> raw(wake_lofi_amanecer)
-            "lofi_jardin" -> raw(wake_lofi_jardin)
-            else -> if (t.isFile) Uri.parse(t.ref) else raw(alarm_wake)
+            "lofi_cafe" -> raw(SoundRaw.wake_lofi_cafe)
+            "lofi_lluvia" -> raw(SoundRaw.wake_lofi_lluvia)
+            "lofi_amanecer" -> raw(SoundRaw.wake_lofi_amanecer)
+            "lofi_jardin" -> raw(SoundRaw.wake_lofi_jardin)
+            else -> if (t.isFile) Uri.parse(t.ref) else raw(SoundRaw.alarm_wake)
         }
-    }
 
     private fun play(tune: Tune, gentle: Boolean) {
         // A song that's gone (deleted, or its permission lost) must never leave you asleep: Tokkip's own plays instead.
