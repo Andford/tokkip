@@ -9,9 +9,12 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.SamplerConfig
+import com.google.ai.edge.litertlm.tool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
@@ -45,6 +48,11 @@ object Brain {
     private var engine: Engine? = null
     private var conversation: Conversation? = null
     private var loadedFrom: String? = null
+    private var app: Context? = null
+
+    private val _done = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    /** What Tokkip just did in the app from the chat ("⏰ Alarma a las 6:30…"), for the chat to show. */
+    val done: SharedFlow<String> = _done
 
     /** How many past lines the model sees at the start of a chat (the rest stays in Memory). */
     private const val CONTEXT_LINES = 12
@@ -53,6 +61,7 @@ object Brain {
         if (engine != null && loadedFrom == model.path && conversation != null) return@withLock
         withContext(Dispatchers.IO) {
             closeLocked()
+            app = context.applicationContext
             _state.value = State.Loading
             val cache = context.cacheDir.path
             var lastError: Throwable? = null
@@ -88,6 +97,7 @@ object Brain {
             systemInstruction = Contents.of(Persona.instructions(name, now)),
             initialMessages = past,
             samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.7),
+            tools = app?.let { listOf(tool(TokkipTools(it) { what -> _done.tryEmit(what) })) } ?: emptyList(),
         )
     }
 

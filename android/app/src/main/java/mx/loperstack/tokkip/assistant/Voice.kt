@@ -182,7 +182,12 @@ object Voice {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var tts: OfflineTts? = null
     private var ttsId: String? = null
-    private var queue = Channel<String>(Channel.UNLIMITED)
+    /** Where her voice goes instead of the phone's speaker (the watch). */
+    fun interface Sink {
+        fun pcm(samples: FloatArray, rate: Int, pitch: Float)
+    }
+
+    private var queue = Channel<Pair<String, Sink?>>(Channel.UNLIMITED)
     private var worker: Job? = null
     private var track: AudioTrack? = null
 
@@ -209,18 +214,19 @@ object Voice {
     }
 
     /** Says [text] after whatever is already being said. */
-    fun say(context: Context, text: String) {
+    fun say(context: Context, text: String, to: Sink? = null) {
         val clean = speakable(text)
         if (clean.isBlank() || !enabled(context)) return
         val app = context.applicationContext
-        queue.trySend(clean)
+        queue.trySend(clean to to)
         if (worker?.isActive != true) worker = scope.launch {
             val v = chosen(app)
             val engine = engine(app, v) ?: return@launch
-            for (sentence in queue) {
-                _speaking.value = true
+            for ((sentence, sink) in queue) {
+                _speaking.value = sink == null
                 val audio = runCatching { engine.generate(sentence, 0, 1.0f) }.getOrNull() ?: continue
-                play(audio.samples, audio.sampleRate, pitch(app))
+                if (sink != null) runCatching { sink.pcm(audio.samples, audio.sampleRate, pitch(app)) }
+                else play(audio.samples, audio.sampleRate, pitch(app))
                 if (queue.isEmpty) _speaking.value = false
             }
         }

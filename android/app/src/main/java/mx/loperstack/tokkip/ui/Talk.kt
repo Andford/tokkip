@@ -78,6 +78,7 @@ import mx.loperstack.tokkip.assistant.Models
 import mx.loperstack.tokkip.assistant.Persona
 import mx.loperstack.tokkip.assistant.Sentences
 import mx.loperstack.tokkip.assistant.Voice
+import mx.loperstack.tokkip.assistant.WatchTalk
 import mx.loperstack.tokkip.character.Mood
 import mx.loperstack.tokkip.character.Squircle
 import mx.loperstack.tokkip.character.Tokkip
@@ -100,6 +101,9 @@ fun TalkScreen(color: Color) {
     var problem by remember { mutableStateOf<String?>(null) }
     val lines = remember { mutableStateListOf<Line>().apply { addAll(Memory.load(context)) } }
     var answering by remember { mutableStateOf<String?>(null) }
+    // What Tokkip did in the app while answering (an alarm, a task…): shown on top of her answer.
+    val acts = remember { mutableStateListOf<String>() }
+    LaunchedEffect(Unit) { Brain.done.collect { acts += it } }
     var thinking by remember { mutableStateOf<Job?>(null) }
     var crisis by remember { mutableStateOf(lines.lastOrNull { it.fromYou }?.let { Persona.isCrisis(it.text) } ?: false) }
     var jump by remember { mutableIntStateOf(0) }
@@ -120,7 +124,9 @@ fun TalkScreen(color: Color) {
         Brain.load(context, m, name, lines.toList())
     }
     DisposableEffect(Unit) {
+        WatchTalk.chatOpen = true
         onDispose {
+            WatchTalk.chatOpen = false
             Brain.stop()
             Voice.release()
             CoroutineScope(Dispatchers.IO).launch { Brain.unload() }
@@ -156,6 +162,7 @@ fun TalkScreen(color: Color) {
         lines += Line(true, t)
         if (Persona.isCrisis(t)) crisis = true
         answering = ""
+        acts.clear()
         val cut = Sentences()
         thinking = scope.launch {
             val out = StringBuilder()
@@ -169,7 +176,9 @@ fun TalkScreen(color: Color) {
             }.onFailure { if (out.isEmpty()) out.append("Uy, me trabé pensando. ¿Me lo repites?") }
             val final = Persona.clean(out.toString())
             for (s in cut.feed(final, done = true)) Voice.say(context, s)
-            lines += Line(false, final.trim())
+            val did = acts.joinToString("\n")
+            lines += Line(false, if (did.isEmpty()) final.trim() else "$did\n\n${final.trim()}".trim())
+            acts.clear()
             answering = null
             jump++
             Memory.save(context, lines.toList())
@@ -265,7 +274,7 @@ fun TalkScreen(color: Color) {
                         hangUp = { call = false; listen.stop(); listening = false; Brain.stop(); Voice.stop() },
                     )
                 } else {
-                    Chat(lines, answering, brain, Modifier.weight(1f))
+                    Chat(lines, answering, acts, brain, Modifier.weight(1f))
                     Composer(
                         enabled = brain is Brain.State.Ready,
                         busy = answering != null,
@@ -283,7 +292,7 @@ fun TalkScreen(color: Color) {
 }
 
 @Composable
-private fun Chat(lines: List<Line>, answering: String?, brain: Brain.State, modifier: Modifier) {
+private fun Chat(lines: List<Line>, answering: String?, acts: List<String>, brain: Brain.State, modifier: Modifier) {
     val list = rememberLazyListState()
     val all = lines.size + (if (answering != null) 1 else 0)
     LaunchedEffect(all, answering?.length) { if (all > 0) list.animateScrollToItem(all - 1) }
@@ -298,7 +307,10 @@ private fun Chat(lines: List<Line>, answering: String?, brain: Brain.State, modi
             )
         }
         items(lines) { Bubble(it.text, it.fromYou) }
-        if (answering != null) item { Bubble(answering.ifEmpty { "…" }, false) }
+        if (answering != null) item {
+            val did = acts.joinToString("\n")
+            Bubble(if (did.isEmpty()) answering.ifEmpty { "…" } else "$did\n\n${answering.ifEmpty { "…" }}", false)
+        }
     }
 }
 

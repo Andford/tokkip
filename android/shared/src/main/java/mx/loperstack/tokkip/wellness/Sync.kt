@@ -25,6 +25,14 @@ object SyncPaths {
     const val HEART_RATE = "/tokkip/hr"
     /** watch → phone: today's mood, "1"…"5". */
     const val MOOD = "/tokkip/mood"
+    /** watch → phone: what you said to Tokkip on the wrist (text). The phone thinks; see TalkWire. */
+    const val TALK_ASK = "/tokkip/talk/ask"
+    /** watch → phone: stop answering. */
+    const val TALK_STOP = "/tokkip/talk/stop"
+    /** phone → watch: her answer so far, JSON (TalkWire.text). */
+    const val TALK_TEXT = "/tokkip/talk/text"
+    /** phone → watch: a piece of her voice (TalkWire.audio), when there are no earbuds on the phone. */
+    const val TALK_AUDIO = "/tokkip/talk/audio"
 }
 
 /** "1700000000000,5[,in,hold,out,hold]" → a session, or null. */

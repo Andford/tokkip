@@ -240,8 +240,13 @@ object WatchStore {
 class WatchListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         WatchStore.init(this)
+        if (event.path == SyncPaths.TALK_AUDIO) {
+            WristTalk.onAudio(event.data ?: ByteArray(0))
+            return
+        }
         val text = (event.data ?: ByteArray(0)).toString(Charsets.UTF_8)
         when (event.path) {
+            SyncPaths.TALK_TEXT -> WristTalk.onText(text)
             SyncPaths.BREATHE_START -> breathingOf(text)?.let { WatchStore.breatheFromPhone(this, it) }
             SyncPaths.BREATHE_STOP -> {
                 WatchStore.stopRequest.value = System.currentTimeMillis()

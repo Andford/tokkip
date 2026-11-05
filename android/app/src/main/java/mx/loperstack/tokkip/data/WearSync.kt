@@ -181,6 +181,10 @@ object WearSync {
 class PhoneListenerService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         Sounds.init(this)
+        if (event.path.startsWith("/tokkip/talk/")) {
+            mx.loperstack.tokkip.assistant.WatchTalk.handle(this, event.sourceNodeId, event.path, event.data ?: ByteArray(0))
+            return
+        }
         WearSync.handle(this, event.path, event.data ?: ByteArray(0))
     }
 }

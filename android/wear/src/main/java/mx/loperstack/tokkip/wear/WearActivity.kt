@@ -204,6 +204,7 @@ fun WearApp() {
             composable("mood") { MoodPicker(snap) { nav.popBackStack() } }
             composable("pet") { WatchPet(snap) }
             composable("screen") { ScreenReport(snap) }
+            composable("talk") { TalkWrist(snap) }
         }
     }
 }
@@ -278,6 +279,16 @@ fun Home(snap: Snapshot, jump: Int, go: (String) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
+            }
+            item {
+                Chip(
+                    onClick = { go("talk") },
+                    icon = { ShapedIcon(Icons.Rounded.Forum, 4) },
+                    label = { Text("Platicar") },
+                    secondaryLabel = { Text("Háblale a Tokkip") },
+                    colors = ChipDefaults.secondaryChipColors(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             item {
                 Chip(
@@ -1024,3 +1035,90 @@ fun ShapedIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, index: Int
     ) { Icon(icon, contentDescription = null, modifier = Modifier.size(17.dp), tint = if (tint == Color(0xFF14102A)) tint else tint) }
 }
 
+/**
+ * Talk to Tokkip from the wrist: you speak here, the phone thinks, and her
+ * answer comes back as it grows (her voice here, or in your earbuds).
+ */
+@Composable
+fun TalkWrist(snap: Snapshot) {
+    val listState = rememberScalingLazyListState()
+    val talk by WristTalk.state.collectAsState()
+    val dictate = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.let { WristTalk.ask(it) }
+    }
+    fun listen() = dictate.launch(
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-MX")
+            .putExtra(RecognizerIntent.EXTRA_PROMPT, "Dime…"),
+    )
+    // The answer grows at the bottom: keep it in view.
+    LaunchedEffect(talk.answer.length) { if (talk.answer.isNotEmpty()) listState.animateScrollToItem(2) }
+    Scaffold(timeText = { TimeText() }, positionIndicator = { PositionIndicator(scalingLazyListState = listState) }) {
+        ScalingLazyColumn(state = listState, modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+            item {
+                Tokkip(
+                    Modifier.width(110.dp).height(90.dp),
+                    color = Color(snap.tokkipColor),
+                    mood = when {
+                        talk.busy && talk.answer.isEmpty() -> Mood.FOCUS
+                        talk.answer.isNotEmpty() -> Mood.HAPPY
+                        else -> Mood.IDLE
+                    },
+                    interactive = true,
+                )
+            }
+            item {
+                Text(
+                    when {
+                        talk.heard.isEmpty() -> "Toca el micrófono y platícame."
+                        else -> "«${talk.heard}»"
+                    },
+                    color = VioletSoft, fontSize = 13.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 8.dp),
+                )
+            }
+            item {
+                Text(
+                    when {
+                        talk.answer.isNotEmpty() -> talk.answer
+                        talk.busy -> "Pensando…"
+                        else -> ""
+                    },
+                    fontSize = 15.sp, textAlign = TextAlign.Center,
+                    color = if (talk.error) Color(0xFFFCA5A5) else Color.White,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+            }
+            if (talk.crisis) {
+                item {
+                    Text(
+                        "Aquí estoy contigo. Línea de la Vida: 800 911 2000, gratis, 24 horas. Si estás en peligro ahora, 911.",
+                        fontSize = 13.sp, textAlign = TextAlign.Center, color = Color(0xFFFDE68A), modifier = Modifier.padding(horizontal = 8.dp),
+                    )
+                }
+            }
+            if (talk.where == "buds" && talk.answer.isNotEmpty()) {
+                item { Text("Te hablo en tus audífonos", fontSize = 11.sp, color = Color(0xFF9CA3AF)) }
+            }
+            item {
+                if (talk.busy) {
+                    Chip(
+                        onClick = { WristTalk.stop() },
+                        icon = { ShapedIcon(Icons.Rounded.Stop, 1) },
+                        label = { Text("Detener") },
+                        colors = ChipDefaults.secondaryChipColors(),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                } else {
+                    Chip(
+                        onClick = { WristTalk.stop(); listen() },
+                        icon = { ShapedIcon(Icons.Rounded.Mic, 2) },
+                        label = { Text(if (talk.heard.isEmpty()) "Hablarle" else "Responder") },
+                        colors = ChipDefaults.primaryChipColors(backgroundColor = Color(0xFF3B2A63)),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+}

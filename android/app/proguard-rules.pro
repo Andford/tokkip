@@ -16,3 +16,10 @@
 -dontwarn com.github.luben.zstd.**
 -dontwarn org.tukaani.xz.**
 -dontwarn org.objectweb.asm.**
+# What Tokkip can do from the chat (assistant/TokkipTools.kt): LiteRT-LM reads
+# its functions, their parameter names and descriptions with Kotlin reflection.
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,MethodParameters,RuntimeVisibleParameterAnnotations
+-keep class kotlin.Metadata { *; }
+-keep class mx.loperstack.tokkip.assistant.TokkipTools { *; }
+-keep class kotlin.reflect.jvm.internal.** { *; }
+-dontwarn kotlin.reflect.jvm.internal.**
