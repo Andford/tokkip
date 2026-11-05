@@ -16,9 +16,7 @@ import mx.loperstack.tokkip.data.TaskSync
 import mx.loperstack.tokkip.data.WakeAlarm
 import mx.loperstack.tokkip.data.daysText
 import mx.loperstack.tokkip.data.nextRing
-import java.text.Normalizer
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 
 /**
@@ -40,10 +38,10 @@ class TokkipTools(private val context: Context, private val onDone: (String) -> 
         @ToolParam(description = "Días que se repite, separados por comas: lunes, martes, miercoles, jueves, viernes, sabado, domingo, 'entre semana', 'fin de semana' o 'diario'. Vacío si es una sola vez.") dias: String = "",
         @ToolParam(description = "Nombre corto de la alarma, opcional") etiqueta: String = "",
     ): Map<String, Any> {
-        val minute = minuteOf(hora) ?: return mapOf("ok" to false, "error" to "Hora no válida")
+        val minute = Spoken.minuteOf(hora) ?: return mapOf("ok" to false, "error" to "Hora no válida")
         val list = Store.state.value.alarms
         if (list.size >= ALARM_LIMIT) return mapOf("ok" to false, "error" to "Ya hay $ALARM_LIMIT alarmas, el máximo")
-        val days = daysOf(dias)
+        val days = Spoken.daysOf(dias)
         val alarm = WakeAlarm(id = "tk" + System.currentTimeMillis().toString(36), minute = minute, days = days, label = etiqueta.take(40))
         Store.setAlarms(list + alarm)
         val at = "%d:%02d".format(minute / 60, minute % 60)
@@ -90,7 +88,7 @@ class TokkipTools(private val context: Context, private val onDone: (String) -> 
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
             return mapOf("ok" to false, "error" to "Falta permiso de calendario: se da en la pantalla Agenda de Tokkip")
         }
-        val minute = minuteOf(hora) ?: return mapOf("ok" to false, "error" to "Hora no válida")
+        val minute = Spoken.minuteOf(hora) ?: return mapOf("ok" to false, "error" to "Hora no válida")
         val day = runCatching { SimpleDateFormat("yyyy-MM-dd", es).apply { isLenient = false }.parse(fecha.trim())!!.time }.getOrNull()
             ?: return mapOf("ok" to false, "error" to "Fecha no válida")
         val begin = day + minute * 60_000L
@@ -118,30 +116,4 @@ class TokkipTools(private val context: Context, private val onDone: (String) -> 
 
     private fun fmt(t: Long) = SimpleDateFormat("EEEE d 'de' MMMM, HH:mm", es).format(t)
     private fun day(t: Long) = SimpleDateFormat("EEEE d", es).format(t)
-
-    companion object {
-        /** "6:30", "06:30", "18:00", "7" into minutes after midnight. */
-        fun minuteOf(text: String): Int? {
-            val m = Regex("""^\s*(\d{1,2})(?:\s*[:.h]\s*(\d{2}))?\s*$""").find(text) ?: return null
-            val h = m.groupValues[1].toInt()
-            val min = m.groupValues[2].ifEmpty { "0" }.toInt()
-            return if (h in 0..23 && min in 0..59) h * 60 + min else null
-        }
-
-        /** "lunes, miércoles", "entre semana", "diario"… into Calendar days. */
-        fun daysOf(text: String): Set<Int> {
-            val t = Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
-            if (t.isBlank()) return emptySet()
-            if ("diario" in t || "todos los dias" in t || "cada dia" in t) return (1..7).toSet()
-            val out = mutableSetOf<Int>()
-            if ("entre semana" in t || "laborable" in t) out += listOf(Calendar.MONDAY, Calendar.TUESDAY, Calendar.WEDNESDAY, Calendar.THURSDAY, Calendar.FRIDAY)
-            if ("fin de semana" in t || "fines de semana" in t) out += listOf(Calendar.SATURDAY, Calendar.SUNDAY)
-            val names = mapOf(
-                "lunes" to Calendar.MONDAY, "martes" to Calendar.TUESDAY, "miercoles" to Calendar.WEDNESDAY, "jueves" to Calendar.THURSDAY,
-                "viernes" to Calendar.FRIDAY, "sabado" to Calendar.SATURDAY, "domingo" to Calendar.SUNDAY,
-            )
-            for ((n, d) in names) if (n in t) out += d
-            return out
-        }
-    }
 }

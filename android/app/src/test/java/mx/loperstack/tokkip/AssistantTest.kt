@@ -2,7 +2,7 @@ package mx.loperstack.tokkip
 
 import mx.loperstack.tokkip.assistant.Persona
 import mx.loperstack.tokkip.assistant.Sentences
-import mx.loperstack.tokkip.assistant.TokkipTools
+import mx.loperstack.tokkip.assistant.Spoken
 import mx.loperstack.tokkip.assistant.Voice
 import mx.loperstack.tokkip.wellness.TalkReply
 import mx.loperstack.tokkip.wellness.TalkWire
@@ -45,14 +45,14 @@ class AssistantTest {
 
     @Test
     fun alarmDays() {
-        assertEquals(emptySet<Int>(), TokkipTools.daysOf(""))
-        assertEquals((1..7).toSet(), TokkipTools.daysOf("Todos los días"))
-        assertEquals(setOf(Calendar.MONDAY, Calendar.WEDNESDAY), TokkipTools.daysOf("lunes, miércoles"))
-        assertEquals(setOf(Calendar.SATURDAY, Calendar.SUNDAY), TokkipTools.daysOf("fin de semana"))
-        assertEquals(5, TokkipTools.daysOf("entre semana").size)
-        assertEquals(6 * 60 + 30, TokkipTools.minuteOf("06:30"))
-        assertEquals(18 * 60, TokkipTools.minuteOf("18"))
-        assertEquals(null, TokkipTools.minuteOf("25:00"))
+        assertEquals(emptySet<Int>(), Spoken.daysOf(""))
+        assertEquals((1..7).toSet(), Spoken.daysOf("Todos los días"))
+        assertEquals(setOf(Calendar.MONDAY, Calendar.WEDNESDAY), Spoken.daysOf("lunes, miércoles"))
+        assertEquals(setOf(Calendar.SATURDAY, Calendar.SUNDAY), Spoken.daysOf("fin de semana"))
+        assertEquals(5, Spoken.daysOf("entre semana").size)
+        assertEquals(6 * 60 + 30, Spoken.minuteOf("06:30"))
+        assertEquals(18 * 60, Spoken.minuteOf("18"))
+        assertEquals(null, Spoken.minuteOf("25:00"))
     }
 
     @Test
