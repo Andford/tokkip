@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: the same as backup_rules.xml, for cloud backups and phone-to-phone transfers. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="external" path="modelos/" />
+        <exclude domain="file" path="voz/" />
+        <exclude domain="file" path="platicas.bin" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="external" path="modelos/" />
+        <exclude domain="file" path="voz/" />
+        <exclude domain="file" path="platicas.bin" />
+    </device-transfer>
+</data-extraction-rules>

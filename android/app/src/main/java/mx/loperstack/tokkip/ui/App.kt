@@ -166,6 +166,7 @@ enum class Tab(val label: String, val icon: androidx.compose.ui.graphics.vector.
     HOME("Inicio", Icons.Rounded.Home), AGENDA("Agenda", Icons.Rounded.CalendarMonth), TASKS("Tareas", Icons.Rounded.TaskAlt), FOCUS("Enfoque", Icons.Rounded.Timer),
     STREAKS("Rachas", Icons.Rounded.LocalFireDepartment), BREATHE("Respirar", Icons.Rounded.Air), DIARY("Diario", Icons.Rounded.AutoStories), MONEY("Dinero", Icons.Rounded.Savings),
     SLEEP("Sueño", Icons.Rounded.Bedtime), SCREEN("Pantalla", Icons.Rounded.PhoneAndroid), PET("Mimos", Icons.Rounded.Favorite),
+    TALK("Platicar", Icons.Rounded.Forum),
 }
 
 /** The floating bar's five places, filled when selected. */
@@ -183,7 +184,7 @@ enum class Group(val label: String, val tabs: List<Tab>) {
     TASKS("Tareas", listOf(Tab.TASKS, Tab.FOCUS, Tab.STREAKS)),
     DIARY("Diario", listOf(Tab.DIARY, Tab.MONEY)),
     CALM("Bienestar", listOf(Tab.BREATHE, Tab.SLEEP, Tab.SCREEN)),
-    PET("Tokkip", listOf(Tab.PET));
+    PET("Tokkip", listOf(Tab.PET, Tab.TALK));
 
     companion object {
         fun of(tab: Tab) = entries.first { tab in it.tabs }
@@ -452,6 +453,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
                         Tab.DIARY -> DiaryScreen(data.logs, color, actions, composeNow) { tab = Tab.BREATHE }
                         Tab.SLEEP -> SleepScreen(data, color, actions)
                         Tab.PET -> PetScreen(color, actions)
+                        Tab.TALK -> TalkScreen(color)
                         Tab.STREAKS -> StreaksScreen(data.habits, color, actions)
                         Tab.AGENDA -> AgendaScreen(
                             calendarOk, askCalendar = { askCalendar.launch(Manifest.permission.READ_CALENDAR) }, actions,

@@ -51,6 +51,10 @@ jobs:
             echo "::warning::No TOKKIP_KEYSTORE_B64 / TOKKIP_KEYSTORE_PASSWORD secrets: this APK uses a throwaway key and will not install over a previous one."
           fi
 
+      # Tokkip's voice library (50 MB, kept out of git).
+      - name: Voice library
+        run: sh android/tools/get_sherpa.sh
+
       # Failures also show as annotations (compile errors and failed tests).
       - name: Unit tests
         run: |

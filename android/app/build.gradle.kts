@@ -12,8 +12,10 @@ android {
         applicationId = "mx.loperstack.tokkip"
         minSdk = 31
         targetSdk = 35
-        versionCode = 32
-        versionName = "2.1.0"
+        versionCode = 33
+        versionName = "2.2.0"
+        // The assistant's engines are 64-bit ARM only; so are the phones that can run them.
+        ndk { abiFilters += "arm64-v8a" }
     }
 
     // One stable key for every CI build, so a new APK installs over the old one
@@ -49,9 +51,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
     buildFeatures {
         compose = true
     }
@@ -80,7 +79,18 @@ dependencies {
     implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
     implementation("com.google.guava:guava:33.3.1-android")
+    // Tokkip's assistant: Gemma on the phone (LiteRT-LM), his voice (Piper through sherpa-onnx,
+    // whose AAR CI fetches into libs/: tools/get_sherpa.sh), and unpacking the voice.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
+    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
+    implementation("org.apache.commons:commons-compress:1.27.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }

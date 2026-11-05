@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tokkip's assistant: the model (2.6 GB) and the voice are too big for a backup
+     and come back by downloading; the chats are sealed with a key that stays on
+     this phone, so a copy elsewhere couldn't be read anyway. -->
+<full-backup-content>
+    <exclude domain="external" path="modelos/" />
+    <exclude domain="file" path="voz/" />
+    <exclude domain="file" path="platicas.bin" />
+</full-backup-content>
