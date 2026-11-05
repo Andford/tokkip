@@ -311,7 +311,7 @@ object Sync {
         db.rawQuery("SELECT v FROM meta WHERE k=?", arrayOf(k)).use { if (it.moveToFirst()) it.getString(0) else null }
 
     private fun setMeta(db: SQLiteDatabase, k: String, v: String?) {
-        if (v == null) db.delete("meta", "k=?", arrayOf<Any?>(k)) else db.execSQL("INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)", arrayOf(k, v))
+        if (v == null) db.delete("meta", "k=?", arrayOf(k)) else db.execSQL("INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)", arrayOf(k, v))
     }
 
     private fun forget(db: SQLiteDatabase) {
