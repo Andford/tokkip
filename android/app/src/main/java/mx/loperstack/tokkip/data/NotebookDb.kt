@@ -86,7 +86,7 @@ object Notebook {
             ix.copy(days = listOf(nd) + ix.days.filter { it.day != day })
         }
         write {
-            execSQL("INSERT OR IGNORE INTO days(day) VALUES(?)", arrayOf(day))
+            execSQL("INSERT OR IGNORE INTO days(day) VALUES(?)", arrayOf<Any?>(day))
             execSQL("UPDATE days SET edits=edits+?, steps=steps+?, finished=finished+? WHERE day=?", arrayOf<Any?>(edits, steps, finished, day))
         }
     }
@@ -137,7 +137,7 @@ object Notebook {
         val f = factsOf(body)
         if (old.title == title && old.preview == f.preview && old.steps == f.steps && old.done == f.done && old.next == f.next) {
             // Same facts: only the text may have changed (beyond the preview).
-            write { execSQL("UPDATE notes SET body=? WHERE id=?", arrayOf(body, id)) }
+            write { execSQL("UPDATE notes SET body=? WHERE id=?", arrayOf<Any?>(body, id)) }
             return
         }
         val now = System.currentTimeMillis()
@@ -174,14 +174,14 @@ object Notebook {
     fun move(id: String, project: String?) {
         val h = note(id) ?: return
         setNote(h.copy(project = project))
-        write { execSQL("UPDATE notes SET project=? WHERE id=?", arrayOf(project, id)) }
+        write { execSQL("UPDATE notes SET project=? WHERE id=?", arrayOf<Any?>(project, id)) }
         project?.let { touchProject(it) }
     }
 
     fun pin(id: String, on: Boolean) {
         val h = note(id) ?: return
         _index.value = _index.value.let { ix -> ix.copy(notes = ix.notes.map { if (it.id == id) h.copy(pinned = on) else it }) }
-        write { execSQL("UPDATE notes SET pinned=? WHERE id=?", arrayOf(if (on) 1 else 0, id)) }
+        write { execSQL("UPDATE notes SET pinned=? WHERE id=?", arrayOf<Any?>(if (on) 1 else 0, id)) }
     }
 
     fun delete(id: String) {
@@ -212,7 +212,7 @@ object Notebook {
     private fun touchProject(id: String) {
         val now = System.currentTimeMillis()
         _index.value = _index.value.let { ix -> ix.copy(projects = ix.projects.map { if (it.id == id) it.copy(updated = now) else it }) }
-        write { execSQL("UPDATE projects SET updated=? WHERE id=?", arrayOf(now, id)) }
+        write { execSQL("UPDATE projects SET updated=? WHERE id=?", arrayOf<Any?>(now, id)) }
     }
 
     fun saveProject(p: Project) {
@@ -252,7 +252,7 @@ object Notebook {
         write {
             delete("projects", "id=?", arrayOf(id))
             if (withNotes) delete("notes", "project=?", arrayOf(id))
-            else execSQL("UPDATE notes SET project=NULL WHERE project=?", arrayOf(id))
+            else execSQL("UPDATE notes SET project=NULL WHERE project=?", arrayOf<Any?>(id))
         }
     }
 
