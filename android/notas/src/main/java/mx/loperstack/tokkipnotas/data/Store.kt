@@ -177,7 +177,7 @@ object Store {
         write {
             execSQL(
                 "UPDATE pages SET title=?, body=?, preview=?, steps=?, done=?, updated=? WHERE id=?",
-                arrayOf(p.title, body, p.preview, p.steps, p.done, p.updated, id),
+                arrayOf<Any?>(p.title, body, p.preview, p.steps, p.done, p.updated, id),
             )
             mark(this, id, false)
         }
@@ -203,7 +203,7 @@ object Store {
         val t = now
         val all = _index.value.subtree(id).filter { it.trashed == 0L }.map { it.copy(trashed = t) }
         setPages(all)
-        write { for (p in all) { execSQL("UPDATE pages SET trashed=? WHERE id=?", arrayOf(t, p.id)); mark(this, p.id, false) } }
+        write { for (p in all) { execSQL("UPDATE pages SET trashed=? WHERE id=?", arrayOf<Any?>(t, p.id)); mark(this, p.id, false) } }
     }
 
     /** Back from the Papelera (what went with it comes back too). If its parent is gone, to the top. */

@@ -87,7 +87,7 @@ object Notebook {
         }
         write {
             execSQL("INSERT OR IGNORE INTO days(day) VALUES(?)", arrayOf(day))
-            execSQL("UPDATE days SET edits=edits+?, steps=steps+?, finished=finished+? WHERE day=?", arrayOf(edits, steps, finished, day))
+            execSQL("UPDATE days SET edits=edits+?, steps=steps+?, finished=finished+? WHERE day=?", arrayOf<Any?>(edits, steps, finished, day))
         }
     }
 
@@ -147,7 +147,7 @@ object Notebook {
         write {
             execSQL(
                 "UPDATE notes SET title=?, body=?, preview=?, steps=?, done=?, next=?, updated=? WHERE id=?",
-                arrayOf(title, body, f.preview, f.steps, f.done, f.next, now, id),
+                arrayOf<Any?>(title, body, f.preview, f.steps, f.done, f.next, now, id),
             )
         }
         old.project?.let { touchProject(it) }
@@ -168,7 +168,7 @@ object Notebook {
         val h = note(id) ?: return
         val now = System.currentTimeMillis()
         _index.value = _index.value.let { ix -> ix.copy(notes = ix.notes.map { if (it.id == id) h.copy(opened = now) else it }) }
-        write { execSQL("UPDATE notes SET opened=? WHERE id=?", arrayOf(now, id)) }
+        write { execSQL("UPDATE notes SET opened=? WHERE id=?", arrayOf<Any?>(now, id)) }
     }
 
     fun move(id: String, project: String?) {
