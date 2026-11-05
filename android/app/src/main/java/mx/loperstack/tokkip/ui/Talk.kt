@@ -476,12 +476,23 @@ private fun AssistantSettings(onForget: () -> Unit, onDeleteModel: () -> Unit) {
     var downloading by remember { mutableStateOf<Float?>(null) }
     var voiceProblem by remember { mutableStateOf<String?>(null) }
     var installedTick by remember { mutableIntStateOf(0) }
+    val importVoice = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        downloading = 0.5f
+        scope.launch {
+            Voice.importOwn(context, uri)
+                .onSuccess { voiceProblem = null; chosen = Voice.OWN; pitch = 1f; Voice.say(context, "¡Hola! Esta es mi voz nueva.") }
+                .onFailure { voiceProblem = "No se pudo importar la voz: ${it.message}" }
+            downloading = null
+            installedTick++
+        }
+    }
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
         SectionTitle("Voz")
         ToggleRow("Que Tokkip hable", "Lee sus respuestas en voz alta, sin internet", voiceOn) { voiceOn = it; Voice.setEnabled(context, it) }
         Spacer(Modifier.height(10.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (v in Voice.VOICES) Pill("${v.name} · ${v.note}", v == chosen) { chosen = v; Voice.choose(context, v) }
+            for (v in remember(installedTick) { Voice.voices(context) }) Pill("${v.name} · ${v.note}", v == chosen) { chosen = v; Voice.choose(context, v) }
         }
         Spacer(Modifier.height(10.dp))
         val here = remember(chosen, installedTick) { Voice.installed(context, chosen) }
@@ -519,6 +530,10 @@ private fun AssistantSettings(onForget: () -> Unit, onDeleteModel: () -> Unit) {
                     }
                 }
             }
+        }
+        Spacer(Modifier.height(10.dp))
+        ExpressiveButton("Importar voz propia (.zip)", Modifier.fillMaxWidth(), icon = Icons.Rounded.FolderOpen, container = Ink.CardHigh, content = Ink.Text) {
+            importVoice.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
         }
         SectionTitle("Memoria")
         Text("Lo que platican se guarda cifrado solo en este teléfono.", fontSize = 14.sp, color = Ink.Dim)

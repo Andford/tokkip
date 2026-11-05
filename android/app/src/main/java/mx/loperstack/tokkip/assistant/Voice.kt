@@ -38,16 +38,23 @@ data class VoiceSpec(val id: String, val name: String, val note: String) {
  * a little higher than the voice's own pitch so it sounds like him.
  */
 object Voice {
-    val VOICES = listOf(
+    private val BUILT_IN = listOf(
         VoiceSpec("es_MX-claude-high", "Claude (México)", "Clara y natural"),
         VoiceSpec("es_MX-ald-medium", "Ald (México)", "Más grave"),
     )
 
+    /** Tokkip's own voice, trained from your recording (the Colab notebook makes it). */
+    val OWN = VoiceSpec("es_MX-tokkip-medium", "Tokkip", "Su propia voz")
+
+    /** The voices to choose from: his own first, once you've imported it. */
+    fun voices(context: Context): List<VoiceSpec> = if (installed(context, OWN)) listOf(OWN) + BUILT_IN else BUILT_IN
+
     private const val PREFS = "tokkip_asistente"
 
     fun chosen(context: Context): VoiceSpec {
-        val id = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("voz", VOICES.first().id)
-        return VOICES.firstOrNull { it.id == id } ?: VOICES.first()
+        val all = voices(context)
+        val id = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("voz", null)
+        return all.firstOrNull { it.id == id } ?: all.first()
     }
 
     fun choose(context: Context, v: VoiceSpec) {
@@ -123,6 +130,42 @@ object Voice {
             archive.delete()
             onProgress(1f)
             check(installed(context, v)) { "La voz llegó incompleta" }
+        }
+    }
+
+    /**
+     * Imports a voice you trained (tokkip_voz.zip from the notebook): a folder
+     * with the .onnx, tokens.txt and espeak-ng-data. It becomes the voice.
+     */
+    suspend fun importOwn(context: Context, uri: android.net.Uri): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val root = root(context).canonicalFile
+            val target = dirOf(context, OWN)
+            target.deleteRecursively()
+            release()
+            context.contentResolver.openInputStream(uri)!!.use { raw ->
+                java.util.zip.ZipInputStream(raw.buffered()).use { zip ->
+                    while (true) {
+                        val entry = zip.nextEntry ?: break
+                        // Whatever folder the zip has, its files land in Tokkip's own voice folder.
+                        val inside = entry.name.substringAfter("vits-piper-es_MX-tokkip-medium/", entry.name)
+                        val out = File(target, inside).canonicalFile
+                        check(out.path.startsWith(root.path + File.separator)) { "Archivo de voz inesperado" }
+                        if (entry.isDirectory) out.mkdirs() else {
+                            out.parentFile?.mkdirs()
+                            out.outputStream().use { zip.copyTo(it) }
+                        }
+                    }
+                }
+            }
+            if (!installed(context, OWN)) {
+                // A zip with a differently named model: take its .onnx as his.
+                target.listFiles { f -> f.name.endsWith(".onnx") }?.firstOrNull()?.renameTo(File(target, "${OWN.id}.onnx"))
+            }
+            check(installed(context, OWN)) { "Ese zip no trae una voz de Piper completa" }
+            choose(context, OWN)
+            // His own voice already sounds like him: no pitch on top.
+            setPitch(context, 1f)
         }
     }
 
