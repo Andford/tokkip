@@ -30,4 +30,12 @@ class AssistantTest {
         assertFalse(Persona.isCrisis("¿Cómo potabilizo agua?"))
         assertFalse(Persona.isCrisis("el servidor se murió otra vez"))
     }
+
+    @Test fun talks_like_a_friend_not_a_sweetheart() {
+        assertEquals("¡Hola! ¿Cómo estás?", Persona.clean("¡Hola, mi amor! ¿Cómo estás?"))
+        assertEquals("Claro. Primero hierve el agua.", Persona.clean("Claro, cariño. Primero hierve el agua."))
+        assertEquals("Ok. tranquilo.", Persona.clean("Ok. Mi amor, tranquilo."))
+        assertEquals("¿Qué es el amor?", Persona.clean("¿Qué es el amor?"))
+        assertEquals("Cuida tu vida, Andy.", Persona.clean("Cuida tu vida, Andy."))
+    }
 }

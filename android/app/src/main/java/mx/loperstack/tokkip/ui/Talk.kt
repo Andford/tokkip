@@ -32,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Mic
@@ -59,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -139,6 +141,14 @@ fun TalkScreen(color: Color) {
         }
     }
 
+    // Talking: tap the mic for one question, or the phone for a whole conversation.
+    var call by remember { mutableStateOf(false) }
+    var listening by remember { mutableStateOf(false) }
+    var heard by remember { mutableStateOf("") }
+    var misses by remember { mutableIntStateOf(0) }
+    val view = LocalView.current
+    lateinit var listen: Listen
+
     fun send(text: String) {
         val t = text.trim()
         if (t.isEmpty() || brain !is Brain.State.Ready || answering != null) return
@@ -152,16 +162,45 @@ fun TalkScreen(color: Color) {
             runCatching {
                 Brain.ask(t).collect { piece ->
                     out.append(piece)
-                    answering = out.toString()
-                    for (s in cut.feed(out.toString(), done = false)) Voice.say(context, s)
+                    val shown = Persona.clean(out.toString())
+                    answering = shown
+                    for (s in cut.feed(shown, done = false)) Voice.say(context, s)
                 }
             }.onFailure { if (out.isEmpty()) out.append("Uy, me trabé pensando. ¿Me lo repites?") }
-            for (s in cut.feed(out.toString(), done = true)) Voice.say(context, s)
-            lines += Line(false, out.toString().trim())
+            val final = Persona.clean(out.toString())
+            for (s in cut.feed(final, done = true)) Voice.say(context, s)
+            lines += Line(false, final.trim())
             answering = null
             jump++
             Memory.save(context, lines.toList())
         }
+    }
+
+    listen = remember {
+        Listen(context, onPartial = { heard = it }, onDone = { said ->
+            listening = false
+            if (said != null) { misses = 0; heard = ""; send(said) } else misses++
+        })
+    }
+    fun hear() {
+        if (brain !is Brain.State.Ready || answering != null) return
+        Voice.stop()
+        heard = ""
+        listening = true
+        listen.start()
+    }
+    // In a call: when Tokkip is done talking, listen again; after a long silence, hang up.
+    LaunchedEffect(call, answering == null, speaking, listening, misses) {
+        if (!call) return@LaunchedEffect
+        if (misses >= 4) { call = false; return@LaunchedEffect }
+        if (answering == null && !speaking && !listening) {
+            delay(500)
+            hear()
+        }
+    }
+    DisposableEffect(call) {
+        view.keepScreenOn = call
+        onDispose { view.keepScreenOn = false; listen.stop() }
     }
 
     Column(Modifier.fillMaxSize().imePadding()) {
@@ -212,13 +251,32 @@ fun TalkScreen(color: Color) {
             )
             else -> {
                 if (crisis) CrisisCard { crisis = false }
-                Chat(lines, answering, brain, Modifier.weight(1f))
-                Composer(
-                    enabled = brain is Brain.State.Ready,
-                    busy = answering != null,
-                    onSend = ::send,
-                    onStop = { Brain.stop(); Voice.stop(); thinking?.cancel() },
-                )
+                if (call) {
+                    CallPanel(
+                        state = when {
+                            listening -> if (heard.isBlank()) "Te escucho…" else heard
+                            answering == "" -> "Pensando…"
+                            speaking || answering != null -> "Hablando… (toca para interrumpir)"
+                            else -> "…"
+                        },
+                        last = lines.lastOrNull { !it.fromYou }?.text,
+                        modifier = Modifier.weight(1f),
+                        interrupt = { Brain.stop(); Voice.stop(); thinking?.cancel() },
+                        hangUp = { call = false; listen.stop(); listening = false; Brain.stop(); Voice.stop() },
+                    )
+                } else {
+                    Chat(lines, answering, brain, Modifier.weight(1f))
+                    Composer(
+                        enabled = brain is Brain.State.Ready,
+                        busy = answering != null,
+                        listening = listening,
+                        heard = heard,
+                        onSend = ::send,
+                        onStop = { Brain.stop(); Voice.stop(); thinking?.cancel() },
+                        onMic = { if (listening) listen.finish() else hear() },
+                        onCall = { misses = 0; call = true },
+                    )
+                }
             }
         }
     }
@@ -260,25 +318,28 @@ private fun Hint(text: String) {
     Text(text, fontSize = 15.sp, color = Ink.Dim, modifier = Modifier.fillMaxWidth().clip(Squircle(20.dp)).background(Ink.Card).padding(16.dp))
 }
 
-/** Type, or hold the mic and talk; while Tokkip answers, the button stops him. */
+/** Type, tap the mic for one question, or call him for a whole conversation. */
 @Composable
-private fun Composer(enabled: Boolean, busy: Boolean, onSend: (String) -> Unit, onStop: () -> Unit) {
+private fun Composer(
+    enabled: Boolean, busy: Boolean, listening: Boolean, heard: String,
+    onSend: (String) -> Unit, onStop: () -> Unit, onMic: () -> Unit, onCall: () -> Unit,
+) {
     val context = LocalContext.current
     var text by remember { mutableStateOf("") }
-    var listening by remember { mutableStateOf(false) }
-    val listen = remember {
-        Listen(context, onPartial = { text = it }, onDone = { heard ->
-            listening = false
-            if (heard != null) { onSend(heard); text = "" }
-        })
-    }
-    DisposableEffect(Unit) { onDispose { listen.stop() } }
     var micAllowed by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
-    val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { micAllowed = it }
+    var then by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val askMic = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        micAllowed = ok
+        if (ok) then?.invoke()
+        then = null
+    }
+    fun withMic(action: () -> Unit) {
+        if (micAllowed) action() else { then = action; askMic.launch(Manifest.permission.RECORD_AUDIO) }
+    }
 
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedTextField(
-            value = text, onValueChange = { text = it.take(2000) }, enabled = enabled,
+            value = if (listening) heard else text, onValueChange = { text = it.take(2000) }, enabled = enabled && !listening,
             placeholder = { Text(if (listening) "Te escucho…" else "Escríbele a Tokkip") },
             shape = Squircle(22.dp), modifier = Modifier.weight(1f), maxLines = 5,
         )
@@ -288,26 +349,33 @@ private fun Composer(enabled: Boolean, busy: Boolean, onSend: (String) -> Unit, 
             text.isNotBlank() && !listening -> CircleButton(Icons.Rounded.Send, "Enviar", size = 52.dp, container = Ink.VioletSoft, tint = Ink.OnViolet) {
                 onSend(text); text = ""
             }
-            else -> Box(
-                Modifier.size(52.dp).clip(Squircle(26.dp)).background(if (listening) Ink.Violet else Ink.CardHigh)
-                    .pointerInput(enabled, micAllowed) {
-                        awaitEachGesture {
-                            awaitFirstDown()
-                            if (!micAllowed) { askMic.launch(Manifest.permission.RECORD_AUDIO); return@awaitEachGesture }
-                            if (!enabled) return@awaitEachGesture
-                            Voice.stop()
-                            listening = true
-                            text = ""
-                            listen.start()
-                            waitForUpOrCancellation()
-                            listen.finish()
-                        }
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                androidx.compose.material3.Icon(Icons.Rounded.Mic, "Mantén presionado para hablar", tint = if (listening) Ink.OnViolet else Ink.Text)
+            else -> {
+                CircleButton(
+                    Icons.Rounded.Mic, if (listening) "Terminar de hablar" else "Hablarle",
+                    size = 52.dp, container = if (listening) Ink.Violet else Ink.CardHigh, tint = if (listening) Ink.OnViolet else Ink.Text,
+                ) { if (enabled) withMic(onMic) }
+                Spacer(Modifier.size(8.dp))
+                CircleButton(Icons.Rounded.Call, "Conversar con Tokkip", size = 52.dp, container = Ink.VioletSoft, tint = Ink.OnViolet) {
+                    if (enabled) withMic(onCall)
+                }
             }
         }
+    }
+}
+
+/** A conversation like a call: Tokkip big, what's happening, and one button to hang up. */
+@Composable
+private fun CallPanel(state: String, last: String?, modifier: Modifier, interrupt: () -> Unit, hangUp: () -> Unit) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Text(state, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Ink.Text, modifier = Modifier.clip(Squircle(16.dp)).pointerInput(Unit) {
+            awaitEachGesture { awaitFirstDown(); if (waitForUpOrCancellation() != null) interrupt() }
+        }.padding(8.dp))
+        if (last != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(last.takeLast(280), fontSize = 15.sp, color = Ink.Dim, lineHeight = 21.sp, maxLines = 6)
+        }
+        Spacer(Modifier.height(28.dp))
+        ExpressiveButton("Colgar", icon = Icons.Rounded.CallEnd, container = Ink.Red, content = Color.White, onClick = hangUp)
     }
 }
 
