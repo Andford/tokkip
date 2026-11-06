@@ -44,6 +44,8 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -82,6 +84,7 @@ import mx.loperstack.tokkip.assistant.Models
 import mx.loperstack.tokkip.assistant.Persona
 import mx.loperstack.tokkip.assistant.Sentences
 import mx.loperstack.tokkip.assistant.Voice
+import mx.loperstack.tokkip.assistant.Web
 import mx.loperstack.tokkip.assistant.WatchTalk
 import mx.loperstack.tokkip.character.Mood
 import mx.loperstack.tokkip.character.Squircle
@@ -209,6 +212,11 @@ fun TalkScreen(color: Color) {
             heard = ""
             when {
                 said != null -> { misses = 0; send(said) }
+                // In a call the dictation window would get in the way: hang up and say why.
+                broken && call -> {
+                    call = false
+                    Toast.makeText(context, "El micrófono no arrancó ($why). Prueba otra vez en un momento.", Toast.LENGTH_LONG).show()
+                }
                 broken -> {
                     Toast.makeText(context, "El micrófono de la app no arrancó ($why). Uso el dictado del teléfono.", Toast.LENGTH_LONG).show()
                     dictateNow()
@@ -224,7 +232,7 @@ fun TalkScreen(color: Color) {
         if (brain !is Brain.State.Ready || answering != null) return
         Voice.stop()
         heard = ""
-        if (Listen.broken) return dictateNow()
+        if (Listen.broken && !call) return dictateNow()
         listening = true
         listen.start()
     }
@@ -237,6 +245,14 @@ fun TalkScreen(color: Color) {
     val pendingCall by Caller.pending.collectAsState()
     LaunchedEffect(Unit) {
         Caller.placed.collect {
+            call = false
+            listen.stop()
+            listening = false
+        }
+    }
+    // She opened Spotify or the browser: no more listening, or she'd hear the music.
+    LaunchedEffect(Unit) {
+        Brain.left.collect {
             call = false
             listen.stop()
             listening = false
@@ -551,6 +567,8 @@ private fun AssistantSettings(onForget: () -> Unit, onDeleteModel: () -> Unit) {
     var chosen by remember { mutableStateOf(Voice.chosen(context)) }
     var voiceOn by remember { mutableStateOf(Voice.enabled(context)) }
     var pitch by remember { mutableStateOf(Voice.pitch(context)) }
+    var pace by remember { mutableStateOf(Voice.pace(context)) }
+    var webOk by remember { mutableStateOf(Web.allowed(context)) }
     var downloading by remember { mutableStateOf<Float?>(null) }
     var voiceProblem by remember { mutableStateOf<String?>(null) }
     var installedTick by remember { mutableIntStateOf(0) }
@@ -625,11 +643,35 @@ private fun AssistantSettings(onForget: () -> Unit, onDeleteModel: () -> Unit) {
                         }
                     }
                 }
+                Spacer(Modifier.height(10.dp))
+                Text("Ritmo", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                PillRow {
+                    for ((label, p) in listOf("Tranquilo" to 0.9f, "Normal" to 1.0f, "Ágil" to 1.1f)) {
+                        Pill(label, kotlin.math.abs(pace - p) < 0.01f) {
+                            pace = p
+                            Voice.setPace(context, p)
+                            Voice.stop()
+                            Voice.say(context, "Así hablo ahora, a este ritmo.")
+                        }
+                    }
+                }
             }
         }
         Spacer(Modifier.height(10.dp))
         ExpressiveButton("Importar voz propia (.zip)", Modifier.fillMaxWidth(), icon = Icons.Rounded.FolderOpen, container = Ink.CardHigh, content = Ink.Text) {
             importVoice.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+        }
+        SectionTitle("Internet")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Permitir buscar en internet", fontWeight = FontWeight.Bold)
+                Text(
+                    "Tokkip lee Wikipedia cuando le preguntas de un tema y te lo platica. Apagado, no se conecta a nada.",
+                    fontSize = 14.sp, color = Ink.Dim,
+                )
+            }
+            Switch(checked = webOk, onCheckedChange = { webOk = it; Web.setAllowed(context, it) }, colors = SwitchDefaults.colors(checkedTrackColor = Ink.Violet))
         }
         SectionTitle("Memoria")
         Text("Lo que platican se guarda cifrado solo en este teléfono.", fontSize = 14.sp, color = Ink.Dim)

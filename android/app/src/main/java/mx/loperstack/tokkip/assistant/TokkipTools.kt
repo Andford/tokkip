@@ -38,6 +38,7 @@ class TokkipTools(
     private val context: Context,
     private val onDone: (String) -> Unit,
     private val onNeed: (List<String>) -> Unit,
+    private val onLeave: () -> Unit = {},
 ) {
     private val es = Locale.forLanguageTag("es-MX")
 
@@ -175,6 +176,50 @@ class TokkipTools(
             )
         },
         Op(
+            "reproducir",
+            "Pone música, un artista, una canción, un álbum, un podcast o un video en Spotify, YouTube Music o YouTube.",
+            listOf(
+                Triple("que", "Lo que hay que poner, por ejemplo 'Bad Bunny', 'música lofi para estudiar' o 'Hoy no me puedo levantar'", true),
+                Triple("app", "Solo si la pidieron: 'spotify', 'youtube music' o 'youtube'. Vacío si no dijeron.", false),
+            ),
+        ) { a ->
+            val what = a.text("que")
+            if (what.isEmpty()) return@Op fail("Falta qué poner")
+            if (!Apps.inFront()) return@Op fail(notInFront)
+            val app = Apps.play(context, what, Apps.appOf(a.text("app")))
+                ?: return@Op fail("No pude abrir Spotify ni YouTube")
+            onDone("🎵 $what en $app")
+            onLeave()
+            mapOf("ok" to true, "app" to app, "nota" to if (app == "YouTube") "Abrí los resultados en YouTube para que elijas" else "Ya está sonando")
+        },
+        Op(
+            "buscar_en_web",
+            "Abre una búsqueda de Google en el navegador. Úsala para cosas de hoy (clima, noticias, precios, horarios, resultados) o cuando pidan buscar en internet.",
+            listOf(Triple("consulta", "Lo que hay que buscar", true)),
+        ) { a ->
+            val q = a.text("consulta")
+            if (q.isEmpty()) return@Op fail("Falta qué buscar")
+            if (!Apps.inFront()) return@Op fail(notInFront)
+            if (!Apps.search(context, q)) return@Op fail("No hay un navegador para abrir la búsqueda")
+            onDone("🔎 Busqué: $q")
+            onLeave()
+            mapOf("ok" to true, "nota" to "Abrí la búsqueda en el navegador")
+        },
+        Op(
+            "consultar_wikipedia",
+            "Lee en Wikipedia un resumen sobre una persona, lugar, cosa o tema, para platicarlo. No sirve para noticias, clima ni precios.",
+            listOf(Triple("tema", "El tema, por ejemplo 'Torreón', 'Frida Kahlo' o 'fotosíntesis'", true)),
+        ) { a ->
+            val topic = a.text("tema")
+            if (topic.isEmpty()) return@Op fail("Falta el tema")
+            if (!Web.allowed(context)) {
+                return@Op fail("Buscar en internet está apagado. Se prende en Platicar, Ajustes, Permitir buscar en internet. O puedo abrir la búsqueda en el navegador.")
+            }
+            val found = Web.wikipedia(topic) ?: return@Op fail("No encontré '$topic' en Wikipedia")
+            onDone("📖 Wikipedia: ${found.first}")
+            mapOf("ok" to true, "titulo" to found.first, "resumen" to found.second.take(1500), "fuente" to "Wikipedia")
+        },
+        Op(
             "llamar",
             "Hace una llamada telefónica a un contacto o a un número. Úsala cuando pidan llamar o marcarle a alguien.",
             listOf(Triple("persona", "Nombre del contacto como lo dijeron (por ejemplo 'mamá', 'Luis Pérez') o un número", true)),
@@ -205,6 +250,8 @@ class TokkipTools(
     )
 
     private fun fmt(t: Long) = SimpleDateFormat("EEEE d 'de' MMMM, HH:mm", es).format(t)
+
+    private val notInFront = "Android solo me deja abrir apps cuando tienes el teléfono en la mano con Tokkip abierto."
     private fun day(t: Long) = SimpleDateFormat("EEEE d", es).format(t)
 }
 

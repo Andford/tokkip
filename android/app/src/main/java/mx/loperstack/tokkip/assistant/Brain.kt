@@ -57,6 +57,10 @@ object Brain {
     /** Permissions a tool was missing (calendar, contacts, calls): the chat asks for them. */
     val need: SharedFlow<List<String>> = _need
 
+    private val _left = MutableSharedFlow<Unit>(extraBufferCapacity = 4)
+    /** A tool opened another app (music, the browser): the chat stops a call. */
+    val left: SharedFlow<Unit> = _left
+
     /** Why Tokkip can't do things in the app this time, if she can't (shown in the chat). */
     var toolsProblem: String? = null
         private set
@@ -96,7 +100,7 @@ object Brain {
 
     private fun tools() = runCatching {
         val c = app ?: return@runCatching emptyList()
-        TokkipTools(c, onDone = { _done.tryEmit(it) }, onNeed = { _need.tryEmit(it) }).providers()
+        TokkipTools(c, onDone = { _done.tryEmit(it) }, onNeed = { _need.tryEmit(it) }, onLeave = { _left.tryEmit(Unit) }).providers()
     }.getOrElse { toolsProblem = it.message; emptyList() }
 
     /** A conversation with the tools; without them if they won't load, so she can still talk. */

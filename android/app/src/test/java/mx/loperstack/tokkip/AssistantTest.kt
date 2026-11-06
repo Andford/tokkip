@@ -1,6 +1,7 @@
 package mx.loperstack.tokkip
 
 import mx.loperstack.tokkip.assistant.Persona
+import mx.loperstack.tokkip.assistant.Apps
 import mx.loperstack.tokkip.assistant.Sentences
 import mx.loperstack.tokkip.assistant.Spoken
 import mx.loperstack.tokkip.assistant.Voice
@@ -83,5 +84,14 @@ class AssistantTest {
         assertEquals(listOf("Luis Pérez"), Spoken.bestNames("luis perez", names))
         assertEquals(listOf("Dr. Ramírez"), Spoken.bestNames("ramirez", names))
         assertEquals(emptyList<String>(), Spoken.bestNames("Pedro", names))
+    }
+
+    @Test
+    fun musicApps() {
+        assertEquals(Apps.SPOTIFY, Apps.appOf("Spotify"))
+        assertEquals(Apps.YT_MUSIC, Apps.appOf("YouTube Music"))
+        assertEquals(Apps.YOUTUBE, Apps.appOf("youtube"))
+        assertEquals(null, Apps.appOf("música"))
+        assertEquals(null, Apps.appOf(""))
     }
 }

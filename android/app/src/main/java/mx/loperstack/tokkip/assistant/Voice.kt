@@ -74,6 +74,10 @@ object Voice {
     fun pitch(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat("tono", 1.12f)
     fun setPitch(context: Context, p: Float) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putFloat("tono", p.coerceIn(0.8f, 1.4f)).apply()
 
+    /** How fast she talks: below 1 calmer (often sounds more natural), above 1 quicker. */
+    fun pace(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat("ritmo", 1.0f)
+    fun setPace(context: Context, p: Float) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putFloat("ritmo", p.coerceIn(0.8f, 1.3f)).apply()
+
     private fun root(context: Context) = File(context.filesDir, "voz").apply { mkdirs() }
     fun dirOf(context: Context, v: VoiceSpec) = File(root(context), v.folder)
     fun installed(context: Context, v: VoiceSpec) = File(dirOf(context, v), "${v.id}.onnx").exists() && File(dirOf(context, v), "espeak-ng-data").isDirectory
@@ -238,8 +242,9 @@ object Voice {
         val r = ready
         if (worker?.isActive != true) worker = scope.launch {
             val engine = engine(app, chosen(app))
+            val speed = pace(app)
             for ((sentence, sink) in q) {
-                val audio = engine?.let { e -> runCatching { e.generate(sentence, 0, 1.0f) }.getOrNull() }
+                val audio = engine?.let { e -> runCatching { e.generate(sentence, 0, speed) }.getOrNull() }
                 if (audio == null) {
                     if (sink == null) finished()
                     continue

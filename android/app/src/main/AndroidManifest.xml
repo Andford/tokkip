@@ -49,6 +49,14 @@
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
+        <!-- "Pon Bad Bunny": the music apps Tokkip can hand a song to. -->
+        <package android:name="com.spotify.music" />
+        <package android:name="com.google.android.apps.youtube.music" />
+        <package android:name="com.google.android.youtube" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
         <package android:name="com.google.android.apps.healthdata" />
         <!-- Pantalla: the names and icons of the apps you open from the launcher. -->
         <intent>
