@@ -22,6 +22,7 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -188,7 +189,13 @@ object Voice {
     }
 
     private var queue = Channel<Pair<String, Sink?>>(Channel.UNLIMITED)
+    /** Audio already made, waiting its turn: the next sentence is ready before this one ends. */
+    private var ready = Channel<Clip>(2)
+    private class Clip(val samples: FloatArray, val rate: Int, val sink: Sink?)
     private var worker: Job? = null
+    private var player: Job? = null
+    /** Sentences said out loud here that haven't finished yet. */
+    private val waiting = AtomicInteger()
     private var track: AudioTrack? = null
 
     private fun engine(context: Context, v: VoiceSpec): OfflineTts? {
@@ -203,7 +210,7 @@ object Voice {
                     tokens = File(d, "tokens.txt").path,
                     dataDir = File(d, "espeak-ng-data").path,
                 ),
-                numThreads = 2,
+                numThreads = 4,
                 debug = false,
                 provider = "cpu",
             ),
@@ -213,22 +220,49 @@ object Voice {
         return tts
     }
 
-    /** Says [text] after whatever is already being said. */
+    /**
+     * Says [text] after whatever is already being said. One worker makes the
+     * audio and another plays it, so while one sentence sounds the next one is
+     * already being made: no silences between them.
+     */
     fun say(context: Context, text: String, to: Sink? = null) {
         val clean = speakable(text)
         if (clean.isBlank() || !enabled(context)) return
         val app = context.applicationContext
+        if (to == null) {
+            waiting.incrementAndGet()
+            _speaking.value = true
+        }
         queue.trySend(clean to to)
+        val q = queue
+        val r = ready
         if (worker?.isActive != true) worker = scope.launch {
-            val v = chosen(app)
-            val engine = engine(app, v) ?: return@launch
-            for ((sentence, sink) in queue) {
-                _speaking.value = sink == null
-                val audio = runCatching { engine.generate(sentence, 0, 1.0f) }.getOrNull() ?: continue
-                if (sink != null) runCatching { sink.pcm(audio.samples, audio.sampleRate, pitch(app)) }
-                else play(audio.samples, audio.sampleRate, pitch(app))
-                if (queue.isEmpty) _speaking.value = false
+            val engine = engine(app, chosen(app))
+            for ((sentence, sink) in q) {
+                val audio = engine?.let { e -> runCatching { e.generate(sentence, 0, 1.0f) }.getOrNull() }
+                if (audio == null) {
+                    if (sink == null) finished()
+                    continue
+                }
+                r.send(Clip(audio.samples, audio.sampleRate, sink))
             }
+        }
+        if (player?.isActive != true) player = scope.launch {
+            val pitch = pitch(app)
+            for (c in r) {
+                if (c.sink != null) runCatching { c.sink.pcm(c.samples, c.rate, pitch) }
+                else {
+                    runCatching { play(c.samples, c.rate, pitch) }
+                    finished()
+                }
+            }
+        }
+    }
+
+    private fun finished() {
+        if (waiting.decrementAndGet() <= 0) {
+            waiting.set(0)
+            _speaking.value = false
         }
     }
 
@@ -250,10 +284,15 @@ object Voice {
     /** Stops talking now and drops what was waiting. */
     fun stop() {
         worker?.cancel()
+        player?.cancel()
         worker = null
+        player = null
         queue.close()
+        ready.close()
         queue = Channel(Channel.UNLIMITED)
+        ready = Channel(2)
         runCatching { track?.pause(); track?.flush() }
+        waiting.set(0)
         _speaking.value = false
     }
 
@@ -268,21 +307,46 @@ object Voice {
     }
 
     /** Markdown and code read badly out loud: say the words, skip the symbols and the commands. */
+    /**
+     * What gets read out loud: no code, no markdown, no emojis, and times,
+     * lists and symbols as you'd say them.
+     */
     fun speakable(text: String): String = text
         .replace(Regex("```[\\s\\S]*?```"), " ")
         .replace(Regex("`[^`]*`"), " ")
-        .replace(Regex("[*_#>|]"), " ")
+        .replace(Regex("https?://\\S+"), " el enlace ")
+        .replace(Regex("(?m)^\\s*(\\d{1,2})[.)]\\s+"), "$1, ")
+        .replace(Regex("(?m)^\\s*[-•·]\\s+"), "")
+        .replace(Regex("\\b(\\d{1,2}):(\\d{2})\\b")) { m -> time(m.groupValues[1].toInt(), m.groupValues[2].toInt()) }
+        .replace("°", " grados ")
+        .replace("%", " por ciento")
+        .replace(Regex("\\s[—–-]\\s|—"), ", ")
+        .replace(Regex("[\\p{So}\\p{Sk}\\x{FE0F}\\x{200D}\\x{20E3}]"), " ")
+        .replace(Regex("[*_#>|~=+^\\[\\]{}<>]"), " ")
+        .replace(Regex("\\s+([,.!?:;])"), "$1")
         .replace(Regex("\\s+"), " ")
         .trim()
+
+    /** 6:30 → "6 y media", 7:00 → "7", 9:15 → "9 y cuarto", 8:05 → "8 y 5". */
+    private fun time(h: Int, m: Int): String = when (m) {
+        0 -> "$h"
+        15 -> "$h y cuarto"
+        30 -> "$h y media"
+        in 1..9 -> "$h y $m"
+        else -> "$h $m"
+    }
 }
 
 /**
- * Cuts a streaming answer into sentences, so Tokkip can start talking before
- * the model is done. Feed it the text as it grows; it hands back each finished
- * sentence once.
+ * Cuts a streaming answer into pieces to say, so Tokkip can start talking
+ * before the model is done. The first piece is short, to start right away;
+ * after that she waits for about [rest] letters' worth of whole sentences, so
+ * each piece keeps its natural tune instead of resetting every few words.
+ * Feed it the text as it grows; it hands back each piece once.
  */
-class Sentences {
+class Sentences(private val first: Int = 8, private val rest: Int = 110) {
     private var said = 0
+    private var started = false
 
     fun feed(full: String, done: Boolean): List<String> {
         val out = mutableListOf<String>()
@@ -292,11 +356,12 @@ class Sentences {
         while (i < full.length) {
             if (full.startsWith("```", i)) inCode = !inCode
             val c = full[i]
-            val end = !inCode && (c == '.' || c == '!' || c == '?' || c == '\n' || c == ':') &&
+            val end = !inCode && (c == '.' || c == '!' || c == '?' || c == '\n' || c == ':' || c == ';') &&
                 (i + 1 >= full.length || full[i + 1].isWhitespace())
-            if (end && i + 1 - start >= 8) {
+            if (end && full.substring(start, i + 1).trim().length >= (if (started) rest else first)) {
                 out += full.substring(start, i + 1).trim()
                 start = i + 1
+                started = true
             }
             i++
         }

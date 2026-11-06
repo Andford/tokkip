@@ -315,6 +315,7 @@ object Store {
         _state.value = _state.value.copy(alarms = clean)
         prefs.edit().putString("alarms", alarmsJson(clean)).apply()
         mx.loperstack.tokkip.wellness.WakeAlarm.sync(app)
+        Widgets.refresh(app)
     }
 
     fun setSnooze(s: Snooze?) {

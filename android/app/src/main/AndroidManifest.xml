@@ -290,6 +290,16 @@
         </receiver>
 
         <receiver
+            android:name=".widget.AlarmsWidgetReceiver"
+            android:label="@string/widget_alarms"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_alarms" />
+        </receiver>
+
+        <receiver
             android:name=".widget.MoodWidgetReceiver"
             android:label="@string/widget_mood"
             android:exported="true">

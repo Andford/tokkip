@@ -9,6 +9,8 @@
     <string name="widget_breathe">Respirar</string>
     <string name="widget_pomodoro">Pomodoro</string>
     <string name="widget_tasks">Pendientes</string>
+    <string name="widget_alarms">Alarmas</string>
+    <string name="widget_alarms_desc">Tus alarmas: préndelas o apágalas desde la pantalla de inicio</string>
     <string name="widget_sleep">Sueño</string>
     <string name="widget_sleep_desc">Tu noche y Tokkip dormido</string>
     <string name="widget_mood">¿Cómo estás?</string>

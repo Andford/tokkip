@@ -17,14 +17,19 @@ class AssistantTest {
         val s = Sentences()
         assertEquals(emptyList<String>(), s.feed("Hola, Andy", done = false))
         assertEquals(listOf("Hola, Andy."), s.feed("Hola, Andy. Primero hierve", done = false))
-        assertEquals(emptyList<String>(), s.feed("Hola, Andy. Primero hierve el agua", done = false))
-        assertEquals(listOf("Primero hierve el agua un minuto."), s.feed("Hola, Andy. Primero hierve el agua un minuto. Lu", done = false))
-        assertEquals(listOf("Luego déjala enfriar"), s.feed("Hola, Andy. Primero hierve el agua un minuto. Luego déjala enfriar", done = true))
+        // After the first piece she gathers whole sentences, so the tune doesn't reset every few words.
+        assertEquals(emptyList<String>(), s.feed("Hola, Andy. Primero hierve el agua un minuto. Lu", done = false))
+        assertEquals(
+            listOf("Primero hierve el agua un minuto. Luego déjala enfriar"),
+            s.feed("Hola, Andy. Primero hierve el agua un minuto. Luego déjala enfriar", done = true),
+        )
     }
 
     @Test fun reads_words_not_code() {
         assertEquals("Corre esto: y listo.", Voice.speakable("Corre esto: ```sudo apt update``` y listo."))
-        assertEquals("Usa ip a para verlo.", Voice.speakable("Usa **ip a** para verlo.").replace("  ", " "))
+        assertEquals("Usa ip a para verlo.", Voice.speakable("Usa **ip a** 👍🏽 para verlo."))
+        assertEquals("Listo, a las 6 y media.", Voice.speakable("⏰ Listo, a las 6:30. 😊"))
+        assertEquals("1, Hierve agua, 1 minuto. 2, Enfríala a 25 grados C", Voice.speakable("1. Hierve agua — 1 minuto.\n2. Enfríala a 25°C"))
     }
 
     @Test fun notices_when_someone_may_be_in_danger() {

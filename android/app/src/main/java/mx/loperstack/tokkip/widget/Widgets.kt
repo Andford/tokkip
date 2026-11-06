@@ -45,6 +45,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.CheckBox
+import androidx.glance.appwidget.Switch
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
@@ -80,6 +81,8 @@ import kotlinx.coroutines.launch
 import mx.loperstack.tokkip.MainActivity
 import mx.loperstack.tokkip.R
 import mx.loperstack.tokkip.data.Agenda
+import mx.loperstack.tokkip.data.daysText
+import mx.loperstack.tokkip.data.nextRing
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.data.nextEvent
 import mx.loperstack.tokkip.character.TokkipEngine
@@ -137,6 +140,7 @@ object Widgets {
             update(app, PomodoroWidget(), PomodoroWidgetReceiver::class.java)
             update(app, TasksWidget(), TasksWidgetReceiver::class.java)
             update(app, SleepWidget(), SleepWidgetReceiver::class.java)
+            update(app, AlarmsWidget(), AlarmsWidgetReceiver::class.java)
             update(app, MoodWidget(), MoodWidgetReceiver::class.java)
             update(app, StreaksWidget(), StreaksWidgetReceiver::class.java)
             update(app, CompanionWidget(), CompanionWidgetReceiver::class.java)
@@ -445,6 +449,77 @@ class TaskDone : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val taskId = parameters[TaskId] ?: return
         mx.loperstack.tokkip.data.TaskSync.toggle(context, taskId)
+    }
+}
+
+// ── Alarmas ───────────────────────────────────────────────────────────────────
+
+private val AlarmId = ActionParameters.Key<String>("alarmId")
+
+/** Your alarms on the home screen: turn each one on or off, and + to add one in the app. */
+class AlarmsWidget : GlanceAppWidget() {
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        Store.init(context)
+        Store.applyLook()
+        val now = System.currentTimeMillis()
+        val alarms = Store.state.value.alarms.sortedWith(compareBy({ !it.enabled }, { nextRing(it, now) ?: Long.MAX_VALUE }, { it.minute }))
+        val next = alarms.mapNotNull { nextRing(it, now) }.minOrNull()
+        val nextText = next?.let { java.text.SimpleDateFormat("EEE H:mm", java.util.Locale.forLanguageTag("es-MX")).format(it) }
+        val image = tokkip(context, Mood.SLEEPY, 120, 100)
+        provideContent { GlanceTheme {
+            Column(card(Mood2.SLEEP).padding(12.dp)) {
+                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Image(image, contentDescription = "Tokkip", modifier = GlanceModifier.size(30.dp, 25.dp))
+                    Spacer(GlanceModifier.width(6.dp))
+                    Column(GlanceModifier.defaultWeight().clickable(openApp(context, "sleep"))) {
+                        Text("Alarmas", style = TextStyle(color = White, fontSize = 15.sp, fontWeight = FontWeight.Bold))
+                        Text(nextText?.let { "Próxima: $it" } ?: "Ninguna activa", style = TextStyle(color = Dim, fontSize = 12.sp), maxLines = 1)
+                    }
+                    Box(
+                        GlanceModifier.size(34.dp).background(Chip).cornerRadius(17.dp).clickable(openApp(context, "sleep")),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("+", style = TextStyle(color = Violet, fontSize = 20.sp, fontWeight = FontWeight.Bold)) }
+                }
+                Spacer(GlanceModifier.height(6.dp))
+                if (alarms.isEmpty()) {
+                    Text("Toca + para poner una", style = TextStyle(color = Dim, fontSize = 13.sp), modifier = GlanceModifier.padding(top = 8.dp))
+                } else {
+                    LazyColumn {
+                        items(alarms, itemId = { it.id.hashCode().toLong() }) { a ->
+                            Row(GlanceModifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(GlanceModifier.defaultWeight().clickable(openApp(context, "sleep"))) {
+                                    Text(
+                                        "%d:%02d".format(a.minute / 60, a.minute % 60),
+                                        style = TextStyle(color = if (a.enabled) White else Dim, fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                                    )
+                                    Text(
+                                        listOf(a.label.trim(), daysText(a.days)).filter { it.isNotEmpty() }.joinToString(" · "),
+                                        style = TextStyle(color = Dim, fontSize = 12.sp), maxLines = 1,
+                                    )
+                                }
+                                Switch(
+                                    checked = a.enabled,
+                                    onCheckedChange = actionRunCallback<AlarmToggle>(actionParametersOf(AlarmId to a.id)),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } }
+    }
+}
+
+class AlarmsWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = AlarmsWidget()
+}
+
+/** Turning an alarm on or off from the widget. */
+class AlarmToggle : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val alarmId = parameters[AlarmId] ?: return
+        Store.init(context)
+        Store.setAlarms(Store.state.value.alarms.map { if (it.id == alarmId) it.copy(enabled = !it.enabled) else it })
     }
 }
 
