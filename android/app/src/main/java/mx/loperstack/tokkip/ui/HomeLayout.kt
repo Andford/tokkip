@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -51,6 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.data.dayKey
+import mx.loperstack.tokkip.data.daysText
+import mx.loperstack.tokkip.data.inText
+import mx.loperstack.tokkip.data.nextRing
 import mx.loperstack.tokkip.data.doneOn
 import mx.loperstack.tokkip.data.habitIconKey
 import mx.loperstack.tokkip.data.scheduledOn
@@ -69,6 +73,7 @@ data class HomeSection(val id: String, val label: String, val icon: ImageVector,
 
 val HOME_SECTIONS = listOf(
     HomeSection("tokkip", "Tokkip y lo siguiente", Icons.Rounded.Favorite, "Tokkip y tu próximo evento"),
+    HomeSection("alarms", "Alarmas", Icons.Rounded.Alarm, "Tus alarmas, para prenderlas o apagarlas"),
     HomeSection("music", "Lo que suena", Icons.Rounded.MusicNote, "El mini reproductor, cuando hay música"),
     HomeSection("growth", "Tokkip y tú", Icons.Rounded.AutoAwesome, "Su nivel y lo que notó"),
     HomeSection("streaks", "Rachas de hoy", Icons.Rounded.LocalFireDepartment, "Marca tus hábitos desde aquí"),
@@ -204,5 +209,48 @@ fun ScreenHomeCard(now: Long, open: () -> Unit) {
             }
             Icon(Icons.Rounded.ChevronRight, "Ver Pantalla", tint = Ink.Dim)
         }
+    }
+}
+
+/** Inicio's alarms: when the next one rings, and each one with its switch. Tap to open them in Sueño. */
+@Composable
+fun AlarmsHomeCard(now: Long, open: () -> Unit) {
+    val d by Store.state.collectAsState()
+    val alarms = remember(d.alarms, now / 60_000) {
+        d.alarms.sortedWith(compareBy({ !it.enabled }, { nextRing(it, now) ?: Long.MAX_VALUE }, { it.minute }))
+    }
+    val next = alarms.mapNotNull { nextRing(it, now) }.minOrNull()
+    Spacer(Modifier.height(12.dp))
+    Panel(Modifier.fillMaxWidth(), padding = 16.dp) {
+        Row(Modifier.fillMaxWidth().clip(Squircle(12.dp)).clickable(onClick = open), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.Alarm, null, tint = Ink.VioletSoft, modifier = Modifier.size(22.dp))
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Alarmas", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                Label(if (next != null) inText(next, now) else if (alarms.isEmpty()) "Toca para poner una" else "Todas apagadas", Ink.Dim2, 12.sp)
+            }
+            Icon(Icons.Rounded.ChevronRight, "Ver alarmas", tint = Ink.Dim)
+        }
+        for (a in alarms.take(4)) {
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).clickable(onClick = open)) {
+                    Text(
+                        "%d:%02d".format(a.minute / 60, a.minute % 60), fontSize = 24.sp, fontWeight = FontWeight.ExtraBold,
+                        color = if (a.enabled) Ink.Text else Ink.Dim,
+                    )
+                    Label(listOf(a.label.trim(), daysText(a.days)).filter { it.isNotEmpty() }.joinToString(" · "), Ink.Dim2, 12.sp)
+                }
+                Switch(
+                    checked = a.enabled,
+                    onCheckedChange = { on -> Store.setAlarms(d.alarms.map { if (it.id == a.id) it.copy(enabled = on) else it }) },
+                    colors = SwitchDefaults.colors(checkedTrackColor = Ink.Violet),
+                )
+            }
+        }
+        if (alarms.size > 4) Text(
+            "y ${alarms.size - 4} más", color = Ink.VioletSoft, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 6.dp).clickable(onClick = open),
+        )
     }
 }

@@ -444,6 +444,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
                             openColors = { showColors = true },
                             goFocus = { tab = Tab.FOCUS }, goBreathe = { tab = Tab.BREATHE }, goTasks = { tab = Tab.TASKS },
                             goMoney = { tab = Tab.MONEY }, goAgenda = { tab = Tab.AGENDA }, goScreen = { tab = Tab.SCREEN }, goStreaks = { tab = Tab.STREAKS },
+                            goSleep = { tab = Tab.SLEEP },
                             agendaChanged = { agendaKey++ },
                             newEvent = newEvent,
                         )
@@ -667,6 +668,7 @@ fun HomeScreen(
     actions: Actions, calendarOk: Boolean, askCalendar: () -> Unit, openColors: () -> Unit,
     goFocus: () -> Unit, goBreathe: () -> Unit, goTasks: () -> Unit, newEvent: () -> Unit = {}, goMoney: () -> Unit = {},
     goAgenda: () -> Unit = {}, agendaChanged: () -> Unit = {}, goScreen: () -> Unit = {}, goStreaks: () -> Unit = {},
+    goSleep: () -> Unit = {},
 ) {
     var openEvent by remember { mutableStateOf<CalEvent?>(null) }
     var customize by remember { mutableStateOf(false) }
@@ -760,6 +762,7 @@ fun HomeScreen(
                 }
             }
             "growth" -> { Spacer(Modifier.height(12.dp)); GrowthCard(now) }
+            "alarms" -> AlarmsHomeCard(now, goSleep)
             "money" -> MoneyHomeCard(now, goMoney)
             "streaks" -> StreaksHomeCard(now, goStreaks)
             "screen" -> ScreenHomeCard(now, goScreen)
