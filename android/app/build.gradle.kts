@@ -12,8 +12,8 @@ android {
         applicationId = "mx.loperstack.tokkip"
         minSdk = 31
         targetSdk = 35
-        versionCode = 34
-        versionName = "2.3.0"
+        versionCode = 35
+        versionName = "2.3.1"
         // The assistant's engines are 64-bit ARM only; so are the phones that can run them.
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -82,8 +82,6 @@ dependencies {
     // Tokkip's assistant: Gemma on the phone (LiteRT-LM), his voice (Piper through sherpa-onnx,
     // whose AAR CI fetches into libs/: tools/get_sherpa.sh), and unpacking the voice.
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
-    // LiteRT-LM reads TokkipTools with Kotlin reflection.
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.3.0")
     implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     implementation("org.apache.commons:commons-compress:1.27.1")
 

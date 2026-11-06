@@ -69,4 +69,14 @@ class AssistantTest {
         assertEquals((-Short.MAX_VALUE).toShort(), a.pcm[1])
         assertEquals(null, TalkWire.audioOf(ByteArray(3)))
     }
+
+    @Test
+    fun contactNames() {
+        val names = listOf("Mamá", "Mamá Lupe", "Luis Pérez", "Luisa", "Dr. Ramírez")
+        assertEquals(listOf("Mamá"), Spoken.bestNames("mama", names))
+        assertEquals(listOf("Luis Pérez", "Luisa"), Spoken.bestNames("Luis", names))
+        assertEquals(listOf("Luis Pérez"), Spoken.bestNames("luis perez", names))
+        assertEquals(listOf("Dr. Ramírez"), Spoken.bestNames("ramirez", names))
+        assertEquals(emptyList<String>(), Spoken.bestNames("Pedro", names))
+    }
 }

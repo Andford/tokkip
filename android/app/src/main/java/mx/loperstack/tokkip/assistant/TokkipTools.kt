@@ -3,10 +3,11 @@ package mx.loperstack.tokkip.assistant
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
-import com.google.ai.edge.litertlm.Tool
-import com.google.ai.edge.litertlm.ToolParam
-import com.google.ai.edge.litertlm.ToolSet
+import com.google.ai.edge.litertlm.OpenApiTool
+import com.google.ai.edge.litertlm.ToolProvider
+import com.google.ai.edge.litertlm.tool
 import mx.loperstack.tokkip.data.ALARM_LIMIT
 import mx.loperstack.tokkip.data.Agenda
 import mx.loperstack.tokkip.data.CalendarWrite
@@ -16,104 +17,218 @@ import mx.loperstack.tokkip.data.TaskSync
 import mx.loperstack.tokkip.data.WakeAlarm
 import mx.loperstack.tokkip.data.daysText
 import mx.loperstack.tokkip.data.nextRing
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 /**
  * What Tokkip can do in the app when you ask her: set alarms, add tasks, take
- * notes, put reminders in your calendar, and tell you what's on today. Only
- * things that add or read: changing or deleting stays in your hands, in the
- * app. Each one tells [onDone] what it did, so the chat can show it.
+ * notes, put reminders in your calendar, tell you what's on today and call
+ * someone from your contacts. Only things that add, read or call: changing or
+ * deleting stays in your hands, in the app.
+ *
+ * Each tool is plain JSON (name, description, parameters), not reflection, so
+ * the release build's shrinking can't hide them from the model. [onDone] gets
+ * a line for the chat with what happened; [onNeed] gets the permissions a tool
+ * was missing, so the screen can ask for them.
  */
-class TokkipTools(private val context: Context, private val onDone: (String) -> Unit) : ToolSet {
+class TokkipTools(
+    private val context: Context,
+    private val onDone: (String) -> Unit,
+    private val onNeed: (List<String>) -> Unit,
+) {
     private val es = Locale.forLanguageTag("es-MX")
 
     init {
         Store.init(context)
     }
 
-    @Tool(description = "Crea una alarma para despertar o avisar a una hora. Úsala cuando pidan una alarma o despertarse a cierta hora.")
-    fun crearAlarma(
-        @ToolParam(description = "Hora en formato 24 horas HH:MM, por ejemplo 06:30 o 18:00") hora: String,
-        @ToolParam(description = "Días que se repite, separados por comas: lunes, martes, miercoles, jueves, viernes, sabado, domingo, 'entre semana', 'fin de semana' o 'diario'. Vacío si es una sola vez.") dias: String = "",
-        @ToolParam(description = "Nombre corto de la alarma, opcional") etiqueta: String = "",
-    ): Map<String, Any> {
-        val minute = Spoken.minuteOf(hora) ?: return mapOf("ok" to false, "error" to "Hora no válida")
-        val list = Store.state.value.alarms
-        if (list.size >= ALARM_LIMIT) return mapOf("ok" to false, "error" to "Ya hay $ALARM_LIMIT alarmas, el máximo")
-        val days = Spoken.daysOf(dias)
-        val alarm = WakeAlarm(id = "tk" + System.currentTimeMillis().toString(36), minute = minute, days = days, label = etiqueta.take(40))
-        Store.setAlarms(list + alarm)
-        val at = "%d:%02d".format(minute / 60, minute % 60)
-        onDone("⏰ Alarma a las $at · ${daysText(days)}")
-        return mapOf("ok" to true, "alarma" to at, "repite" to daysText(days))
-    }
+    fun providers(): List<ToolProvider> = tools.map { tool(it) }
 
-    @Tool(description = "Lista las alarmas que hay y cuándo suena la próxima.")
-    fun verAlarmas(): Map<String, Any> {
-        val now = System.currentTimeMillis()
-        val alarms = Store.state.value.alarms
-        return mapOf(
-            "alarmas" to alarms.map { a ->
-                mapOf("hora" to "%d:%02d".format(a.minute / 60, a.minute % 60), "repite" to daysText(a.days), "activa" to a.enabled, "nombre" to a.label)
-            },
-            "proxima" to (alarms.mapNotNull { nextRing(it, now) }.minOrNull()?.let { fmt(it) } ?: "ninguna"),
-        )
-    }
-
-    @Tool(description = "Agrega un pendiente a la lista de tareas.")
-    fun agregarTarea(@ToolParam(description = "El pendiente, corto y claro") texto: String): Map<String, Any> {
-        val ok = TaskSync.add(context, texto)
-        if (ok) onDone("✅ Pendiente: ${texto.trim().take(80)}")
-        return mapOf("ok" to ok)
-    }
-
-    @Tool(description = "Lista los pendientes que faltan por hacer.")
-    fun verTareas(): Map<String, Any> =
-        mapOf("pendientes" to Store.state.value.tasks.filter { !it.done }.take(30).map { it.text })
-
-    @Tool(description = "Guarda una nota en el cuaderno. La primera línea es el título.")
-    fun tomarNota(@ToolParam(description = "El texto de la nota") texto: String): Map<String, Any> {
-        val id = runCatching { Notebook.init(context); Notebook.capture(texto) }.getOrNull()
-        if (id != null) onDone("📝 Nota guardada: ${texto.trim().lineSequence().first().take(60)}")
-        return mapOf("ok" to (id != null))
-    }
-
-    @Tool(description = "Pone un recordatorio en el calendario del teléfono, con aviso a esa hora.")
-    fun crearRecordatorio(
-        @ToolParam(description = "De qué es el recordatorio") titulo: String,
-        @ToolParam(description = "Fecha en formato AAAA-MM-DD") fecha: String,
-        @ToolParam(description = "Hora en formato 24 horas HH:MM") hora: String,
-    ): Map<String, Any> {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
-            return mapOf("ok" to false, "error" to "Falta permiso de calendario: se da en la pantalla Agenda de Tokkip")
+    /** One tool: its description for the model and what it does with the arguments. */
+    private inner class Op(
+        val name: String,
+        val description: String,
+        val params: List<Triple<String, String, Boolean>>,
+        val run: (JSONObject) -> Map<String, Any?>,
+    ) : OpenApiTool {
+        override fun getToolDescriptionJsonString(): String {
+            val props = JSONObject()
+            for ((p, d, _) in params) props.put(p, JSONObject().put("type", "string").put("description", d))
+            val o = JSONObject().put("name", name).put("description", description)
+            o.put("parameters", JSONObject().put("type", "object").put("properties", props).put("required", JSONArray(params.filter { it.third }.map { it.first })))
+            return o.toString()
         }
-        val minute = Spoken.minuteOf(hora) ?: return mapOf("ok" to false, "error" to "Hora no válida")
-        val day = runCatching { SimpleDateFormat("yyyy-MM-dd", es).apply { isLenient = false }.parse(fecha.trim())!!.time }.getOrNull()
-            ?: return mapOf("ok" to false, "error" to "Fecha no válida")
-        val begin = day + minute * 60_000L
-        if (begin < System.currentTimeMillis() - 60_000L) return mapOf("ok" to false, "error" to "Esa fecha ya pasó")
-        val cal = CalendarWrite.calendars(context).let { all -> all.firstOrNull { it.primary && it.google } ?: all.firstOrNull { it.primary } ?: all.firstOrNull() }
-            ?: return mapOf("ok" to false, "error" to "No hay un calendario en el teléfono")
-        val id = CalendarWrite.insert(context, cal.id, titulo.take(120), begin, begin + 15 * 60_000L, false, listOf(0))
-        if (id != null) onDone("🔔 Recordatorio: ${titulo.take(60)} · ${fmt(begin)}")
-        return mapOf("ok" to (id != null), "cuando" to fmt(begin))
+
+        override fun execute(paramsJsonString: String): String {
+            val result = runCatching { run(runCatching { JSONObject(paramsJsonString) }.getOrDefault(JSONObject())) }
+                .getOrElse { e ->
+                    onDone("⚠️ No pude ($name): ${e.message ?: e.javaClass.simpleName}")
+                    mapOf("ok" to false, "error" to (e.message ?: "error"))
+                }
+            return JSONObject(result.mapValues { (_, v) -> json(v) }).toString()
+        }
     }
 
-    @Tool(description = "Dice lo que hay hoy y mañana: eventos del calendario, pendientes y la próxima alarma.")
-    fun agendaDeHoy(): Map<String, Any> {
-        val now = System.currentTimeMillis()
-        val events = runCatching {
-            if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) Agenda.load(context, now) else emptyList()
-        }.getOrDefault(emptyList())
-        return mapOf(
-            "ahora" to fmt(now),
-            "eventos" to events.take(15).map { e -> mapOf("titulo" to e.title, "cuando" to if (e.allDay) "todo el día ${day(e.begin)}" else fmt(e.begin)) },
-            "pendientes" to Store.state.value.tasks.filter { !it.done }.take(15).map { it.text },
-            "proximaAlarma" to (Store.state.value.alarms.mapNotNull { nextRing(it, now) }.minOrNull()?.let { fmt(it) } ?: "ninguna"),
-        )
+    private fun json(v: Any?): Any = when (v) {
+        null -> JSONObject.NULL
+        is Map<*, *> -> JSONObject(v.entries.associate { (k, x) -> k.toString() to json(x) })
+        is List<*> -> JSONArray(v.map { json(it) })
+        else -> v
     }
+
+    /** A string argument, whatever type the model sent it as. */
+    private fun JSONObject.text(key: String): String = opt(key)?.takeIf { it != JSONObject.NULL }?.toString()?.trim().orEmpty()
+
+    private fun fail(why: String) = mapOf("ok" to false, "error" to why)
+
+    private fun granted(vararg perms: String): Boolean {
+        val missing = perms.filter { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) onNeed(missing)
+        return missing.isEmpty()
+    }
+
+    private val tools = listOf(
+        Op(
+            "crear_alarma",
+            "Crea una alarma que suena a una hora (para despertar o avisar). Úsala cuando pidan una alarma o despertarse.",
+            listOf(
+                Triple("hora", "Hora en formato 24 horas HH:MM, por ejemplo 06:30 o 18:00", true),
+                Triple("dias", "Días que se repite: lunes, martes, miercoles, jueves, viernes, sabado, domingo, 'entre semana', 'fin de semana' o 'diario'. Vacío si suena una sola vez.", false),
+                Triple("etiqueta", "Nombre corto de la alarma, opcional", false),
+            ),
+        ) { a ->
+            val minute = Spoken.minuteOf(a.text("hora")) ?: return@Op fail("Hora no válida: usa HH:MM")
+            val list = Store.state.value.alarms
+            if (list.size >= ALARM_LIMIT) return@Op fail("Ya hay $ALARM_LIMIT alarmas, el máximo")
+            val days = Spoken.daysOf(a.text("dias"))
+            val alarm = WakeAlarm(id = "tk" + System.currentTimeMillis().toString(36), minute = minute, days = days, label = a.text("etiqueta").take(40))
+            Store.setAlarms(list + alarm)
+            val at = "%d:%02d".format(minute / 60, minute % 60)
+            onDone("⏰ Alarma a las $at · ${daysText(days)}")
+            mapOf("ok" to true, "alarma" to at, "repite" to daysText(days))
+        },
+        Op("ver_alarmas", "Lista las alarmas que hay y cuándo suena la próxima.", emptyList()) {
+            val now = System.currentTimeMillis()
+            val alarms = Store.state.value.alarms
+            mapOf(
+                "alarmas" to alarms.map { a -> mapOf("hora" to "%d:%02d".format(a.minute / 60, a.minute % 60), "repite" to daysText(a.days), "activa" to a.enabled, "nombre" to a.label) },
+                "proxima" to (alarms.mapNotNull { nextRing(it, now) }.minOrNull()?.let { fmt(it) } ?: "ninguna"),
+            )
+        },
+        Op("agregar_tarea", "Agrega un pendiente a la lista de tareas.", listOf(Triple("texto", "El pendiente, corto y claro", true))) { a ->
+            val t = a.text("texto")
+            if (t.isEmpty()) return@Op fail("Falta el texto del pendiente")
+            val ok = TaskSync.add(context, t)
+            if (ok) onDone("✅ Pendiente: ${t.take(80)}")
+            mapOf("ok" to ok)
+        },
+        Op("ver_tareas", "Lista los pendientes que faltan por hacer.", emptyList()) {
+            mapOf("pendientes" to Store.state.value.tasks.filter { !it.done }.take(30).map { it.text })
+        },
+        Op("tomar_nota", "Guarda una nota en el cuaderno. La primera línea es el título.", listOf(Triple("texto", "El texto de la nota", true))) { a ->
+            val t = a.text("texto")
+            if (t.isEmpty()) return@Op fail("Falta el texto de la nota")
+            Notebook.init(context)
+            val id = Notebook.capture(t)
+            if (id != null) onDone("📝 Nota: ${t.lineSequence().first().take(60)}")
+            mapOf("ok" to (id != null))
+        },
+        Op(
+            "crear_recordatorio",
+            "Pone un recordatorio en el calendario del teléfono, con aviso a esa hora. Úsalo para 'recuérdame…' con un día u hora.",
+            listOf(
+                Triple("titulo", "De qué es el recordatorio", true),
+                Triple("fecha", "Fecha en formato AAAA-MM-DD", true),
+                Triple("hora", "Hora en formato 24 horas HH:MM", true),
+            ),
+        ) { a ->
+            if (!granted(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR)) {
+                return@Op fail("Falta el permiso de calendario. Se da en el teléfono: Platicar, Ajustes, Permitir acciones. Luego pídemelo otra vez.")
+            }
+            val minute = Spoken.minuteOf(a.text("hora")) ?: return@Op fail("Hora no válida: usa HH:MM")
+            val day = runCatching { SimpleDateFormat("yyyy-MM-dd", es).apply { isLenient = false }.parse(a.text("fecha"))!! }.getOrNull()
+                ?: return@Op fail("Fecha no válida: usa AAAA-MM-DD")
+            val begin = Calendar.getInstance().apply {
+                time = day
+                set(Calendar.HOUR_OF_DAY, minute / 60)
+                set(Calendar.MINUTE, minute % 60)
+            }.timeInMillis
+            if (begin < System.currentTimeMillis() - 60_000L) return@Op fail("Esa fecha y hora ya pasaron")
+            val cal = CalendarWrite.calendars(context).let { all -> all.firstOrNull { it.primary && it.google } ?: all.firstOrNull { it.primary } ?: all.firstOrNull() }
+                ?: return@Op fail("No hay un calendario en el teléfono")
+            val title = a.text("titulo").ifEmpty { "Recordatorio" }.take(120)
+            val id = CalendarWrite.insert(context, cal.id, title, begin, begin + 15 * 60_000L, false, listOf(0))
+            if (id != null) onDone("🔔 Recordatorio: ${title.take(60)} · ${fmt(begin)}")
+            mapOf("ok" to (id != null), "cuando" to fmt(begin))
+        },
+        Op("agenda_de_hoy", "Dice lo que hay hoy y mañana: eventos del calendario, pendientes y la próxima alarma.", emptyList()) {
+            val now = System.currentTimeMillis()
+            val events = if (granted(Manifest.permission.READ_CALENDAR)) runCatching { Agenda.load(context, now) }.getOrDefault(emptyList()) else emptyList()
+            mapOf(
+                "ahora" to fmt(now),
+                "eventos" to events.take(15).map { e -> mapOf("titulo" to e.title, "cuando" to if (e.allDay) "todo el día ${day(e.begin)}" else fmt(e.begin)) },
+                "pendientes" to Store.state.value.tasks.filter { !it.done }.take(15).map { it.text },
+                "proximaAlarma" to (Store.state.value.alarms.mapNotNull { nextRing(it, now) }.minOrNull()?.let { fmt(it) } ?: "ninguna"),
+            )
+        },
+        Op(
+            "llamar",
+            "Hace una llamada telefónica a un contacto o a un número. Úsala cuando pidan llamar o marcarle a alguien.",
+            listOf(Triple("persona", "Nombre del contacto como lo dijeron (por ejemplo 'mamá', 'Luis Pérez') o un número", true)),
+        ) { a ->
+            val who = a.text("persona")
+            if (who.isEmpty()) return@Op fail("Falta a quién llamar")
+            val digits = who.filter { it.isDigit() || it == '+' }
+            if (digits.count { it.isDigit() } >= 7 && who.none { it.isLetter() }) {
+                Caller.schedule(context, digits, digits)
+                onDone("📞 Llamando a $digits…")
+                return@Op mapOf("ok" to true, "llamando" to digits)
+            }
+            if (!granted(Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE)) {
+                return@Op fail("Faltan los permisos de contactos y llamadas. Se dan en el teléfono: Platicar, Ajustes, Permitir acciones. Luego pídemelo otra vez.")
+            }
+            val found = Contacts.find(context, who)
+            when {
+                found.isEmpty() -> fail("No encontré a '$who' en los contactos")
+                found.size > 1 -> mapOf("ok" to false, "error" to "Hay varios contactos así; pregunta a cuál", "opciones" to found.take(5).map { it.first })
+                else -> {
+                    val (name, number) = found.first()
+                    Caller.schedule(context, name, number)
+                    onDone("📞 Llamando a $name…")
+                    mapOf("ok" to true, "llamando" to name)
+                }
+            }
+        },
+    )
 
     private fun fmt(t: Long) = SimpleDateFormat("EEEE d 'de' MMMM, HH:mm", es).format(t)
     private fun day(t: Long) = SimpleDateFormat("EEEE d", es).format(t)
+}
+
+/** Your contacts, found by the name you say. */
+object Contacts {
+    /** (name, number) of the best matches for [said]: exact names first, then names that start or contain it. */
+    fun find(context: Context, said: String): List<Pair<String, String>> {
+        val want = Spoken.plain(said).removePrefix("mi ").trim()
+        if (want.isEmpty()) return emptyList()
+        val all = mutableListOf<Triple<Long, String, String>>()
+        context.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(ContactsContract.CommonDataKinds.Phone.CONTACT_ID, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.IS_PRIMARY),
+            null, null, ContactsContract.CommonDataKinds.Phone.IS_PRIMARY + " DESC",
+        )?.use { c ->
+            while (c.moveToNext()) {
+                val name = c.getString(1) ?: continue
+                val number = c.getString(2) ?: continue
+                all += Triple(c.getLong(0), name, number)
+            }
+        }
+        return Spoken.bestNames(want, all.map { it.second }).flatMap { n ->
+            // One number per person: the primary one, else the first.
+            all.filter { it.second == n }.distinctBy { it.first }.map { n to it.third }
+        }.distinctBy { it.first }
+    }
 }

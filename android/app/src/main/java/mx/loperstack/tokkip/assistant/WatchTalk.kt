@@ -44,6 +44,7 @@ object WatchTalk {
     }
 
     private fun stop() {
+        Caller.cancel()
         job?.cancel()
         Brain.stop()
         Voice.stop()

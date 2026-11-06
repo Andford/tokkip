@@ -31,4 +31,24 @@ object Spoken {
         for ((n, d) in names) if (n in t) out += d
         return out
     }
+
+    /** Lowercase, no accents, single spaces: "Mamá  Lupe" → "mama lupe". */
+    fun plain(text: String): String =
+        Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "").replace(Regex("[^a-z0-9ñ ]"), " ").replace(Regex("\\s+"), " ").trim()
+
+    /**
+     * The contact names that best fit what you said: the exact name if there
+     * is one; else the names where a word starts with it; else the names that
+     * contain it.
+     */
+    fun bestNames(said: String, names: List<String>): List<String> {
+        val want = plain(said)
+        if (want.isEmpty()) return emptyList()
+        val all = names.distinct().map { it to plain(it) }
+        val exact = all.filter { it.second == want }
+        if (exact.isNotEmpty()) return exact.map { it.first }
+        val starts = all.filter { (_, p) -> p.startsWith(want) || p.split(" ").any { it.startsWith(want) } || " $p".contains(" $want ") }
+        if (starts.isNotEmpty()) return starts.map { it.first }
+        return all.filter { it.second.contains(want) }.map { it.first }
+    }
 }

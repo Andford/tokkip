@@ -7,6 +7,8 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -43,6 +45,7 @@ import androidx.compose.material.icons.rounded.VolumeOff
 import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +74,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mx.loperstack.tokkip.assistant.Brain
+import mx.loperstack.tokkip.assistant.Caller
 import mx.loperstack.tokkip.assistant.Line
 import mx.loperstack.tokkip.assistant.Listen
 import mx.loperstack.tokkip.assistant.Memory
@@ -185,18 +189,58 @@ fun TalkScreen(color: Color) {
         }
     }
 
-    listen = remember {
-        Listen(context, onPartial = { heard = it }, onDone = { said ->
+    // The system's dictation window: for phones where the in-app recognizer won't start.
+    val dictate = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        listening = false
+        val said = r.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()?.takeIf { it.isNotBlank() }
+        if (said != null) { misses = 0; send(said) } else misses++
+    }
+    fun dictateNow() {
+        listening = true
+        runCatching { dictate.launch(Listen.intent("Platícame…")) }.onFailure {
             listening = false
-            if (said != null) { misses = 0; heard = ""; send(said) } else misses++
+            call = false
+            Toast.makeText(context, "Este teléfono no tiene dictado por voz", Toast.LENGTH_LONG).show()
+        }
+    }
+    listen = remember {
+        Listen(context, onPartial = { heard = it }, onDone = { said, broken, why ->
+            listening = false
+            heard = ""
+            when {
+                said != null -> { misses = 0; send(said) }
+                broken -> {
+                    Toast.makeText(context, "El micrófono de la app no arrancó ($why). Uso el dictado del teléfono.", Toast.LENGTH_LONG).show()
+                    dictateNow()
+                }
+                else -> {
+                    misses++
+                    if (!call && why != null) Toast.makeText(context, "No te oí: $why", Toast.LENGTH_SHORT).show()
+                }
+            }
         })
     }
     fun hear() {
         if (brain !is Brain.State.Ready || answering != null) return
         Voice.stop()
         heard = ""
+        if (Listen.broken) return dictateNow()
         listening = true
         listen.start()
+    }
+    // A tool needs a permission (calendar, contacts, calls): ask right away.
+    val askPerms = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { got ->
+        if (got.values.all { it }) Toast.makeText(context, "Listo. Pídeselo otra vez a Tokkip.", Toast.LENGTH_SHORT).show()
+    }
+    LaunchedEffect(Unit) { Brain.need.collect { runCatching { askPerms.launch(it.toTypedArray()) } } }
+    // A call is going out: stop listening and talking.
+    val pendingCall by Caller.pending.collectAsState()
+    LaunchedEffect(Unit) {
+        Caller.placed.collect {
+            call = false
+            listen.stop()
+            listening = false
+        }
     }
     // In a call: when Tokkip is done talking, listen again; after a long silence, hang up.
     LaunchedEffect(call, answering == null, speaking, listening, misses) {
@@ -260,6 +304,8 @@ fun TalkScreen(color: Color) {
             )
             else -> {
                 if (crisis) CrisisCard { crisis = false }
+                pendingCall?.let { p -> CallingCard(p, cancel = { Caller.cancel() }, now = { Caller.now(context) }) }
+                Brain.toolsProblem?.takeIf { brain is Brain.State.Ready }?.let { Hint("No pude cargar mis acciones (alarmas, llamadas…): $it") }
                 if (call) {
                     CallPanel(
                         state = when {
@@ -322,6 +368,26 @@ private fun Bubble(text: String, mine: Boolean) {
             modifier = Modifier.widthIn(max = 320.dp).clip(Squircle(20.dp))
                 .background(if (mine) Ink.VioletSoft else Ink.Card).padding(horizontal = 14.dp, vertical = 10.dp),
         )
+    }
+}
+
+/** "Llamando a Mamá en 5…": time to cancel if she heard wrong. */
+@Composable
+private fun CallingCard(p: Caller.Pending, cancel: () -> Unit, now: () -> Unit) {
+    var left by remember(p) { mutableIntStateOf(((p.at - System.currentTimeMillis()) / 1000).toInt().coerceAtLeast(0)) }
+    LaunchedEffect(p) {
+        while (left > 0) {
+            delay(1000)
+            left = ((p.at - System.currentTimeMillis()) / 1000).toInt().coerceAtLeast(0)
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp).clip(Squircle(20.dp)).background(Ink.Card).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("📞 Llamando a ${p.name} en $left…", fontSize = 16.sp, color = Ink.Text, modifier = Modifier.weight(1f))
+        TextButton(onClick = cancel) { Text("Cancelar") }
+        TextButton(onClick = now) { Text("Ya") }
     }
 }
 
@@ -499,7 +565,25 @@ private fun AssistantSettings(onForget: () -> Unit, onDeleteModel: () -> Unit) {
             installedTick++
         }
     }
+    val actionPerms = arrayOf(
+        Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR,
+        Manifest.permission.READ_CONTACTS, Manifest.permission.CALL_PHONE,
+    )
+    fun allowed() = actionPerms.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }
+    var actionsOk by remember { mutableStateOf(allowed()) }
+    val askActions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { actionsOk = allowed() }
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
+        SectionTitle("Acciones")
+        Text(
+            if (actionsOk) "Tokkip puede poner recordatorios en tu calendario y llamar a tus contactos."
+            else "Para poner recordatorios en tu calendario y llamar a tus contactos, Tokkip necesita permiso.",
+            fontSize = 14.sp, color = Ink.Dim,
+        )
+        if (!actionsOk) {
+            Spacer(Modifier.height(8.dp))
+            ExpressiveButton("Permitir acciones", Modifier.fillMaxWidth(), icon = Icons.Rounded.Call) { askActions.launch(actionPerms) }
+        }
+        Spacer(Modifier.height(16.dp))
         SectionTitle("Voz")
         ToggleRow("Que Tokkip hable", "Lee sus respuestas en voz alta, sin internet", voiceOn) { voiceOn = it; Voice.setEnabled(context, it) }
         Spacer(Modifier.height(10.dp))

@@ -9,7 +9,6 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import com.google.ai.edge.litertlm.SamplerConfig
-import com.google.ai.edge.litertlm.tool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -54,6 +53,14 @@ object Brain {
     /** What Tokkip just did in the app from the chat ("⏰ Alarma a las 6:30…"), for the chat to show. */
     val done: SharedFlow<String> = _done
 
+    private val _need = MutableSharedFlow<List<String>>(extraBufferCapacity = 4)
+    /** Permissions a tool was missing (calendar, contacts, calls): the chat asks for them. */
+    val need: SharedFlow<List<String>> = _need
+
+    /** Why Tokkip can't do things in the app this time, if she can't (shown in the chat). */
+    var toolsProblem: String? = null
+        private set
+
     /** How many past lines the model sees at the start of a chat (the rest stays in Memory). */
     private const val CONTEXT_LINES = 12
 
@@ -79,7 +86,7 @@ object Brain {
                 if (e == null) continue
                 engine = e
                 loadedFrom = model.path
-                conversation = e.createConversation(config(name, history))
+                conversation = converse(e, name, history)
                 _state.value = State.Ready(backend.name)
                 return@withContext
             }
@@ -87,7 +94,22 @@ object Brain {
         }
     }
 
-    private fun config(name: String, history: List<Line>): ConversationConfig {
+    private fun tools() = runCatching {
+        val c = app ?: return@runCatching emptyList()
+        TokkipTools(c, onDone = { _done.tryEmit(it) }, onNeed = { _need.tryEmit(it) }).providers()
+    }.getOrElse { toolsProblem = it.message; emptyList() }
+
+    /** A conversation with the tools; without them if they won't load, so she can still talk. */
+    private fun converse(e: Engine, name: String, history: List<Line>): Conversation {
+        toolsProblem = null
+        return runCatching { e.createConversation(config(name, history, withTools = true)) }
+            .getOrElse {
+                toolsProblem = it.message ?: it.javaClass.simpleName
+                e.createConversation(config(name, history, withTools = false))
+            }
+    }
+
+    private fun config(name: String, history: List<Line>, withTools: Boolean): ConversationConfig {
         val now = SimpleDateFormat("EEEE d 'de' MMMM yyyy, HH:mm", Locale.forLanguageTag("es-MX")).format(Date())
         val past = history.takeLast(CONTEXT_LINES).let { lines ->
             // The model expects to start with you speaking.
@@ -97,7 +119,7 @@ object Brain {
             systemInstruction = Contents.of(Persona.instructions(name, now)),
             initialMessages = past,
             samplerConfig = SamplerConfig(topK = 40, topP = 0.95, temperature = 0.7),
-            tools = app?.let { listOf(tool(TokkipTools(it) { what -> _done.tryEmit(what) })) } ?: emptyList(),
+            tools = if (withTools) tools() else emptyList(),
         )
     }
 
@@ -106,7 +128,7 @@ object Brain {
         withContext(Dispatchers.IO) {
             val e = engine ?: return@withContext
             runCatching { conversation?.close() }
-            conversation = e.createConversation(config(name, history))
+            conversation = converse(e, name, history)
         }
     }
 
