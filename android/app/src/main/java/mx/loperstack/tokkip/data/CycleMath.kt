@@ -95,11 +95,14 @@ object CycleMath {
     fun ovulationFromSigns(notes: Map<Int, CycleDay>, from: Int, to: Int): Int? {
         val inCycle = notes.filterKeys { it in from..to }
         inCycle.filter { it.value.ovulationTest == 2 }.keys.minOrNull()?.let { return it + 1 }
-        val temps = inCycle.filter { it.value.temp in 35.0..38.5 }.toSortedMap()
-        val days = temps.keys.toList()
-        for (i in 6..days.size - 3) {
-            val before = days.subList(i - 6, i).maxOf { temps[it]!! }
-            if ((0..2).all { temps[days[i + it]]!! >= before + 0.2 }) return days[i] - 1
+        val taken: List<Pair<Int, Double>> = inCycle.entries
+            .filter { it.value.temp in 35.0..38.5 }
+            .map { it.key to it.value.temp }
+            .sortedBy { it.first }
+        for (i in 6..taken.size - 3) {
+            var before = 0.0
+            for (k in i - 6 until i) before = maxOf(before, taken[k].second)
+            if ((0..2).all { taken[i + it].second >= before + 0.2 }) return taken[i].first - 1
         }
         inCycle.filter { it.value.mucus == 4 }.keys.maxOrNull()?.let { return it }
         return null
