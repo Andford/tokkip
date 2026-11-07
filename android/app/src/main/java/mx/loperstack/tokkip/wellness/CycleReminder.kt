@@ -51,7 +51,7 @@ object CycleReminder {
     fun message(today: Int): String? {
         val d = CycleStore.state.value
         if (!d.enabled || d.period.isEmpty()) return null
-        val f = CycleMath.forecast(d.period, today)
+        val f = CycleMath.forecast(d.period, today, d.notes)
         val next = f.nextStart ?: return null
         return when {
             d.remindPeriod && !f.inPeriod && next - today == 2 -> "Tu periodo podría llegar en 2 días. Ten a la mano lo que necesites."

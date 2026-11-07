@@ -11,6 +11,8 @@ import com.google.ai.edge.litertlm.tool
 import mx.loperstack.tokkip.data.ALARM_LIMIT
 import mx.loperstack.tokkip.data.Agenda
 import mx.loperstack.tokkip.data.CalendarWrite
+import mx.loperstack.tokkip.data.CycleMath
+import mx.loperstack.tokkip.data.CycleStore
 import mx.loperstack.tokkip.data.Notebook
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.data.TaskSync
@@ -220,6 +222,44 @@ class TokkipTools(
             mapOf("ok" to true, "titulo" to found.first, "resumen" to found.second.take(1500), "fuente" to "Wikipedia")
         },
         Op(
+            "estado_del_ciclo",
+            "Dice cómo va el ciclo menstrual: día del ciclo, cuándo se espera el periodo, la ventana fértil y lo que Tokkip notó. Úsala si preguntan por su periodo, ciclo, días fértiles u ovulación.",
+            emptyList(),
+        ) {
+            CycleStore.init(context)
+            val d = CycleStore.state.value
+            if (!d.enabled) return@Op fail("Ciclo está apagado; se prende en Ajustes, Funciones opcionales.")
+            val today = CycleStore.today()
+            val f = CycleMath.forecast(d.period, today, d.notes)
+            if (f.lastStart == null) return@Op fail("Aún no hay periodos marcados en Ciclo.")
+            fun day(x: Int?) = x?.let { fmtDay(it) } ?: "sin dato"
+            mapOf(
+                "diaDelCiclo" to f.day,
+                "enPeriodo" to f.inPeriod,
+                "proximoPeriodo" to day(f.nextStart),
+                "retrasoDias" to f.late,
+                "ventanaFertil" to "${day(f.fertileFrom)} al ${day(f.fertileTo)}",
+                "ovulacion" to day(f.ovulation),
+                "notas" to CycleMath.insights(d.period, d.notes, f, today),
+                "aviso" to "Son estimaciones, no un método anticonceptivo.",
+            )
+        },
+        Op(
+            "registrar_periodo",
+            "Registra en Ciclo que el periodo empezó o terminó hoy. Úsala cuando digan 'me bajó', 'empezó mi periodo' o 'ya terminó mi periodo'.",
+            listOf(Triple("que", "'empezo' o 'termino'", true)),
+        ) { a ->
+            CycleStore.init(context)
+            val d = CycleStore.state.value
+            if (!d.enabled) return@Op fail("Ciclo está apagado; se prende en Ajustes, Funciones opcionales.")
+            val today = CycleStore.today()
+            val ended = Spoken.plain(a.text("que")).startsWith("termin")
+            if (ended) CycleStore.endPeriod(context, today)
+            else CycleStore.startPeriod(context, today, CycleMath.forecast(d.period, today, d.notes).periodLen)
+            onDone(if (ended) "🩸 Ciclo: terminó tu periodo" else "🩸 Ciclo: empezó tu periodo")
+            mapOf("ok" to true)
+        },
+        Op(
             "llamar",
             "Hace una llamada telefónica a un contacto o a un número. Úsala cuando pidan llamar o marcarle a alguien.",
             listOf(Triple("persona", "Nombre del contacto como lo dijeron (por ejemplo 'mamá', 'Luis Pérez') o un número", true)),
@@ -252,6 +292,9 @@ class TokkipTools(
     private fun fmt(t: Long) = SimpleDateFormat("EEEE d 'de' MMMM, HH:mm", es).format(t)
 
     private val notInFront = "Android solo me deja abrir apps cuando tienes el teléfono en la mano con Tokkip abierto."
+    private fun fmtDay(epochDay: Int) = java.time.LocalDate.ofEpochDay(epochDay.toLong())
+        .format(java.time.format.DateTimeFormatter.ofPattern("EEEE d 'de' MMMM", es))
+
     private fun day(t: Long) = SimpleDateFormat("EEEE d", es).format(t)
 }
 

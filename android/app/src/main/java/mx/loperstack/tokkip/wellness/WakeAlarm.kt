@@ -120,7 +120,7 @@ object WakeAlarm {
         context.startForegroundService(
             Intent(context, WakeAlarmService::class.java).setAction(ACTION_RING).putExtra(EXTRA_ID, a.id).putExtra(EXTRA_PREVIEW, true)
                 .putExtra("minute", a.minute).putExtra("label", a.label).putExtra("gentle", a.gentle)
-                .putExtra("vibrate", a.vibrate).putExtra("breathe", a.breathe).putExtra("snoozeMin", a.snoozeMin)
+                .putExtra("vibrate", a.vibrate).putExtra("vibration", a.vibration).putExtra("breathe", a.breathe).putExtra("snoozeMin", a.snoozeMin)
                 .putExtra("tunes", a.tunes.map { it.ref }.toTypedArray()),
         )
     }
@@ -163,6 +163,8 @@ class WakeAlarmService : Service() {
     private var player: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var volume = 1f
+    /** Breathing to turn it off: no more buzzing, Creciente included. */
+    private var quieted = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -175,6 +177,7 @@ class WakeAlarmService : Service() {
                     Alarm(
                         id, intent.getIntExtra("minute", 0), label = intent.getStringExtra("label") ?: "",
                         gentle = intent.getBooleanExtra("gentle", true), vibrate = intent.getBooleanExtra("vibrate", true),
+                        vibration = intent.getStringExtra("vibration") ?: mx.loperstack.tokkip.data.VIBRATION_NORMAL,
                         breathe = intent.getBooleanExtra("breathe", false), snoozeMin = intent.getIntExtra("snoozeMin", 9),
                         tunes = intent.getStringArrayExtra("tunes")?.map { Tune(it) }?.takeIf { it.isNotEmpty() } ?: listOf(Tune(TUNE_DEFAULT)),
                     )
@@ -195,6 +198,7 @@ class WakeAlarmService : Service() {
                 handler.removeCallbacksAndMessages(null)
                 handler.postDelayed({ stopNow() }, 10 * 60_000L)
                 volume = 0.15f
+                quieted = true
                 player?.let { runCatching { it.setVolume(volume, volume) } }
                 runCatching { getSystemService(VibratorManager::class.java)?.defaultVibrator?.cancel() }
             }
@@ -205,6 +209,7 @@ class WakeAlarmService : Service() {
 
     private fun start(a: Alarm, preview: Boolean) {
         stopSound()
+        quieted = false
         val r = Ringing(a.id, a.minute, a.label, a.breathe, a.snoozeMin, System.currentTimeMillis(), preview)
         WakeAlarm.setRinging(r)
         val n = notification(r)
@@ -216,7 +221,7 @@ class WakeAlarmService : Service() {
             startActivity(Intent(this, AlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION))
         }
         play(pickTune(a.tunes), a.gentle)
-        if (a.vibrate) vibrate()
+        if (a.vibrate) vibrate(a.vibration)
         // Ten minutes is enough: it stops by itself, as other alarm clocks do.
         handler.postDelayed({ stopNow() }, 10 * 60_000L)
     }
@@ -301,13 +306,26 @@ class WakeAlarmService : Service() {
         }
     }
 
-    private fun vibrate() {
+    private fun vibrate(key: String) {
         val v = getSystemService(VibratorManager::class.java)?.defaultVibrator ?: return
-        @Suppress("DEPRECATION")
-        v.vibrate(
-            VibrationEffect.createWaveform(longArrayOf(0, 500, 300, 500, 1200), 0),
-            AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build(),
-        )
+        val attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
+        fun buzz(level: Float) {
+            val (t, a) = mx.loperstack.tokkip.data.vibrationWave(key, level)
+            @Suppress("DEPRECATION")
+            v.vibrate(if (v.hasAmplitudeControl()) VibrationEffect.createWaveform(t, a, 0) else VibrationEffect.createWaveform(t, 0), attrs)
+        }
+        if (key != "creciente") return buzz(1f)
+        // Creciente: from a whisper to full in a minute, a step every 6 seconds.
+        var level = 0.15f
+        val grow = object : Runnable {
+            override fun run() {
+                if (WakeAlarm.ringing.value == null || quieted) return
+                buzz(level)
+                level = (level + 0.085f).coerceAtMost(1f)
+                if (level < 1f) handler.postDelayed(this, 6000)
+            }
+        }
+        handler.post(grow)
     }
 
     private fun stopSound() {

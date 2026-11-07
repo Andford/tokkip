@@ -21,6 +21,8 @@ data class WakeAlarm(
     /** The sound starts soft and grows over a minute. */
     val gentle: Boolean = true,
     val vibrate: Boolean = true,
+    /** How it vibrates when [vibrate] is on: one of [VIBRATIONS]. */
+    val vibration: String = VIBRATION_NORMAL,
     /** To turn it off you breathe with Tokkip (three breaths) instead of one tap. */
     val breathe: Boolean = false,
     val snoozeMin: Int = 9,
@@ -114,12 +116,44 @@ fun inText(at: Long, now: Long): String {
     return "Suena en " + parts.joinToString(" ")
 }
 
+const val VIBRATION_NORMAL = "normal"
+
+/** A way to vibrate: its key (stored), its name and what it's for. */
+data class Vibration(val key: String, val name: String, val about: String)
+
+val VIBRATIONS = listOf(
+    Vibration("suave", "Suave", "Toquecitos ligeros, para sueño sensible"),
+    Vibration("latido", "Latido", "Como un corazón: tranquila pero se siente"),
+    Vibration("creciente", "Creciente", "Empieza muy suave y sube en un minuto"),
+    Vibration(VIBRATION_NORMAL, "Normal", "Dos pulsos firmes y una pausa"),
+    Vibration("olas", "Olas", "Cada vez más fuerte, y vuelve a empezar"),
+    Vibration("intensa", "Intensa", "Larga y al máximo, para sueño pesado"),
+)
+
+/**
+ * One round of [key]'s vibration, to repeat while the alarm rings: the
+ * timings (off, on, off, on… in ms) and how strong each part is (0–255).
+ * [level] scales the strength (Creciente grows it from 0.15 to 1).
+ */
+fun vibrationWave(key: String, level: Float = 1f): Pair<LongArray, IntArray> {
+    fun amp(a: Int) = if (a == 0) 0 else (a * level).toInt().coerceIn(1, 255)
+    val (t, a) = when (key) {
+        "suave" -> longArrayOf(0, 120, 250, 120, 1800) to intArrayOf(0, 70, 0, 70, 0)
+        "latido" -> longArrayOf(0, 90, 120, 160, 1000) to intArrayOf(0, 170, 0, 255, 0)
+        "creciente" -> longArrayOf(0, 450, 550) to intArrayOf(0, 255, 0)
+        "olas" -> longArrayOf(0, 160, 160, 300, 160, 600, 900) to intArrayOf(0, 90, 0, 170, 0, 255, 0)
+        "intensa" -> longArrayOf(0, 1100, 150) to intArrayOf(0, 255, 0)
+        else -> longArrayOf(0, 500, 300, 500, 1200) to intArrayOf(0, 220, 0, 220, 0)
+    }
+    return t to IntArray(a.size) { amp(a[it]) }
+}
+
 fun alarmsJson(list: List<WakeAlarm>): String = JSONArray().apply {
     for (a in list) put(
         JSONObject()
             .put("id", a.id).put("minute", a.minute).put("days", JSONArray(a.days.sorted()))
             .put("enabled", a.enabled).put("label", a.label).put("gentle", a.gentle)
-            .put("vibrate", a.vibrate).put("breathe", a.breathe).put("snoozeMin", a.snoozeMin)
+            .put("vibrate", a.vibrate).put("vibration", a.vibration).put("breathe", a.breathe).put("snoozeMin", a.snoozeMin)
             .put("tunes", JSONArray().apply { for (t in a.tunes) put(JSONObject().put("ref", t.ref).put("name", t.name)) }),
     )
 }.toString()
@@ -140,6 +174,7 @@ fun alarmsOf(json: String?): List<WakeAlarm> {
                 label = o.optString("label").take(40),
                 gentle = o.optBoolean("gentle", true),
                 vibrate = o.optBoolean("vibrate", true),
+                vibration = o.optString("vibration", VIBRATION_NORMAL).takeIf { v -> VIBRATIONS.any { it.key == v } } ?: VIBRATION_NORMAL,
                 breathe = o.optBoolean("breathe", false),
                 snoozeMin = o.optInt("snoozeMin", 9).takeIf { it in SNOOZE_CHOICES } ?: 9,
                 tunes = o.optJSONArray("tunes")?.let { t ->

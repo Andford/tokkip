@@ -235,6 +235,10 @@ private fun AlarmSheet(start: WakeAlarm, isNew: Boolean, onSave: (WakeAlarm) -> 
 
         SheetSwitch("Despertar suave", "La melodía empieza bajito y sube en un minuto", a.gentle) { a = a.copy(gentle = it) }
         SheetSwitch("Vibrar", "También vibra mientras suena", a.vibrate) { a = a.copy(vibrate = it) }
+        if (a.vibrate) {
+            VibrationPicker(a.vibration) { a = a.copy(vibration = it) }
+            Spacer(Modifier.height(8.dp))
+        }
         SheetSwitch("Apagar respirando", "Para apagarla respiras tres veces con Tokkip; así no la apagas dormido", a.breathe) { a = a.copy(breathe = it) }
 
         Spacer(Modifier.height(8.dp))
@@ -373,5 +377,40 @@ fun MorningBriefSettings() {
                 )
             }
         }
+    }
+}
+
+/** How the alarm vibrates: tap one to feel it for a moment. */
+@Composable
+private fun VibrationPicker(selected: String, pick: (String) -> Unit) {
+    val context = LocalContext.current
+    Label("Tipo de vibración", Ink.Dim, 13.sp)
+    Spacer(Modifier.height(8.dp))
+    PillRow {
+        for (v in mx.loperstack.tokkip.data.VIBRATIONS) {
+            Pill(v.name, v.key == selected) {
+                pick(v.key)
+                feel(context, v.key)
+            }
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    Label(mx.loperstack.tokkip.data.VIBRATIONS.firstOrNull { it.key == selected }?.about.orEmpty(), Ink.Dim2, 12.sp)
+}
+
+/** About three seconds of a vibration, to try it. */
+private fun feel(context: android.content.Context, key: String) {
+    val v = context.getSystemService(android.os.VibratorManager::class.java)?.defaultVibrator ?: return
+    val (t, a) = mx.loperstack.tokkip.data.vibrationWave(key, if (key == "creciente") 0.6f else 1f)
+    // The round, repeated until it fills about three seconds, then it stops by itself.
+    val times = mutableListOf<Long>()
+    val amps = mutableListOf<Int>()
+    while (times.sum() < 3000) { times += t.toList(); amps += a.toList() }
+    runCatching {
+        v.cancel()
+        v.vibrate(
+            if (v.hasAmplitudeControl()) android.os.VibrationEffect.createWaveform(times.toLongArray(), amps.toIntArray(), -1)
+            else android.os.VibrationEffect.createWaveform(times.toLongArray(), -1),
+        )
     }
 }

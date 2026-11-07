@@ -1,6 +1,9 @@
 package mx.loperstack.tokkip
 
+import mx.loperstack.tokkip.data.CycleDay
 import mx.loperstack.tokkip.data.CycleMath
+import mx.loperstack.tokkip.data.VIBRATIONS
+import mx.loperstack.tokkip.data.vibrationWave
 import mx.loperstack.tokkip.data.MorningBrief
 import mx.loperstack.tokkip.data.Weather
 import org.junit.Assert.assertEquals
@@ -82,5 +85,54 @@ class CycleTest {
             "¡Buenos días! Hoy no tienes eventos en tu agenda. Y no tienes pendientes. ¡Qué buen día! Que tengas un gran día.",
             MorningBrief.speech("", null, emptyList(), emptyList()),
         )
+    }
+
+    @Test
+    fun ovulationTestMovesTheEstimate() {
+        val days = periodsFrom(5000, 5030)
+        val f = CycleMath.forecast(days, 5045, mapOf(5044 to CycleDay(ovulationTest = 2)))
+        assertTrue(f.ovulationFromSigns)
+        assertEquals(5045, f.ovulation)
+        assertEquals(5059, f.nextStart)
+        assertEquals(2, f.spread)
+    }
+
+    @Test
+    fun temperatureShiftShowsOvulation() {
+        val notes = (6008..6013).associateWith { CycleDay(temp = 36.3) } + (6014..6016).associateWith { CycleDay(temp = 36.6) }
+        assertEquals(6013, CycleMath.ovulationFromSigns(notes, 6006, 6017))
+        assertEquals(null, CycleMath.ovulationFromSigns((6008..6013).associateWith { CycleDay(temp = 36.3) }, 6006, 6017))
+    }
+
+    @Test
+    fun lutealLearnedFromPastCycles() {
+        val days = periodsFrom(7000, 7030)
+        val f = CycleMath.forecast(days, 7035, mapOf(7017 to CycleDay(ovulationTest = 2)))
+        assertEquals(12, f.luteal)
+        assertEquals(7048, f.ovulation)
+        assertFalse(f.ovulationFromSigns)
+    }
+
+    @Test
+    fun insightAfterUnprotectedFertileDays() {
+        val days = periodsFrom(8000, 8028)
+        val notes = mapOf(8040 to CycleDay(sex = 2))
+        val f = CycleMath.forecast(days, 8060, notes)
+        assertEquals(4, f.late)
+        val tips = CycleMath.insights(days, notes, f, 8060)
+        assertTrue(tips.first(), tips.first().contains("prueba de embarazo"))
+        // With a negative test logged after the expected day, it doesn't insist.
+        val tested = notes + (8058 to CycleDay(pregnancyTest = 1))
+        assertFalse(CycleMath.insights(days, tested, CycleMath.forecast(days, 8060, tested), 8060).any { it.contains("ya es confiable") })
+    }
+
+    @Test
+    fun vibrations() {
+        for (v in VIBRATIONS) {
+            val (t, a) = vibrationWave(v.key)
+            assertEquals(v.key, t.size, a.size)
+            assertTrue(a.all { it in 0..255 })
+        }
+        assertEquals(38, vibrationWave("creciente", 0.15f).second[1])
     }
 }

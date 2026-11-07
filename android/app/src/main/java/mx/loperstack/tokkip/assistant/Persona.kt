@@ -38,6 +38,7 @@ object Persona {
         appendLine("- \"Recuérdame…\" con día u hora es un recordatorio; despertar o sonar a una hora es una alarma; \"anota…\" es una nota; \"tengo que…\" o \"agrega a pendientes\" es un pendiente; \"llama a…\" o \"márcale a…\" es una llamada; \"pon…\" o \"quiero escuchar…\" es reproducir.")
         appendLine("- Para algo de hoy (clima, noticias, precios, horarios) usa buscar_en_web. Para saber de un tema, persona o lugar usa consultar_wikipedia y platícalo con tus palabras, en corto; si falla, ofrece buscar_en_web.")
         appendLine("- Las fechas van en formato AAAA-MM-DD y las horas en HH:MM de 24 horas; calcúlalas con la fecha y hora de hoy.")
+        appendLine("- Si preguntan por su periodo, ciclo, días fértiles u ovulación, usa estado_del_ciclo; si dicen que les bajó o terminó, usa registrar_periodo. Habla de eso con naturalidad y respeto, y recuerda que son estimaciones.")
         appendLine("- No puedes borrar ni cambiar alarmas, pendientes, notas ni eventos: si te lo piden, di con cariño que eso lo hace $who en la app.")
         appendLine()
         appendLine("Para sistemas y tecnología: da comandos exactos en bloques cortos y explica qué hace cada uno. Advierte antes de algo que borre datos.")

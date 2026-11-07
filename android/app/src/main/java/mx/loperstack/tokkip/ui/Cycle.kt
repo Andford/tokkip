@@ -27,12 +27,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -47,7 +50,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -77,7 +82,8 @@ fun CycleScreen() {
     val context = LocalContext.current
     val d by CycleStore.state.collectAsState()
     val today = CycleStore.today()
-    val f = remember(d.period, today) { CycleMath.forecast(d.period, today) }
+    val f = remember(d.period, d.notes, today) { CycleMath.forecast(d.period, today, d.notes) }
+    val insights = remember(d.period, d.notes, today) { CycleMath.insights(d.period, d.notes, f, today) }
     var month by remember { mutableStateOf(YearMonth.now()) }
     var opened by remember { mutableIntStateOf(Int.MIN_VALUE) }
 
@@ -90,6 +96,20 @@ fun CycleScreen() {
         }
         Spacer(Modifier.height(14.dp))
         TodayCard(d.period, f, today)
+        if (insights.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Panel(Modifier.fillMaxWidth(), padding = 16.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.AutoAwesome, null, tint = Ink.VioletSoft, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Lo que noto", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                for (line in insights) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(line, fontSize = 14.sp, color = Ink.Text)
+                }
+            }
+        }
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (f.inPeriod) {
@@ -148,14 +168,16 @@ private fun TodayCard(period: Set<Int>, f: CycleMath.Forecast, today: Int) {
         else -> {
             val left = f.nextStart!! - today
             val head = if (left == 0) "Tu periodo podría empezar hoy" else "Tu periodo, en ${days(left)}"
-            head to "Día ${f.day} de tu ciclo · estimado para el ${nice(f.nextStart)}"
+            val range = if (f.measured >= 2 || f.ovulationFromSigns) " (entre el ${short(f.nextStart - f.spread)} y el ${short(f.nextStart + f.spread)})" else ""
+            head to "Día ${f.day} de tu ciclo · estimado para el ${nice(f.nextStart)}$range"
         }
     }
     val fertile = when {
         f.ovulation == null || f.inPeriod || f.late > 0 -> null
         mark == CycleMath.Mark.OVULATION -> "Hoy sería tu ovulación: probabilidad alta de embarazo."
         mark == CycleMath.Mark.FERTILE -> "Estás en tu ventana fértil (hasta el ${short(f.fertileTo!!)}): probabilidad alta de embarazo."
-        f.fertileFrom!! > today -> "Ventana fértil: ${short(f.fertileFrom)} al ${short(f.fertileTo!!)} · ovulación ~${short(f.ovulation!!)}"
+        f.fertileFrom!! > today -> "Ventana fértil: ${short(f.fertileFrom)} al ${short(f.fertileTo!!)} · ovulación ~${short(f.ovulation!!)}" +
+            if (f.ovulationFromSigns) " (según tus señales)" else ""
         else -> "Fuera de tu ventana fértil: probabilidad baja (nunca cero)."
     }
     Panel(Modifier.fillMaxWidth(), padding = 18.dp) {
@@ -204,7 +226,7 @@ private fun MonthGrid(month: YearMonth, period: Set<Int>, notes: Map<Int, CycleD
                 Box(Modifier.weight(1f).aspectRatio(1f).padding(2.dp), contentAlignment = Alignment.Center) {
                     if (i in 0 until month.lengthOfMonth()) {
                         val day = first.plusDays(i.toLong()).toEpochDay().toInt()
-                        DayCell(i + 1, CycleMath.mark(day, period, f, today), day == today, notes[day] != null) { open(day) }
+                        DayCell(i + 1, CycleMath.mark(day, period, f, today), day == today, notes[day]) { open(day) }
                     }
                 }
             }
@@ -213,7 +235,7 @@ private fun MonthGrid(month: YearMonth, period: Set<Int>, notes: Map<Int, CycleD
 }
 
 @Composable
-private fun DayCell(n: Int, mark: CycleMath.Mark, today: Boolean, noted: Boolean, onClick: () -> Unit) {
+private fun DayCell(n: Int, mark: CycleMath.Mark, today: Boolean, note: CycleDay?, onClick: () -> Unit) {
     val fill = when (mark) {
         CycleMath.Mark.PERIOD -> PeriodRed
         CycleMath.Mark.FERTILE -> FertileTeal.copy(alpha = 0.22f)
@@ -231,7 +253,16 @@ private fun DayCell(n: Int, mark: CycleMath.Mark, today: Boolean, noted: Boolean
                 else -> Ink.Text
             },
         )
-        if (noted) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp).size(4.dp).clip(CircleShape).background(Ink.VioletSoft))
+        // A small heart for intimacy, a dot for any other note.
+        if (note != null && note.sex != 0) {
+            Icon(
+                Icons.Rounded.Favorite, null, tint = if (note.sex == 2) Color(0xFFFF8FB1) else Ink.VioletSoft,
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 2.dp, end = 2.dp).size(9.dp),
+            )
+        }
+        if (note != null && note != CycleDay(sex = note.sex)) {
+            Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp).size(4.dp).clip(CircleShape).background(Ink.VioletSoft))
+        }
     }
 }
 
@@ -289,7 +320,7 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
 @Composable
 private fun DaySheet(day: Int, isPeriod: Boolean, note: CycleDay, future: Boolean) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
         Text(nice(day).replaceFirstChar { it.uppercase() }, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
         Spacer(Modifier.height(14.dp))
         if (future) {
@@ -306,6 +337,27 @@ private fun DaySheet(day: Int, isPeriod: Boolean, note: CycleDay, future: Boolea
             }
         }
         Spacer(Modifier.height(14.dp))
+        Choice("Relaciones", listOf("No", "Con protección", "Sin protección"), note.sex) { CycleStore.note(context, day, note.copy(sex = it)) }
+        Choice("Prueba de ovulación", listOf("No me la hice", "Negativa", "Positiva"), note.ovulationTest) { CycleStore.note(context, day, note.copy(ovulationTest = it)) }
+        Choice("Prueba de embarazo", listOf("No me la hice", "Negativa", "Positiva"), note.pregnancyTest) { CycleStore.note(context, day, note.copy(pregnancyTest = it)) }
+        Choice("Moco cervical", listOf("Sin notar", "Seco", "Pegajoso", "Cremoso", "Clara de huevo"), note.mucus) { CycleStore.note(context, day, note.copy(mucus = it)) }
+        Label("Clara de huevo (elástico y transparente) suele aparecer en tus días más fértiles.", Ink.Dim2, 12.sp)
+        Spacer(Modifier.height(14.dp))
+        var temp by remember(day) { mutableStateOf(if (note.temp > 0) "%.2f".format(java.util.Locale.US, note.temp) else "") }
+        OutlinedTextField(
+            value = temp,
+            onValueChange = { v ->
+                temp = v.filter { it.isDigit() || it == '.' || it == ',' }.take(5)
+                val t = temp.replace(',', '.').toDoubleOrNull()
+                if (temp.isEmpty()) CycleStore.note(context, day, note.copy(temp = 0.0))
+                else if (t != null && t in 35.0..38.5) CycleStore.note(context, day, note.copy(temp = t))
+            },
+            label = { Text("Temperatura basal (°C)") }, placeholder = { Text("36.45") }, singleLine = true,
+            supportingText = { Text("Al despertar, antes de levantarte. Con varios días, Tokkip detecta tu ovulación.") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            shape = Squircle(16.dp), modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(14.dp))
         Text("Cómo te sentiste", fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -314,7 +366,26 @@ private fun DaySheet(day: Int, isPeriod: Boolean, note: CycleDay, future: Boolea
                 Pill(s, on) { CycleStore.note(context, day, note.copy(symptoms = if (on) note.symptoms - s else note.symptoms + s)) }
             }
         }
+        Spacer(Modifier.height(14.dp))
+        var text by remember(day) { mutableStateOf(note.note) }
+        OutlinedTextField(
+            value = text,
+            onValueChange = { v -> text = v.take(300); CycleStore.note(context, day, note.copy(note = text)) },
+            label = { Text("Nota (opcional)") }, minLines = 2,
+            shape = Squircle(16.dp), modifier = Modifier.fillMaxWidth(),
+        )
     }
+}
+
+/** One choice among a few, as pills. */
+@Composable
+private fun Choice(title: String, options: List<String>, selected: Int, pick: (Int) -> Unit) {
+    Text(title, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(6.dp))
+    PillRow {
+        options.forEachIndexed { i, label -> Pill(label, selected == i) { pick(i) } }
+    }
+    Spacer(Modifier.height(12.dp))
 }
 
 /** Ajustes: turning "Ciclo" on or off, and wiping what's marked. */

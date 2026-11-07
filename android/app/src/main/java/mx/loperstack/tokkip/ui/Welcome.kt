@@ -67,7 +67,7 @@ import mx.loperstack.tokkip.character.Tokkip
 import mx.loperstack.tokkip.character.TokkipEngine
 import mx.loperstack.tokkip.character.Sounds
 
-private const val STEPS = 6
+private const val STEPS = 7
 
 @Composable
 fun Welcome(data: AppData, google: GoogleTasks.Status, actions: Actions, connectGoogle: () -> Unit, done: () -> Unit) {
@@ -130,13 +130,14 @@ fun Welcome(data: AppData, google: GoogleTasks.Status, actions: Actions, connect
                             Spacer(Modifier.height(18.dp))
                             NameField(name, { name = it })
                         }
-                        2 -> {
+                        2 -> GenderStep(color)
+                        3 -> {
                             Title("Tu Tokkip, tu color")
                             Body("Elige uno de los 36, el de tu Pixel o cualquiera a tu gusto.")
                             Spacer(Modifier.height(8.dp))
                             ColorPicker(data.tokkipColor, color) { Store.setColor(it) }
                         }
-                        3 -> {
+                        4 -> {
                             Tokkip(Modifier.width(150.dp).height(124.dp), color = color)
                             Spacer(Modifier.height(10.dp))
                             Title("El tema")
@@ -144,7 +145,7 @@ fun Welcome(data: AppData, google: GoogleTasks.Status, actions: Actions, connect
                             Spacer(Modifier.height(18.dp))
                             ThemeCards(data.theme) { Store.setTheme(it) }
                         }
-                        4 -> {
+                        5 -> {
                             Title("Tu mini ecosistema")
                             Body("Tokkip te acompaña en todos tus dispositivos.")
                             Spacer(Modifier.height(14.dp))
@@ -158,7 +159,7 @@ fun Welcome(data: AppData, google: GoogleTasks.Status, actions: Actions, connect
                                 Label("Opcional · necesita el paso de android/GOOGLE.md", Ink.Dim2, 12.sp)
                             }
                         }
-                        5 -> Permissions()
+                        6 -> Permissions()
                         else -> {
                             Spacer(Modifier.height(40.dp))
                             Tokkip(Modifier.width(240.dp).height(200.dp), color = color, jump = actions.jump, face = TokkipEngine.Eye.STAR)
@@ -273,5 +274,33 @@ object WelcomeMusic {
             }
         }
         handler.post(step)
+    }
+}
+
+/** Welcome: who uses Tokkip. "Mujer" turns on Ciclo (period and fertility); it can change any time in Ajustes. */
+@Composable
+private fun GenderStep(color: Color) {
+    val context = LocalContext.current
+    var picked by remember { mutableStateOf(mx.loperstack.tokkip.data.CycleStore.gender(context)) }
+    Tokkip(Modifier.width(150.dp).height(124.dp), color = color)
+    Spacer(Modifier.height(10.dp))
+    Title("¿Eres mujer u hombre?")
+    Body("Así te muestro lo que te sirve: con «Mujer» se activa Ciclo, para llevar tu periodo y tus días fértiles. Lo cambias cuando quieras en Ajustes.")
+    Spacer(Modifier.height(18.dp))
+    for ((key, label) in listOf("mujer" to "Mujer", "hombre" to "Hombre", "nodecir" to "Prefiero no decir")) {
+        val on = picked == key
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 5.dp).clip(Squircle(20.dp))
+                .background(if (on) Ink.VioletSoft else Ink.Card)
+                .clickable {
+                    picked = key
+                    mx.loperstack.tokkip.data.CycleStore.setGender(context, key)
+                }
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (on) Ink.OnViolet else Ink.Text, modifier = Modifier.weight(1f))
+            if (on) androidx.compose.material3.Icon(Icons.Rounded.CheckCircle, null, tint = Ink.OnViolet)
+        }
     }
 }

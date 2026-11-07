@@ -22,9 +22,6 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** One day's notes: how heavy the flow was (0 none … 3 heavy) and how you felt. */
-data class CycleDay(val flow: Int = 0, val symptoms: Set<String> = emptySet())
-
 data class CycleData(
     val enabled: Boolean = false,
     /** Days with period, as epoch days. */
@@ -39,7 +36,7 @@ object CycleStore {
     private const val KEY = "tokkip_ciclo"
     private const val PREFS = "ciclo"
 
-    val SYMPTOMS = listOf("Cólicos", "Dolor de cabeza", "Hinchazón", "Cansancio", "Sensibilidad", "Ánimo bajo", "Irritabilidad", "Antojos", "Acné", "Dolor de espalda")
+    val SYMPTOMS get() = CycleMath.SYMPTOMS
 
     private val _state = MutableStateFlow(CycleData())
     val state: StateFlow<CycleData> = _state.asStateFlow()
@@ -66,6 +63,14 @@ object CycleStore {
         _state.value = _state.value.copy(enabled = on)
         mx.loperstack.tokkip.wellness.CycleReminder.sync(context)
     }
+
+    /** From the welcome: "Mujer" turns Ciclo on; anything else leaves it off (it's always in Ajustes). */
+    fun setGender(context: Context, gender: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("genero", gender).apply()
+        setEnabled(context, gender == "mujer")
+    }
+
+    fun gender(context: Context): String = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("genero", "").orEmpty()
 
     fun setReminders(context: Context, period: Boolean, fertile: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("avisoPeriodo", period).putBoolean("avisoFertil", fertile).apply()
@@ -139,7 +144,18 @@ object CycleStore {
         val notes = notesJson.keys().asSequence().mapNotNull { k ->
             val n = notesJson.optJSONObject(k) ?: return@mapNotNull null
             val s = n.optJSONArray("sintomas") ?: JSONArray()
-            k.toIntOrNull()?.let { it to CycleDay(n.optInt("flujo"), (0 until s.length()).map { i -> s.getString(i) }.toSet()) }
+            k.toIntOrNull()?.let {
+                it to CycleDay(
+                    flow = n.optInt("flujo"),
+                    symptoms = (0 until s.length()).map { i -> s.getString(i) }.toSet(),
+                    sex = n.optInt("sexo"),
+                    ovulationTest = n.optInt("pruebaOvulacion"),
+                    pregnancyTest = n.optInt("pruebaEmbarazo"),
+                    mucus = n.optInt("moco"),
+                    temp = n.optDouble("temperatura", 0.0).takeIf { t -> !t.isNaN() } ?: 0.0,
+                    note = n.optString("nota"),
+                )
+            }
         }.toMap()
         period to notes
     }.getOrNull()
@@ -147,7 +163,12 @@ object CycleStore {
     private fun write(context: Context, d: CycleData) {
         runCatching {
             val notes = JSONObject()
-            for ((day, n) in d.notes) notes.put(day.toString(), JSONObject().put("flujo", n.flow).put("sintomas", JSONArray(n.symptoms.toList())))
+            for ((day, n) in d.notes) notes.put(
+                day.toString(),
+                JSONObject().put("flujo", n.flow).put("sintomas", JSONArray(n.symptoms.toList()))
+                    .put("sexo", n.sex).put("pruebaOvulacion", n.ovulationTest).put("pruebaEmbarazo", n.pregnancyTest)
+                    .put("moco", n.mucus).put("temperatura", n.temp).put("nota", n.note),
+            )
             val json = JSONObject().put("periodo", JSONArray(d.period.sorted())).put("notas", notes)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, key())
