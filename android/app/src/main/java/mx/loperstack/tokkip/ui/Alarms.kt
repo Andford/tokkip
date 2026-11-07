@@ -340,3 +340,38 @@ private fun TuneChip(text: String, on: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
+
+/** Sueño → under the alarms: the morning summary after a wake-up alarm, and whether Tokkip reads it. */
+@Composable
+fun MorningBriefSettings() {
+    val context = LocalContext.current
+    var on by remember { mutableStateOf(mx.loperstack.tokkip.data.MorningBrief.enabled(context)) }
+    var aloud by remember { mutableStateOf(mx.loperstack.tokkip.data.MorningBrief.aloud(context)) }
+    var located by remember { mutableStateOf(mx.loperstack.tokkip.data.Weather.granted(context)) }
+    val askLocation = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { located = it }
+    Spacer(Modifier.height(12.dp))
+    Panel(Modifier.fillMaxWidth(), padding = 16.dp) {
+        Text("Resumen matinal", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+        ToggleRow("Mostrarlo al apagar la alarma", "El clima de hoy, tus eventos y tus pendientes", on) {
+            on = it
+            mx.loperstack.tokkip.data.MorningBrief.setEnabled(context, it)
+            if (it && !located) askLocation.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+        if (on) {
+            ToggleRow("Que Tokkip lo lea en voz alta", "Con su voz, en cuanto apagas la alarma", aloud) {
+                aloud = it
+                mx.loperstack.tokkip.data.MorningBrief.setAloud(context, it)
+            }
+            if (!located) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Para el clima, Tokkip necesita tu ubicación aproximada (se manda redondeada a Open-Meteo, sin cuenta). Toca para permitirla.",
+                    fontSize = 13.sp, color = Ink.VioletSoft,
+                    modifier = Modifier.clickable { askLocation.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION) },
+                )
+            }
+        }
+    }
+}

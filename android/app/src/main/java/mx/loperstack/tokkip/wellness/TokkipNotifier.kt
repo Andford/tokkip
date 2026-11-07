@@ -458,7 +458,7 @@ object TokkipNotifier {
 
 class TokkipAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) { TokkipNotifier.sync(context); BedReminder.sync(context); return }
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) { TokkipNotifier.sync(context); BedReminder.sync(context); CycleReminder.sync(context); return }
         TokkipNotifier.ring(context, intent)
     }
 }

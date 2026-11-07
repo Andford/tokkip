@@ -27,6 +27,7 @@ object Wipe {
         if (!cleared) {
             // Rare: Android said no. Erase our own files at least; the settings are already empty.
             runCatching { File(app.filesDir, "diary").deleteRecursively() }
+            runCatching { CycleStore.forget(app) }
             runCatching { Notebook.wipe() }
             runCatching { app.cacheDir.deleteRecursively() }
         }

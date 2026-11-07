@@ -176,6 +176,7 @@
             </intent-filter>
         </activity-alias>
 
+        <receiver android:name=".wellness.CycleReminderReceiver" android:exported="false" />
         <receiver
             android:name=".wellness.BedReminderReceiver"
             android:exported="false" />

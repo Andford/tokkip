@@ -275,6 +275,8 @@ fun SettingsSheet(
                 Store.setBreathHaptics(it)
                 if (it) mx.loperstack.tokkip.character.Haptics.breath(context, true, 2.0, guide = true)
             }
+            SectionTitle("Funciones opcionales")
+            CycleSettingsRow()
             SectionTitle("Notificaciones")
             NotificationSettings(data.notify)
             SectionTitle("Copia de seguridad")

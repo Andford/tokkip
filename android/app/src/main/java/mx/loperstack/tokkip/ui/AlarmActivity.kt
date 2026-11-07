@@ -76,6 +76,12 @@ class AlarmActivity : ComponentActivity() {
         Store.applyLook()
         setContent { TokkipTheme(Store.state.value.theme) { AlarmFace(onClose = { finish() }) } }
     }
+
+    override fun onDestroy() {
+        // Leaving the morning summary also quiets Tokkip reading it.
+        if (isFinishing) mx.loperstack.tokkip.assistant.Voice.stop()
+        super.onDestroy()
+    }
 }
 
 @Composable
@@ -101,7 +107,16 @@ private fun AlarmFace(onClose: () -> Unit) {
     }
     // Rang out, or put off from the notification: nothing left to show.
     LaunchedEffect(ringing, morning) { if (ringing == null && !morning) onClose() }
-    LaunchedEffect(morning) { if (morning) { delay(2200); onClose() } }
+    // After it's off: the morning summary (if it's on), or a good morning and away.
+    val brief = remember { mx.loperstack.tokkip.data.MorningBrief.enabled(context) }
+    var briefing by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (brief) mx.loperstack.tokkip.data.Weather.refresh(context, force = true) }
+    LaunchedEffect(morning) {
+        if (morning) {
+            delay(if (brief) 1400 else 2200)
+            if (brief) briefing = true else onClose()
+        }
+    }
 
     val r = ringing
     val breath = if (breathingSince > 0) WAKE_BREATH.copy(startedAt = breathingSince) else null
@@ -119,6 +134,12 @@ private fun AlarmFace(onClose: () -> Unit) {
     val time = SimpleDateFormat("H:mm", Locale("es", "MX")).format(Date(now))
     val day = SimpleDateFormat("EEEE d 'de' MMMM", Locale("es", "MX")).format(Date(now)).replaceFirstChar { it.uppercase() }
 
+    if (briefing) {
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Dawn1, Dawn2, Dawn3)))) {
+            MorningBriefScreen(onDone = onClose)
+        }
+        return
+    }
     Box(
         Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Dawn1, Dawn2, Dawn3))),
     ) {

@@ -12,8 +12,8 @@ android {
         applicationId = "mx.loperstack.tokkip"
         minSdk = 31
         targetSdk = 35
-        versionCode = 38
-        versionName = "2.5.0"
+        versionCode = 39
+        versionName = "2.6.0"
         // The assistant's engines are 64-bit ARM only; so are the phones that can run them.
         ndk { abiFilters += "arm64-v8a" }
     }

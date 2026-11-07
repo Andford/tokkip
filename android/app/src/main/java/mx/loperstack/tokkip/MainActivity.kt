@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
         mx.loperstack.tokkip.character.Haptics.strength = Store.state.value.hapticStrength
         PomodoroScheduler.channels(this)
         mx.loperstack.tokkip.wellness.BedReminder.sync(this)
+        mx.loperstack.tokkip.wellness.CycleReminder.sync(this)
         mx.loperstack.tokkip.wellness.WakeAlarm.sync(this)
         catchUp()
         startTab.value = tabOf(intent)
@@ -116,6 +117,7 @@ class MainActivity : ComponentActivity() {
         "money" -> Tab.MONEY
         "pet" -> Tab.PET
         "talk" -> Tab.TALK
+        "cycle" -> Tab.CYCLE
         else -> Tab.HOME
     }
 }

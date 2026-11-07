@@ -166,7 +166,7 @@ enum class Tab(val label: String, val icon: androidx.compose.ui.graphics.vector.
     HOME("Inicio", Icons.Rounded.Home), AGENDA("Agenda", Icons.Rounded.CalendarMonth), TASKS("Tareas", Icons.Rounded.TaskAlt), FOCUS("Enfoque", Icons.Rounded.Timer),
     STREAKS("Rachas", Icons.Rounded.LocalFireDepartment), BREATHE("Respirar", Icons.Rounded.Air), DIARY("Diario", Icons.Rounded.AutoStories), MONEY("Dinero", Icons.Rounded.Savings),
     SLEEP("Sueño", Icons.Rounded.Bedtime), SCREEN("Pantalla", Icons.Rounded.PhoneAndroid), PET("Mimos", Icons.Rounded.Favorite),
-    TALK("Platicar", Icons.Rounded.Forum),
+    TALK("Platicar", Icons.Rounded.Forum), CYCLE("Ciclo", Icons.Rounded.WaterDrop),
 }
 
 /** The floating bar's five places, filled when selected. */
@@ -183,7 +183,7 @@ enum class Group(val label: String, val tabs: List<Tab>) {
     HOME("Inicio", listOf(Tab.HOME, Tab.AGENDA)),
     TASKS("Tareas", listOf(Tab.TASKS, Tab.FOCUS, Tab.STREAKS)),
     DIARY("Diario", listOf(Tab.DIARY, Tab.MONEY)),
-    CALM("Bienestar", listOf(Tab.BREATHE, Tab.SLEEP, Tab.SCREEN)),
+    CALM("Bienestar", listOf(Tab.BREATHE, Tab.SLEEP, Tab.SCREEN, Tab.CYCLE)),
     PET("Tokkip", listOf(Tab.PET, Tab.TALK));
 
     companion object {
@@ -370,6 +370,11 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
     val lastIn = remember { mutableMapOf<Group, Tab>() }
     SideEffect { lastIn[Group.of(tab)] = tab }
     LaunchedEffect(startTab) { tab = startTab }
+    // "Ciclo" shows in Bienestar only when it's turned on in Ajustes.
+    remember { mx.loperstack.tokkip.data.CycleStore.init(context) }
+    val cycle by mx.loperstack.tokkip.data.CycleStore.state.collectAsState()
+    val cycleOn = cycle.enabled
+    LaunchedEffect(cycleOn, tab) { if (!cycleOn && tab == Tab.CYCLE) tab = Tab.BREATHE }
     // The Respirar widget's 1 · 5 · 10 buttons.
     // The Dinero widget's "Anotar": straight to the sheet.
     LaunchedEffect(moneyAdd) { if (moneyAdd.second != 0L) tab = Tab.MONEY }
@@ -462,6 +467,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
                         )
                         Tab.SCREEN -> ScreenTimeScreen(data, color, actions)
                         Tab.MONEY -> MoneyScreen(data, color, actions, moneyAdd)
+                        Tab.CYCLE -> CycleScreen()
                     }
         }
         val pickGroup: (Int) -> Unit = { i ->
@@ -484,7 +490,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
                         )
                     } else {
                         val group = Group.of(tab)
-                        if (group.tabs.size > 1) SubTabs(group.tabs, tab) { Haptics.tick(context); tab = it }
+                        if (group.tabs.count { it != Tab.CYCLE || cycleOn } > 1) SubTabs(group.tabs.filter { it != Tab.CYCLE || cycleOn }, tab) { Haptics.tick(context); tab = it }
                         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                             Box(Modifier.widthIn(max = 760.dp).fillMaxSize()) { screen(tab) }
                         }
@@ -500,7 +506,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
                 val group = Group.of(tab)
                 // Inicio keeps its own top; the pills show from Agenda, to go back.
                 if (group.tabs.size > 1 && tab != Tab.HOME) {
-                    SubTabs(group.tabs, tab) { Haptics.tick(context); tab = it }
+                    SubTabs(group.tabs.filter { it != Tab.CYCLE || cycleOn }, tab) { Haptics.tick(context); tab = it }
                 }
                 AnimatedContent(
                     targetState = tab, modifier = Modifier.weight(1f).fillMaxWidth(),

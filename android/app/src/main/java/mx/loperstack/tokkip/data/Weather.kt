@@ -19,7 +19,14 @@ import kotlin.math.roundToInt
 import org.json.JSONObject
 
 object Weather {
-    data class Now(val temp: Int, val code: Int, val day: Boolean, val max: Int, val min: Int)
+    data class Now(
+        val temp: Int, val code: Int, val day: Boolean, val max: Int, val min: Int,
+        /** The next hours (for the morning summary's strip), and today's highest chance of rain in %. */
+        val hours: List<Hour> = emptyList(), val rain: Int = 0,
+        val at: Long = System.currentTimeMillis(),
+    )
+
+    data class Hour(val hour: Int, val temp: Int, val code: Int, val day: Boolean, val rain: Int)
 
     @Volatile var now: Now? = null
         private set
@@ -72,8 +79,9 @@ object Weather {
             String.format(
                 Locale.US,
                 "https://api.open-meteo.com/v1/forecast?latitude=%.2f&longitude=%.2f" +
-                    "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min" +
-                    "&timezone=auto&forecast_days=1",
+                    "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
+                    "&hourly=temperature_2m,weather_code,is_day,precipitation_probability&forecast_hours=13" +
+                    "&timezone=auto&forecast_days=2",
                 lat, lon,
             ),
         )
@@ -82,12 +90,29 @@ object Weather {
             val json = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
             val cur = json.getJSONObject("current")
             val daily = json.getJSONObject("daily")
+            val hourly = json.optJSONObject("hourly")
+            val hours = hourly?.let { h ->
+                val times = h.getJSONArray("time")
+                (0 until times.length()).mapNotNull { i ->
+                    runCatching {
+                        Hour(
+                            hour = times.getString(i).substringAfter('T').take(2).toInt(),
+                            temp = h.getJSONArray("temperature_2m").getDouble(i).roundToInt(),
+                            code = h.getJSONArray("weather_code").getInt(i),
+                            day = h.getJSONArray("is_day").optInt(i, 1) == 1,
+                            rain = h.getJSONArray("precipitation_probability").optInt(i, 0),
+                        )
+                    }.getOrNull()
+                }
+            }.orEmpty()
             Now(
                 temp = cur.getDouble("temperature_2m").roundToInt(),
                 code = cur.getInt("weather_code"),
                 day = cur.optInt("is_day", 1) == 1,
                 max = daily.getJSONArray("temperature_2m_max").getDouble(0).roundToInt(),
                 min = daily.getJSONArray("temperature_2m_min").getDouble(0).roundToInt(),
+                hours = hours,
+                rain = daily.optJSONArray("precipitation_probability_max")?.optInt(0, 0) ?: 0,
             )
         } finally {
             conn.disconnect()

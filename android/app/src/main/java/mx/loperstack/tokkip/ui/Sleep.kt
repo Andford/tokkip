@@ -181,6 +181,7 @@ fun SleepScreen(data: AppData, color: Color, actions: Actions) {
 
         Text("Despertador", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 22.dp, bottom = 8.dp))
         AlarmsPanel(data)
+        MorningBriefSettings()
 
         Text("Tu horario", fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp, top = 22.dp, bottom = 8.dp))
         GoalPanel(goal, data.bedReminder)

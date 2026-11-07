@@ -6,4 +6,5 @@
     <exclude domain="external" path="modelos/" />
     <exclude domain="file" path="voz/" />
     <exclude domain="file" path="platicas.bin" />
+    <exclude domain="file" path="ciclo.bin" />
 </full-backup-content>
