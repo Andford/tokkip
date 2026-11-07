@@ -467,7 +467,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
                         )
                         Tab.SCREEN -> ScreenTimeScreen(data, color, actions)
                         Tab.MONEY -> MoneyScreen(data, color, actions, moneyAdd)
-                        Tab.CYCLE -> CycleScreen()
+                        Tab.CYCLE -> CycleScreen(color)
                     }
         }
         val pickGroup: (Int) -> Unit = { i ->

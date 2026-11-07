@@ -6,6 +6,44 @@
 
 package mx.loperstack.tokkip.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.EditNote
+import androidx.compose.material.icons.rounded.SentimentSatisfied
+import androidx.compose.material.icons.rounded.Opacity
+import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Spa
+import androidx.compose.material.icons.rounded.Thermostat
+import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.coroutines.delay
+import mx.loperstack.tokkip.character.Haptics
+import mx.loperstack.tokkip.character.Mood
+import mx.loperstack.tokkip.character.Sounds
+import mx.loperstack.tokkip.character.Tokkip
+import mx.loperstack.tokkip.character.TokkipEngine
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -78,8 +116,17 @@ private fun days(n: Int) = if (n == 1) "1 día" else "$n días"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CycleScreen() {
+fun CycleScreen(color: Color = Color(0xFFF5F6F8)) {
     val context = LocalContext.current
+    // Tokkip's reaction on the main card: a jump, a sound, a line.
+    var jump by remember { mutableIntStateOf(0) }
+    var flash by remember { mutableStateOf<Pair<String, Long>?>(null) }
+    fun react(text: String, sound: String) {
+        jump++
+        flash = text to System.currentTimeMillis()
+        Haptics.success(context)
+        Sounds.play(sound)
+    }
     val d by CycleStore.state.collectAsState()
     val today = CycleStore.today()
     val f = remember(d.period, d.notes, today) { CycleMath.forecast(d.period, today, d.notes) }
@@ -95,7 +142,8 @@ fun CycleScreen() {
             Label("Solo en este teléfono", Ink.Dim2, 12.sp)
         }
         Spacer(Modifier.height(14.dp))
-        TodayCard(d.period, f, today)
+        TodayCard(d.period, f, today, color, jump, flash?.first)
+        LaunchedEffect(flash) { if (flash != null) { delay(4500); flash = null } }
         if (insights.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Panel(Modifier.fillMaxWidth(), padding = 16.dp) {
@@ -113,9 +161,15 @@ fun CycleScreen() {
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             if (f.inPeriod) {
-                PrimaryButton("Terminó hoy", Modifier.weight(1f), Ink.VioletSoft, Ink.OnViolet) { CycleStore.endPeriod(context, today) }
+                PrimaryButton("Terminó hoy", Modifier.weight(1f), Ink.VioletSoft, Ink.OnViolet) {
+                    CycleStore.endPeriod(context, today)
+                    react("Listo, terminó tu periodo. ¡Bien hecho por cuidarte!", "approve")
+                }
             } else {
-                PrimaryButton("Empezó mi periodo", Modifier.weight(1f), PeriodRed, Color.White) { CycleStore.startPeriod(context, today, f.periodLen) }
+                PrimaryButton("Empezó mi periodo", Modifier.weight(1f), PeriodRed, Color.White) {
+                    CycleStore.startPeriod(context, today, f.periodLen)
+                    react("Anotado: hoy empezó tu periodo. Tómatelo con calma, aquí estoy 💗", "love")
+                }
             }
             PrimaryButton("Hoy", Modifier.weight(0.6f), Ink.Card, Ink.Text) { opened = today }
         }
@@ -153,13 +207,13 @@ fun CycleScreen() {
 
     if (opened != Int.MIN_VALUE) {
         ModalBottomSheet(onDismissRequest = { opened = Int.MIN_VALUE }, containerColor = Ink.CardHigh) {
-            DaySheet(opened, opened in d.period, d.notes[opened] ?: CycleDay(), future = opened > today)
+            DaySheet(opened, opened in d.period, d.notes[opened] ?: CycleDay(), future = opened > today, color = color) { opened = Int.MIN_VALUE }
         }
     }
 }
 
 @Composable
-private fun TodayCard(period: Set<Int>, f: CycleMath.Forecast, today: Int) {
+private fun TodayCard(period: Set<Int>, f: CycleMath.Forecast, today: Int, color: Color, jump: Int, flash: String?) {
     val mark = CycleMath.mark(today, period, f, today)
     val (title, line) = when {
         f.lastStart == null -> "Marca tu periodo" to "Toca «Empezó mi periodo» el primer día, o marca días pasados en el calendario. Con dos periodos marcados, Tokkip aprende tu ciclo."
@@ -180,31 +234,110 @@ private fun TodayCard(period: Set<Int>, f: CycleMath.Forecast, today: Int) {
             if (f.ovulationFromSigns) " (según tus señales)" else ""
         else -> "Fuera de tu ventana fértil: probabilidad baja (nunca cero)."
     }
+    val fertileNow = mark == CycleMath.Mark.FERTILE || mark == CycleMath.Mark.OVULATION
     Panel(Modifier.fillMaxWidth(), padding = 18.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(56.dp).clip(CircleShape).background(
-                    when {
-                        f.inPeriod -> PeriodRed
-                        mark == CycleMath.Mark.FERTILE || mark == CycleMath.Mark.OVULATION -> FertileTeal
-                        else -> Ink.VioletDeep
+            CycleRing(f, today, Modifier.size(128.dp)) {
+                Tokkip(
+                    Modifier.size(78.dp, 66.dp), color = color, jump = jump, interactive = true,
+                    mood = if (f.inPeriod) Mood.SLEEPY else Mood.IDLE,
+                    face = when {
+                        f.inPeriod -> null
+                        fertileNow -> TokkipEngine.Eye.HEART
+                        f.late > 0 -> TokkipEngine.Eye.WIDE
+                        else -> TokkipEngine.Eye.HAPPY
                     },
-                ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(f.day?.toString() ?: "–", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = if (f.inPeriod || mark != CycleMath.Mark.NONE) Color.White else Ink.OnVioletDeep)
+                )
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                Spacer(Modifier.height(2.dp))
-                Text(line, fontSize = 14.sp, color = Ink.Dim)
+                if (f.day != null) {
+                    Text(
+                        "DÍA ${f.day}", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.5.sp,
+                        color = when {
+                            f.inPeriod -> PeriodRed
+                            fertileNow -> FertileTeal
+                            else -> Ink.VioletSoft
+                        },
+                    )
+                }
+                Text(title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 24.sp)
+                Spacer(Modifier.height(4.dp))
+                Text(line, fontSize = 13.sp, color = Ink.Dim, lineHeight = 17.sp)
             }
         }
         if (fertile != null) {
             Spacer(Modifier.height(12.dp))
-            Text(fertile, fontSize = 14.sp, color = FertileTeal, fontWeight = FontWeight.SemiBold)
+            Row(
+                Modifier.fillMaxWidth().clip(Squircle(16.dp)).background(FertileTeal.copy(alpha = 0.14f)).padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.Spa, null, tint = FertileTeal, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(fertile, fontSize = 13.sp, color = FertileTeal, fontWeight = FontWeight.SemiBold)
+            }
         }
+        AnimatedVisibility(
+            visible = flash != null,
+            enter = expandVertically() + fadeIn() + scaleIn(initialScale = 0.9f),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Bubble(flash.orEmpty(), Modifier.padding(top = 12.dp))
+        }
+    }
+}
+
+/**
+ * The cycle as a ring: period days in red, the fertile window in teal with
+ * ovulation as a dot, and where you are today as a white bead. Tokkip sits
+ * in the middle.
+ */
+@Composable
+private fun CycleRing(f: CycleMath.Forecast, today: Int, modifier: Modifier, content: @Composable () -> Unit) {
+    val track = Ink.Track
+    val sweep by animateFloatAsState(
+        if (f.day == null) 0f else ((f.day - 1).toFloat() / f.cycleLen).coerceIn(0f, 1f),
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 60f), label = "ring",
+    )
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val stroke = size.minDimension * 0.085f
+            val inset = stroke / 2 + 4f
+            val arc = Size(size.width - inset * 2, size.height - inset * 2)
+            val tl = Offset(inset, inset)
+            fun deg(day: Float) = -90f + 360f * day / f.cycleLen
+            drawArc(track, 0f, 360f, false, tl, arc, style = Stroke(stroke))
+            if (f.lastStart != null) {
+                drawArc(PeriodRed, deg(0f), 360f * f.periodLen / f.cycleLen, false, tl, arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                if (f.fertileFrom != null && f.ovulation != null) {
+                    val from = (f.fertileFrom - f.lastStart).toFloat()
+                    drawArc(FertileTeal.copy(alpha = 0.55f), deg(from), 360f * 7 / f.cycleLen, false, tl, arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                    val ov = Math.toRadians(deg((f.ovulation - f.lastStart).toFloat() + 0.5f).toDouble())
+                    val r = arc.width / 2
+                    drawCircle(FertileTeal, stroke * 0.62f, Offset(center.x + r * kotlin.math.cos(ov).toFloat(), center.y + r * kotlin.math.sin(ov).toFloat()))
+                }
+                // Today: a bead that travels around as the days go by.
+                val a = Math.toRadians((-90f + 360f * sweep).toDouble())
+                val r = arc.width / 2
+                val p = Offset(center.x + r * kotlin.math.cos(a).toFloat(), center.y + r * kotlin.math.sin(a).toFloat())
+                drawCircle(Color.White, stroke * 0.95f, p)
+                drawCircle(if (f.inPeriod) PeriodRed else Color(0xFF6B5BD6), stroke * 0.55f, p)
+            }
+        }
+        content()
+    }
+}
+
+/** Tokkip's speech bubble. */
+@Composable
+private fun Bubble(text: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier.fillMaxWidth().clip(Squircle(18.dp)).background(Ink.VioletSoft.copy(alpha = 0.18f)).padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.CheckCircle, null, tint = Ink.VioletSoft, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, fontSize = 14.sp, color = Ink.Text, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -316,76 +449,264 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
     }
 }
 
+private val Pink = Color(0xFFFF6FA3)
+private val Shield = Color(0xFF8B7CF6)
+private val Mucus = Color(0xFF5CC8E8)
+
+/**
+ * A day: Tokkip at the top reacts to everything you log (a jump, a sound, a
+ * line, and "Guardado"), and each section has its colour and icons.
+ * Everything saves as you tap; "Listo" closes.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DaySheet(day: Int, isPeriod: Boolean, note: CycleDay, future: Boolean) {
+private fun DaySheet(day: Int, isPeriod: Boolean, note: CycleDay, future: Boolean, color: Color, close: () -> Unit) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
-        Text(nice(day).replaceFirstChar { it.uppercase() }, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
-        Spacer(Modifier.height(14.dp))
-        if (future) {
-            Text("Los días que aún no llegan no se pueden marcar.", color = Ink.Dim)
-            return@Column
-        }
-        ToggleRow("Tuve periodo este día", "Márcalo aunque haya sido poquito", isPeriod) { CycleStore.toggle(context, day) }
-        Spacer(Modifier.height(12.dp))
-        Text("Flujo", fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(6.dp))
-        PillRow {
-            for ((i, label) in listOf("Nada", "Ligero", "Medio", "Abundante").withIndex()) {
-                Pill(label, note.flow == i) { CycleStore.note(context, day, note.copy(flow = i)) }
+    var jump by remember { mutableIntStateOf(0) }
+    var face by remember { mutableStateOf<TokkipEngine.Eye?>(TokkipEngine.Eye.HAPPY) }
+    var said by remember(day) { mutableStateOf(if (future) "Ese día aún no llega." else "¿Cómo te fue este día? Toca lo que quieras anotar.") }
+    var saved by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(saved) { if (saved > 0) { delay(1600); saved = 0 } }
+
+    fun react(text: String, eye: TokkipEngine.Eye = TokkipEngine.Eye.HAPPY, sound: String = "pop") {
+        jump++
+        face = eye
+        said = text
+        saved = System.currentTimeMillis()
+        Haptics.click(context)
+        Sounds.play(sound, 0.6f)
+    }
+
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
+        // Tokkip and the date, with his line and "Guardado".
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Tokkip(Modifier.size(84.dp, 70.dp), color = color, jump = jump, face = face, interactive = true)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(nice(day).replaceFirstChar { it.uppercase() }, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f, fill = false))
+                    Spacer(Modifier.width(8.dp))
+                    AnimatedVisibility(saved > 0, enter = scaleIn() + fadeIn(), exit = fadeOut()) {
+                        Row(
+                            Modifier.clip(CircleShape).background(FertileTeal.copy(alpha = 0.2f)).padding(horizontal = 10.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Rounded.Check, null, tint = FertileTeal, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Guardado", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = FertileTeal)
+                        }
+                    }
+                }
+                AnimatedContent(said, transitionSpec = { (fadeIn() + slideInVertically { it / 2 }) togetherWith fadeOut() }, label = "said") { t ->
+                    Text(t, fontSize = 14.sp, color = Ink.Dim, lineHeight = 18.sp)
+                }
             }
         }
-        Spacer(Modifier.height(14.dp))
-        Choice("Relaciones", listOf("No", "Con protección", "Sin protección"), note.sex) { CycleStore.note(context, day, note.copy(sex = it)) }
-        Choice("Prueba de ovulación", listOf("No me la hice", "Negativa", "Positiva"), note.ovulationTest) { CycleStore.note(context, day, note.copy(ovulationTest = it)) }
-        Choice("Prueba de embarazo", listOf("No me la hice", "Negativa", "Positiva"), note.pregnancyTest) { CycleStore.note(context, day, note.copy(pregnancyTest = it)) }
-        Choice("Moco cervical", listOf("Sin notar", "Seco", "Pegajoso", "Cremoso", "Clara de huevo"), note.mucus) { CycleStore.note(context, day, note.copy(mucus = it)) }
-        Label("Clara de huevo (elástico y transparente) suele aparecer en tus días más fértiles.", Ink.Dim2, 12.sp)
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
+        if (future) {
+            PrimaryButton("Listo", Modifier.fillMaxWidth(), Ink.VioletSoft, Ink.OnViolet, onClick = close)
+            return@Column
+        }
+
+        // Period: one big card that turns red.
+        val periodBg by animateColorAsState(if (isPeriod) PeriodRed else Ink.Card, label = "period")
+        Row(
+            Modifier.fillMaxWidth().clip(Squircle(22.dp)).background(periodBg)
+                .clickable {
+                    CycleStore.toggle(context, day)
+                    if (isPeriod) react("Listo, quité el periodo de este día.", TokkipEngine.Eye.OPEN)
+                    else react("Anotado tu periodo. Cuídate mucho, con calma 💗", TokkipEngine.Eye.HEART, "love")
+                }
+                .padding(horizontal = 18.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.WaterDrop, null, tint = if (isPeriod) Color.White else PeriodRed, modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(if (isPeriod) "Tuve periodo este día" else "¿Tuviste periodo?", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = if (isPeriod) Color.White else Ink.Text)
+                Text(if (isPeriod) "Toca para quitarlo" else "Toca para marcarlo, aunque haya sido poquito", fontSize = 12.sp, color = if (isPeriod) Color(0xD9FFFFFF) else Ink.Dim)
+            }
+            AnimatedVisibility(isPeriod, enter = scaleIn(spring(dampingRatio = 0.4f)), exit = scaleOut()) {
+                Icon(Icons.Rounded.CheckCircle, null, tint = Color.White, modifier = Modifier.size(26.dp))
+            }
+        }
+
+        if (isPeriod) {
+            Section("Flujo", Icons.Rounded.WaterDrop, PeriodRed)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Ligero" to 1, "Medio" to 2, "Abundante" to 3).forEach { (label, level) ->
+                    CycleChip(label, note.flow == level, PeriodRed, drops = level) {
+                        val v = if (note.flow == level) 0 else level
+                        CycleStore.note(context, day, note.copy(flow = v))
+                        react(if (v == 0) "Quité el flujo." else "Flujo ${label.lowercase()}, anotado.", TokkipEngine.Eye.HAPPY)
+                    }
+                }
+            }
+        }
+
+        Section("Intimidad", Icons.Rounded.Favorite, Pink)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            BigChoice("Con protección", Icons.Rounded.Shield, note.sex == 1, Shield, Modifier.weight(1f)) {
+                val v = if (note.sex == 1) 0 else 1
+                CycleStore.note(context, day, note.copy(sex = v))
+                if (v == 0) react("Quité la relación de este día.", TokkipEngine.Eye.OPEN) else react("Anotado, con protección. ¡Bien cuidado! 💜", TokkipEngine.Eye.WINK, "love")
+            }
+            BigChoice("Sin protección", Icons.Rounded.Favorite, note.sex == 2, Pink, Modifier.weight(1f)) {
+                val v = if (note.sex == 2) 0 else 2
+                CycleStore.note(context, day, note.copy(sex = v))
+                if (v == 0) react("Quité la relación de este día.", TokkipEngine.Eye.OPEN) else react("Anotado. Si fue en tus días fértiles, te digo qué sigue en «Lo que noto».", TokkipEngine.Eye.HEART, "love")
+            }
+        }
+
+        Section("Pruebas", Icons.Rounded.Science, FertileTeal)
+        TestRow("Ovulación", note.ovulationTest) { v ->
+            CycleStore.note(context, day, note.copy(ovulationTest = v))
+            when (v) {
+                2 -> react("¡Ovulación a la vista! Ya ajusté tus fechas.", TokkipEngine.Eye.STAR, "proud")
+                1 -> react("Prueba de ovulación negativa, anotada.")
+                else -> react("Quité la prueba.", TokkipEngine.Eye.OPEN)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        TestRow("Embarazo", note.pregnancyTest) { v ->
+            CycleStore.note(context, day, note.copy(pregnancyTest = v))
+            when (v) {
+                2 -> react("¡Positiva! Confírmala con tu médico. Aquí estoy contigo.", TokkipEngine.Eye.SPARKLE, "proud")
+                1 -> react("Prueba de embarazo negativa, anotada.")
+                else -> react("Quité la prueba.", TokkipEngine.Eye.OPEN)
+            }
+        }
+
+        Section("Moco cervical", Icons.Rounded.Opacity, Mucus)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Seco" to 1, "Pegajoso" to 2, "Cremoso" to 3, "Clara de huevo" to 4).forEach { (label, level) ->
+                CycleChip(label, note.mucus == level, Mucus) {
+                    val v = if (note.mucus == level) 0 else level
+                    CycleStore.note(context, day, note.copy(mucus = v))
+                    react(
+                        when (v) {
+                            4 -> "Clara de huevo: tus días más fértiles. ¡Anotado!"
+                            0 -> "Quité el moco de este día."
+                            else -> "${label}, anotado."
+                        },
+                        if (v == 4) TokkipEngine.Eye.STAR else TokkipEngine.Eye.HAPPY,
+                    )
+                }
+            }
+        }
+        Label("Clara de huevo: elástico y transparente, suele salir en tus días más fértiles.", Ink.Dim2, 12.sp)
+
+        Section("Temperatura basal", Icons.Rounded.Thermostat, Color(0xFFFFA45C))
         var temp by remember(day) { mutableStateOf(if (note.temp > 0) "%.2f".format(java.util.Locale.US, note.temp) else "") }
+        LaunchedEffect(temp) {
+            delay(900)
+            val t = temp.replace(',', '.').toDoubleOrNull()
+            when {
+                temp.isEmpty() && note.temp > 0 -> { CycleStore.note(context, day, note.copy(temp = 0.0)); react("Quité la temperatura.", TokkipEngine.Eye.OPEN) }
+                t != null && t in 35.0..38.5 && t != note.temp -> { CycleStore.note(context, day, note.copy(temp = t)); react("$temp °C anotados. Con varios días detecto tu ovulación.") }
+            }
+        }
         OutlinedTextField(
             value = temp,
-            onValueChange = { v ->
-                temp = v.filter { it.isDigit() || it == '.' || it == ',' }.take(5)
-                val t = temp.replace(',', '.').toDoubleOrNull()
-                if (temp.isEmpty()) CycleStore.note(context, day, note.copy(temp = 0.0))
-                else if (t != null && t in 35.0..38.5) CycleStore.note(context, day, note.copy(temp = t))
-            },
-            label = { Text("Temperatura basal (°C)") }, placeholder = { Text("36.45") }, singleLine = true,
-            supportingText = { Text("Al despertar, antes de levantarte. Con varios días, Tokkip detecta tu ovulación.") },
+            onValueChange = { v -> temp = v.filter { it.isDigit() || it == '.' || it == ',' }.take(5) },
+            placeholder = { Text("36.45 °C") }, singleLine = true,
+            supportingText = { Text("Al despertar, antes de levantarte.") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = Squircle(16.dp), modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(14.dp))
-        Text("Cómo te sentiste", fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(6.dp))
+
+        Section("Cómo te sentiste", Icons.Rounded.SentimentSatisfied, Ink.VioletSoft)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (s in CycleStore.SYMPTOMS) {
                 val on = s in note.symptoms
-                Pill(s, on) { CycleStore.note(context, day, note.copy(symptoms = if (on) note.symptoms - s else note.symptoms + s)) }
+                CycleChip(s, on, Ink.VioletSoft) {
+                    CycleStore.note(context, day, note.copy(symptoms = if (on) note.symptoms - s else note.symptoms + s))
+                    when {
+                        on -> react("Quité «${s.lowercase()}».", TokkipEngine.Eye.OPEN)
+                        s == "Más energía" || s == "Más deseo" -> react("¡Qué bien! Anotado.", TokkipEngine.Eye.STAR)
+                        else -> react("Anotado. Ojalá te sientas mejor pronto 💜", TokkipEngine.Eye.TEARY)
+                    }
+                }
             }
         }
-        Spacer(Modifier.height(14.dp))
+
+        Section("Nota", Icons.Rounded.EditNote, Ink.Dim)
         var text by remember(day) { mutableStateOf(note.note) }
+        LaunchedEffect(text) {
+            delay(1200)
+            if (text != note.note) { CycleStore.note(context, day, note.copy(note = text)); react("Nota guardada.") }
+        }
         OutlinedTextField(
-            value = text,
-            onValueChange = { v -> text = v.take(300); CycleStore.note(context, day, note.copy(note = text)) },
-            label = { Text("Nota (opcional)") }, minLines = 2,
+            value = text, onValueChange = { text = it.take(300) },
+            placeholder = { Text("Algo que quieras recordar de este día") }, minLines = 2,
             shape = Squircle(16.dp), modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(18.dp))
+        PrimaryButton("Listo", Modifier.fillMaxWidth(), Ink.VioletSoft, Ink.OnViolet) {
+            Haptics.success(context)
+            close()
+        }
     }
 }
 
-/** One choice among a few, as pills. */
+/** A section title with its icon and colour. */
 @Composable
-private fun Choice(title: String, options: List<String>, selected: Int, pick: (Int) -> Unit) {
-    Text(title, fontWeight = FontWeight.Bold)
-    Spacer(Modifier.height(6.dp))
-    PillRow {
-        options.forEachIndexed { i, label -> Pill(label, selected == i) { pick(i) } }
+private fun Section(title: String, icon: ImageVector, tint: Color) {
+    Spacer(Modifier.height(18.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(28.dp).clip(CircleShape).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
     }
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(10.dp))
+}
+
+/** A chip that fills with its colour and gives a little bounce when chosen. [drops] draws that many drops (flow). */
+@Composable
+private fun CycleChip(label: String, on: Boolean, tint: Color, drops: Int = 0, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (on) tint else Ink.Card, label = "chip")
+    val scale by animateFloatAsState(if (on) 1.06f else 1f, spring(dampingRatio = 0.35f, stiffness = 500f), label = "bounce")
+    Row(
+        Modifier.graphicsLayer { scaleX = scale; scaleY = scale }.clip(CircleShape).background(bg)
+            .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(drops) {
+            Icon(Icons.Rounded.WaterDrop, null, tint = if (on) Color.White else tint, modifier = Modifier.size(14.dp))
+        }
+        if (drops > 0) Spacer(Modifier.width(6.dp))
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = if (on) Color.White else Ink.Text)
+    }
+}
+
+/** A big tile with an icon: for the choices that matter most. */
+@Composable
+private fun BigChoice(label: String, icon: ImageVector, on: Boolean, tint: Color, modifier: Modifier, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (on) tint else Ink.Card, label = "big")
+    val scale by animateFloatAsState(if (on) 1.04f else 1f, spring(dampingRatio = 0.35f, stiffness = 500f), label = "bigBounce")
+    Column(
+        modifier.graphicsLayer { scaleX = scale; scaleY = scale }.clip(Squircle(22.dp)).background(bg)
+            .clickable(onClick = onClick).padding(vertical = 16.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, null, tint = if (on) Color.White else tint, modifier = Modifier.size(30.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (on) Color.White else Ink.Text, textAlign = TextAlign.Center)
+    }
+}
+
+/** A test: tap Negativa or Positiva (tap again to clear). */
+@Composable
+private fun TestRow(name: String, value: Int, set: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.width(92.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CycleChip("Negativa", value == 1, Color(0xFF8A94A6)) { set(if (value == 1) 0 else 1) }
+            CycleChip("Positiva", value == 2, FertileTeal) { set(if (value == 2) 0 else 2) }
+        }
+    }
 }
 
 /** Ajustes: turning "Ciclo" on or off, and wiping what's marked. */
