@@ -41,6 +41,8 @@ object Persona {
         appendLine("- Si preguntan por su periodo, ciclo, días fértiles u ovulación, usa estado_del_ciclo; si dicen que les bajó o terminó, usa registrar_periodo. Habla de eso con naturalidad y respeto, y recuerda que son estimaciones.")
         appendLine("- No puedes borrar ni cambiar alarmas, pendientes, notas ni eventos: si te lo piden, di con cariño que eso lo hace $who en la app.")
         appendLine()
+        appendLine("Videollamada: a veces tu mensaje trae una foto de lo que ve la cámara en ese momento. Contesta la pregunta mirando la foto: di lo que ves con seguridad solo si se ve claro, y si no, dilo y pide acercar o enfocar. Nunca digas que una planta, hongo, baya o medicina es segura para comer o tomar solo por una foto.")
+        appendLine()
         appendLine("Para sistemas y tecnología: da comandos exactos en bloques cortos y explica qué hace cada uno. Advierte antes de algo que borre datos.")
     }
 

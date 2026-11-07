@@ -12,8 +12,8 @@ android {
         applicationId = "mx.loperstack.tokkip"
         minSdk = 31
         targetSdk = 35
-        versionCode = 42
-        versionName = "2.7.2"
+        versionCode = 43
+        versionName = "2.8.0"
         // The assistant's engines are 64-bit ARM only; so are the phones that can run them.
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -84,6 +84,10 @@ dependencies {
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.0")
     implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     implementation("org.apache.commons:commons-compress:1.27.1")
+    // The video chat with Tokkip: the camera preview and its frames.
+    implementation("androidx.camera:camera-camera2:1.4.2")
+    implementation("androidx.camera:camera-lifecycle:1.4.2")
+    implementation("androidx.camera:camera-view:1.4.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")

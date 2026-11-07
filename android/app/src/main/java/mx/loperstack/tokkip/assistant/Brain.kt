@@ -2,6 +2,7 @@ package mx.loperstack.tokkip.assistant
 
 import android.content.Context
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
@@ -83,9 +84,15 @@ object Brain {
             for (backend in backends) {
                 val gpu = backend is Backend.GPU
                 if (gpu) prefs.edit().putBoolean("gpu_fallo", true).commit()
+                // With eyes first (the video chat); if the vision part won't load here, without them.
+                var withEyes = true
                 val e = runCatching {
+                    Engine(EngineConfig(modelPath = model.path, backend = backend, visionBackend = if (gpu) Backend.GPU() else Backend.CPU(), maxNumTokens = 6144, cacheDir = cache)).also { it.initialize() }
+                }.recoverCatching {
+                    withEyes = false
                     Engine(EngineConfig(modelPath = model.path, backend = backend, maxNumTokens = 4096, cacheDir = cache)).also { it.initialize() }
                 }.onFailure { lastError = it }.getOrNull()
+                sees = e != null && withEyes
                 if (gpu) prefs.edit().putBoolean("gpu_fallo", e == null).commit()
                 if (e == null) continue
                 engine = e
@@ -136,10 +143,16 @@ object Brain {
         }
     }
 
-    /** Tokkip's answer as it comes, piece by piece. */
-    fun ask(text: String): Flow<String> {
+    /** Tokkip can see photos (the model's vision part loaded): the video chat works. */
+    @Volatile var sees = false
+        private set
+
+    /** Tokkip's answer as it comes, piece by piece; with [image] (a JPEG), about what's in it. */
+    fun ask(text: String, image: ByteArray? = null): Flow<String> {
         val c = conversation ?: error("El modelo no está cargado")
-        return c.sendMessageAsync(text).map { it.toString() }.flowOn(Dispatchers.IO)
+        val flow = if (image != null && sees) c.sendMessageAsync(Contents.of(Content.ImageBytes(image), Content.Text(text)))
+        else c.sendMessageAsync(text)
+        return flow.map { it.toString() }.flowOn(Dispatchers.IO)
     }
 
     fun stop() {

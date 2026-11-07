@@ -23,6 +23,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Hold to talk with Tokkip (the phone's own speech recognition). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- The video chat: Tokkip looks through the camera when you ask her something. Photos stay in memory. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- "Llama a mamá": Tokkip finds the contact and places the call (after a few seconds to cancel). -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />

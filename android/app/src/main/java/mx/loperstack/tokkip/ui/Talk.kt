@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
@@ -157,17 +158,23 @@ fun TalkScreen(color: Color) {
 
     // Talking: tap the mic for one question, or the phone for a whole conversation.
     var call by remember { mutableStateOf(false) }
+    // The video chat: a call where Tokkip also looks through the camera.
+    var video by remember { mutableStateOf(false) }
+    val eyes = remember { Eyes() }
+    LaunchedEffect(call) { if (!call) video = false }
     var listening by remember { mutableStateOf(false) }
     var heard by remember { mutableStateOf("") }
     var misses by remember { mutableIntStateOf(0) }
     val view = LocalView.current
     lateinit var listen: Listen
 
-    fun send(text: String) {
+    fun send(text: String, look: Boolean = video) {
         val t = text.trim()
         if (t.isEmpty() || brain !is Brain.State.Ready || answering != null) return
         Voice.stop()
-        lines += Line(true, t)
+        // In the video chat, what the camera sees right now goes with the question.
+        val image = if (look && Brain.sees) runCatching { eyes.grab() }.getOrNull() else null
+        lines += Line(true, if (image != null) "📷 $t" else t)
         if (Persona.isCrisis(t)) crisis = true
         answering = ""
         acts.clear()
@@ -175,7 +182,7 @@ fun TalkScreen(color: Color) {
         thinking = scope.launch {
             val out = StringBuilder()
             runCatching {
-                Brain.ask(t).collect { piece ->
+                Brain.ask(t, image).collect { piece ->
                     out.append(piece)
                     val shown = Persona.clean(out.toString())
                     answering = shown
@@ -323,7 +330,25 @@ fun TalkScreen(color: Color) {
                 if (crisis) CrisisCard { crisis = false }
                 pendingCall?.let { p -> CallingCard(p, cancel = { Caller.cancel() }, now = { Caller.now(context) }) }
                 Brain.toolsProblem?.takeIf { brain is Brain.State.Ready }?.let { Hint("No pude cargar mis acciones (alarmas, llamadas…): $it") }
-                if (call) {
+                if (call && video) {
+                    VideoPanel(
+                        eyes = eyes,
+                        state = when {
+                            listening -> if (heard.isBlank()) "Te escucho… pregúntame lo que veas" else heard
+                            answering == "" -> "Mirando…"
+                            speaking || answering != null -> "Hablando… (toca para interrumpir)"
+                            else -> "…"
+                        },
+                        last = answering?.takeIf { it.isNotEmpty() } ?: lines.lastOrNull { !it.fromYou }?.text,
+                        color = color,
+                        speaking = speaking,
+                        sees = Brain.sees,
+                        modifier = Modifier.weight(1f),
+                        look = { listen.stop(); listening = false; send("¿Qué ves? Descríbemelo en corto.", look = true) },
+                        interrupt = { Brain.stop(); Voice.stop(); thinking?.cancel() },
+                        hangUp = { call = false; video = false; listen.stop(); listening = false; Brain.stop(); Voice.stop() },
+                    )
+                } else if (call) {
                     CallPanel(
                         state = when {
                             listening -> if (heard.isBlank()) "Te escucho…" else heard
@@ -343,10 +368,11 @@ fun TalkScreen(color: Color) {
                         busy = answering != null,
                         listening = listening,
                         heard = heard,
-                        onSend = ::send,
+                        onSend = { send(it) },
                         onStop = { Brain.stop(); Voice.stop(); thinking?.cancel() },
                         onMic = { if (listening) listen.finish() else hear() },
                         onCall = { misses = 0; call = true },
+                        onVideo = { misses = 0; video = true; call = true },
                     )
                 }
             }
@@ -417,7 +443,7 @@ private fun Hint(text: String) {
 @Composable
 private fun Composer(
     enabled: Boolean, busy: Boolean, listening: Boolean, heard: String,
-    onSend: (String) -> Unit, onStop: () -> Unit, onMic: () -> Unit, onCall: () -> Unit,
+    onSend: (String) -> Unit, onStop: () -> Unit, onMic: () -> Unit, onCall: () -> Unit, onVideo: () -> Unit,
 ) {
     val context = LocalContext.current
     var text by remember { mutableStateOf("") }
@@ -430,6 +456,15 @@ private fun Composer(
     }
     fun withMic(action: () -> Unit) {
         if (micAllowed) action() else { then = action; askMic.launch(Manifest.permission.RECORD_AUDIO) }
+    }
+    // The video chat needs the camera and the mic.
+    val askBoth = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { got ->
+        micAllowed = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (got.values.all { it }) onVideo()
+    }
+    fun withCamera() {
+        val both = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        if (both.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED }) onVideo() else askBoth.launch(both)
     }
 
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -452,6 +487,10 @@ private fun Composer(
                 Spacer(Modifier.size(8.dp))
                 CircleButton(Icons.Rounded.Call, "Conversar con Tokkip", size = 52.dp, container = Ink.VioletSoft, tint = Ink.OnViolet) {
                     if (enabled) withMic(onCall)
+                }
+                Spacer(Modifier.size(8.dp))
+                CircleButton(Icons.Rounded.Videocam, "Videollamada con Tokkip", size = 52.dp, container = Ink.Violet, tint = Ink.OnViolet) {
+                    if (enabled) withCamera()
                 }
             }
         }
