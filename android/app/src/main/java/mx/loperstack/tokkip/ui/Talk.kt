@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.CallEnd
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.FolderOpen
@@ -600,6 +601,23 @@ private fun AssistantSettings(onForget: () -> Unit, onDeleteModel: () -> Unit) {
         if (!actionsOk) {
             Spacer(Modifier.height(8.dp))
             ExpressiveButton("Permitir acciones", Modifier.fillMaxWidth(), icon = Icons.Rounded.Call) { askActions.launch(actionPerms) }
+        }
+        // Playing music for real (not only the search) goes through the music app's player, which needs "Lo que suena".
+        val musicOk = remember { mutableStateOf(mx.loperstack.tokkip.data.NowPlaying.granted(context)) }
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            while (true) { kotlinx.coroutines.delay(1500); musicOk.value = mx.loperstack.tokkip.data.NowPlaying.granted(context) }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            if (musicOk.value) "Tokkip pone tu música directo en Spotify o YouTube Music."
+            else "Para que Tokkip ponga la música directo (y no solo la busque), permite «Lo que suena»: Android lo llama acceso a notificaciones, y Tokkip solo lo usa para ver y controlar lo que suena.",
+            fontSize = 14.sp, color = Ink.Dim,
+        )
+        if (!musicOk.value) {
+            Spacer(Modifier.height(8.dp))
+            ExpressiveButton("Permitir «Lo que suena»", Modifier.fillMaxWidth(), icon = Icons.Rounded.MusicNote) {
+                mx.loperstack.tokkip.data.NowPlaying.openSettings(context)
+            }
         }
         Spacer(Modifier.height(16.dp))
         SectionTitle("Voz")

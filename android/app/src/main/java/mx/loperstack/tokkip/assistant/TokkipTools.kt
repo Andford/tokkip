@@ -13,6 +13,7 @@ import mx.loperstack.tokkip.data.Agenda
 import mx.loperstack.tokkip.data.CalendarWrite
 import mx.loperstack.tokkip.data.CycleMath
 import mx.loperstack.tokkip.data.CycleStore
+import mx.loperstack.tokkip.data.NowPlaying
 import mx.loperstack.tokkip.data.Notebook
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.data.TaskSync
@@ -187,12 +188,19 @@ class TokkipTools(
         ) { a ->
             val what = a.text("que")
             if (what.isEmpty()) return@Op fail("Falta qué poner")
-            if (!Apps.inFront()) return@Op fail(notInFront)
-            val app = Apps.play(context, what, Apps.appOf(a.text("app")))
-                ?: return@Op fail("No pude abrir Spotify ni YouTube")
-            onDone("🎵 $what en $app")
+            val played = Apps.play(context, what, Apps.appOf(a.text("app")))
+                ?: return@Op fail(if (Apps.inFront()) "No pude abrir Spotify ni YouTube" else notInFront)
+            onDone("🎵 $what en ${played.app}")
             onLeave()
-            mapOf("ok" to true, "app" to app, "nota" to if (app == "YouTube") "Abrí los resultados en YouTube para que elijas" else "Ya está sonando")
+            mapOf(
+                "ok" to true, "app" to played.app,
+                "nota" to when {
+                    played.playing -> "Ya está sonando"
+                    played.app == "YouTube" -> "Abrí los resultados en YouTube para que elijas"
+                    NowPlaying.granted(context) -> "Abrí la búsqueda en ${played.app}; toca la canción para ponerla"
+                    else -> "Abrí la búsqueda en ${played.app}. Para que lo ponga directo, permite «Lo que suena» en Ajustes del asistente."
+                },
+            )
         },
         Op(
             "buscar_en_web",

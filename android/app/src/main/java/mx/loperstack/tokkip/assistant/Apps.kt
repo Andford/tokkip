@@ -5,7 +5,12 @@ import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.content.ComponentName
+import android.media.session.MediaSessionManager
+import android.os.Bundle
 import android.provider.MediaStore
+import mx.loperstack.tokkip.data.MediaListener
+import mx.loperstack.tokkip.data.NowPlaying
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -44,14 +49,55 @@ object Apps {
         }
     }
 
+    /** How a play went: in which app, and whether it's really playing or only shows the search. */
+    data class Played(val app: String, val playing: Boolean)
+
     /**
-     * Plays [what]: Spotify and YouTube Music start playing it, YouTube shows
-     * its results to pick from. Returns the app's name, or null if none could.
+     * Asks a music app's own player to play [what], the way Assistant and
+     * Android Auto do: through its media session, which Tokkip can see once
+     * "Lo que suena" is allowed (data/NowPlaying.kt). If the app isn't open,
+     * it's opened and Tokkip waits a few seconds for its player. Runs off
+     * the main thread (it waits).
      */
-    fun play(context: Context, what: String, app: String?): String? {
+    private fun playInSession(context: Context, pkg: String, what: String, launch: Boolean): Boolean {
+        if (!NowPlaying.granted(context)) return false
+        val msm = context.getSystemService(MediaSessionManager::class.java) ?: return false
+        val comp = ComponentName(context, MediaListener::class.java)
+        fun session() = runCatching { msm.getActiveSessions(comp) }.getOrNull()?.firstOrNull { it.packageName == pkg }
+        var c = session()
+        if (c == null) {
+            if (!launch) return false
+            val open = context.packageManager.getLaunchIntentForPackage(pkg) ?: return false
+            if (!start(context, open)) return false
+            for (i in 0 until 16) {
+                Thread.sleep(500)
+                c = session()
+                if (c != null) break
+            }
+        }
+        val controller = c ?: return false
+        return runCatching {
+            controller.transportControls.playFromSearch(what, Bundle())
+            true
+        }.getOrDefault(false)
+    }
+
+    /**
+     * Plays [what]: Spotify and YouTube Music through their player (it really
+     * plays), YouTube shows its results to pick from. Without "Lo que suena"
+     * allowed, music apps open on the search instead. Null if none could.
+     */
+    fun play(context: Context, what: String, app: String?): Played? {
         val order = app?.let { listOf(it) } ?: listOf(SPOTIFY, YT_MUSIC, YOUTUBE)
+        val front = inFront()
+        // First, an app already open in the background: no screen needed (works from the watch too).
+        for (pkg in order) {
+            if (pkg != YOUTUBE && installed(context, pkg) && playInSession(context, pkg, what, launch = false)) return Played(name(pkg), true)
+        }
+        if (!front) return null
         for (pkg in order) {
             if (!installed(context, pkg)) continue
+            if (pkg != YOUTUBE && playInSession(context, pkg, what, launch = true)) return Played(name(pkg), true)
             val ok = when (pkg) {
                 YOUTUBE -> start(context, Intent(Intent.ACTION_SEARCH).setPackage(pkg).putExtra("query", what))
                 else -> start(
@@ -61,10 +107,10 @@ object Apps {
                         .putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/*"),
                 ) || (pkg == SPOTIFY && start(context, Intent(Intent.ACTION_VIEW, Uri.parse("spotify:search:" + Uri.encode(what)))))
             }
-            if (ok) return name(pkg)
+            if (ok) return Played(name(pkg), false)
         }
         // None of them installed: YouTube on the web.
-        return if (start(context, Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(what))))) "YouTube" else null
+        return if (start(context, Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + Uri.encode(what))))) Played("YouTube", false) else null
     }
 
     fun name(pkg: String) = when (pkg) {
