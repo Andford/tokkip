@@ -439,6 +439,12 @@ object Store {
         changed()
     }
 
+    /** The notification icon: the pet you chose (loads your settings if a receiver woke the app). */
+    fun statIcon(context: Context): Int {
+        init(context)
+        return mx.loperstack.tokkip.character.StatIcon.current()
+    }
+
     /** Tokkip's look everywhere: flat or not, today's outfit, last night's rest. */
     fun applyLook() {
         val d = _state.value

@@ -84,7 +84,7 @@ object PomodoroScheduler {
         }
         val title = phaseTitle(p.phase)
         val builder = Notification.Builder(context, CHANNEL_RUNNING)
-            .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+            .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(context))
             .setColor(Color.parseColor("#A78BFA"))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -126,7 +126,7 @@ object PomodoroScheduler {
             PomodoroEvent.BREAK_DONE -> "De vuelta al enfoque" to "25 minutos más, tú puedes"
         }
         val n = Notification.Builder(context, CHANNEL_DONE)
-            .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+            .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(context))
             .setColor(Color.parseColor("#A78BFA"))
             .setContentTitle(title)
             .setContentText(text)

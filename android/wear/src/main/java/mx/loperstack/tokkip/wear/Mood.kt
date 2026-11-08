@@ -159,7 +159,7 @@ class MoodComplicationService : SuspendingComplicationDataSourceService() {
             ComplicationType.SHORT_TEXT ->
                 ShortTextComplicationData.Builder(PlainComplicationText.Builder(m?.label ?: "¿Ánimo?").build(), desc)
                     .setMonochromaticImage(
-                        MonochromaticImage.Builder(Icon.createWithResource(this, mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)).build(),
+                        MonochromaticImage.Builder(Icon.createWithResource(this, mx.loperstack.tokkip.character.StatIcon.current())).build(),
                     )
                     .apply { if (tap) setTapAction(openMood(this@MoodComplicationService)) }
                     .build()

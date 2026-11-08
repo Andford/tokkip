@@ -24,7 +24,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val RES_VERSION = "1"
+/** The resources change with the pet you chose (its icon). */
+private val RES_VERSION get() = "2-" + mx.loperstack.tokkip.character.TokkipStyle.species.name
 
 class TokkipTileService : TileService() {
 
@@ -109,7 +110,7 @@ class TokkipTileService : TileService() {
                     ResourceBuilders.ImageResource.Builder()
                         .setAndroidResourceByResId(
                             ResourceBuilders.AndroidImageResourceByResId.Builder()
-                                .setResourceId(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+                                .setResourceId(mx.loperstack.tokkip.character.StatIcon.current())
                                 .build(),
                         )
                         .build(),

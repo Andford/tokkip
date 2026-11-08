@@ -75,11 +75,11 @@ object CycleReminder {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val public = Notification.Builder(context, CHANNEL)
-                .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+                .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(context))
                 .setContentTitle("Tokkip: recordatorio de Ciclo")
                 .build()
             val n = Notification.Builder(context, CHANNEL)
-                .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+                .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(context))
                 .setContentTitle("Ciclo")
                 .setContentText(text)
                 .setStyle(Notification.BigTextStyle().bigText(text))

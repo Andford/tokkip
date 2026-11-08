@@ -20,7 +20,7 @@ import mx.loperstack.tokkip.wellness.pendingCount
 private fun plain(s: String) = PlainComplicationText.Builder(s).build()
 
 private fun tokkipIcon(context: Context) =
-    MonochromaticImage.Builder(Icon.createWithResource(context, mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)).build()
+    MonochromaticImage.Builder(Icon.createWithResource(context, mx.loperstack.tokkip.character.StatIcon.current())).build()
 
 private fun openApp(context: Context): PendingIntent =
     PendingIntent.getActivity(

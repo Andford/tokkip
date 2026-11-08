@@ -425,7 +425,7 @@ object TokkipNotifier {
         val color = Store.state.value.tokkipColor
         val icon = tokkipBitmap(256, 256, Color(color), Mood.IDLE, face, wear = true, headroom = 0.3f)
         val b = NotificationCompat.Builder(context, channel)
-            .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+            .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(context))
             .setColor(theme.accent)
             .setLargeIcon(icon)
             .setContentTitle(title)

@@ -77,7 +77,7 @@ object BedReminder {
         )
         val name = Store.state.value.name
         val n = Notification.Builder(context, CHANNEL)
-            .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+            .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(context))
             .setContentTitle("${if (name.isBlank()) "" else "$name, "}en 30 min es hora de dormir (${hhmm(Store.state.value.sleepGoal.bedMin)})")
             .setContentText("${tip.icon} ${tip.title}")
             .setStyle(Notification.BigTextStyle().bigText("${tip.icon} ${tip.title}\n${tip.text}"))

@@ -244,7 +244,7 @@ class WakeAlarmService : Service() {
             this, code, Intent(this, WakeAlarmService::class.java).setAction(act), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val b = Notification.Builder(this, WakeAlarm.CHANNEL)
-            .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+            .setSmallIcon(mx.loperstack.tokkip.data.Store.statIcon(this))
             .setContentTitle(if (r.label.isBlank()) "Despertador · ${hhmm(r.minute)}" else "${r.label} · ${hhmm(r.minute)}")
             .setContentText(if (r.breathe) "Respira con Tokkip para apagarla" else "Tokkip te está despertando")
             .setCategory(Notification.CATEGORY_ALARM)

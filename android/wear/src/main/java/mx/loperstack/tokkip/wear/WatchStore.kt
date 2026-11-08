@@ -214,7 +214,7 @@ object WatchStore {
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL_BREATHE, "Respirar con el teléfono", NotificationManager.IMPORTANCE_HIGH))
         val n = NotificationCompat.Builder(context, CHANNEL_BREATHE)
-            .setSmallIcon(mx.loperstack.tokkip.shared.R.drawable.ic_stat_tokkip)
+            .setSmallIcon(mx.loperstack.tokkip.character.StatIcon.current())
             .setContentTitle("Respira con Tokkip")
             .setContentText("${b.minutes} min · toca para medir tu pulso")
             .setCategory(NotificationCompat.CATEGORY_ALARM)
