@@ -98,7 +98,7 @@ octubre, gorro navideño en diciembre.
 - **Enfoque**: Pomodoro personalizable, lo que suena (Spotify, YouTube Music…) y
   modo AOD.
 - **Rachas**: hábitos con íconos de Material 3 Expressive y recordatorios.
-- **Tareas y agenda**: Google Tasks y Google Calendar.
+- **Tareas y agenda**: tus pendientes (también en el reloj y los widgets) y Google Calendar.
 - **Mimos**: juega con Tokkip, con física, vibración y sonidos.
 - **Notificaciones bonitas**: buenos días, eventos y pendientes, y diario por la
   noche, cada una con su propio tono de Tokkip (también rachas, pagos, pantalla

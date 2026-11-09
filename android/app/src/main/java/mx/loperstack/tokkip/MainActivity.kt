@@ -7,8 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateOf
 import mx.loperstack.tokkip.data.Store
-import mx.loperstack.tokkip.data.GoogleTasks
-import mx.loperstack.tokkip.data.TaskSync
 import mx.loperstack.tokkip.data.WearSync
 import mx.loperstack.tokkip.character.Sounds
 import mx.loperstack.tokkip.ui.TokkipApp
@@ -39,7 +37,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         Store.init(this)
         mx.loperstack.tokkip.data.AppIcon.apply(this, Store.state.value.species)
-        GoogleTasks.init(this)
         Sounds.init(this)
         Sounds.enabled = Store.state.value.soundOn
         // Every change already reaches the watch and the widgets (Store).
@@ -86,7 +83,6 @@ class MainActivity : ComponentActivity() {
         // A restored backup or a change of clock: the next alarm, again.
         mx.loperstack.tokkip.wellness.WakeAlarm.sync(this)
         // Tasks changed on the PC or in Google: bring them in.
-        if (GoogleTasks.connected) TaskSync.refresh(this)
     }
 
     /** A phase that ended while the alarm could not run: move on, quietly. */

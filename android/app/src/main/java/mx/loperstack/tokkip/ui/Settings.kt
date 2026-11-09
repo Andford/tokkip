@@ -1,4 +1,4 @@
-// Ajustes: you (your name), Tokkip's colour, the theme, sounds, Google Tasks,
+// Ajustes: you (your name), Tokkip's colour, the theme, sounds,
 // your devices — the little ecosystem — and the welcome again. Also the
 // pieces the welcome reuses (theme cards, the devices list), and the aurora
 // that softly moves behind Tokkip.
@@ -64,7 +64,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import mx.loperstack.tokkip.data.AppData
-import mx.loperstack.tokkip.data.GoogleTasks
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.character.Sounds
 import kotlin.math.cos
@@ -168,7 +167,7 @@ fun DeviceRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Stri
 
 /** Tokkip on all your devices: the watch, this phone, the tablet and the laptop. */
 @Composable
-fun Devices(google: GoogleTasks.Status) {
+fun Devices() {
     val context = LocalContext.current
     var watch by remember { mutableStateOf<String?>(null) }
     var checked by remember { mutableStateOf(false) }
@@ -185,7 +184,7 @@ fun Devices(google: GoogleTasks.Status) {
     )
     DeviceRow(
         if (tablet) Icons.Rounded.PhoneAndroid else Icons.Rounded.TabletAndroid, if (tablet) "Tu teléfono" else "Tu tablet",
-        if (google.connected) "Las mismas tareas por Google Tasks" else "Conecta Google Tasks para compartir tareas", google.connected, MShapes.Sunny,
+        "Abre Tokkip ahí también: es el mismo amigo", false, MShapes.Sunny,
     )
     // Headphones: their battery for the watch's Baterías (data/Headphones.kt).
     var btOk by remember { mutableStateOf(mx.loperstack.tokkip.data.Headphones.granted(context)) }
@@ -207,8 +206,7 @@ fun Devices(google: GoogleTasks.Status) {
     }
     DeviceRow(
         Icons.Rounded.Laptop, "Tu laptop (Tokkip PC)",
-        if (google.connected) "Mismas tareas que la isla · el puente directo llega pronto" else "Con Google Tasks, la isla y Tokkip comparten tareas",
-        google.connected, MShapes.Flower,
+        "Tokkip también vive en la isla de tu PC", false, MShapes.Flower,
     )
 }
 
@@ -216,8 +214,7 @@ fun Devices(google: GoogleTasks.Status) {
 
 @Composable
 fun SettingsSheet(
-    data: AppData, color: Color, google: GoogleTasks.Status,
-    connectGoogle: () -> Unit, syncGoogle: () -> Unit, disconnectGoogle: () -> Unit, replayWelcome: () -> Unit,
+    data: AppData, color: Color, replayWelcome: () -> Unit,
 ) {
     var name by remember { mutableStateOf(data.name) }
     val context = LocalContext.current
@@ -283,10 +280,11 @@ fun SettingsSheet(
             BackupRow()
             NotebookMoveRow()
             SectionTitle("Tus dispositivos")
-            Devices(google)
+            Devices()
+            Spacer(Modifier.height(8.dp))
+            Label("Los eventos nuevos se guardan en tu Google Calendar de este teléfono, sin conectar nada.", Ink.Dim2, 12.sp)
         }
-        Spacer(Modifier.height(10.dp))
-        GoogleTasksRow(google, connectGoogle, syncGoogle, disconnectGoogle)
+        Spacer(Modifier.height(24.dp))
         Text(
             "Ver la bienvenida otra vez", color = Ink.VioletSoft, fontWeight = FontWeight.Bold, fontSize = 14.sp,
             modifier = Modifier.padding(horizontal = 28.dp).clickable(onClick = replayWelcome),
@@ -308,45 +306,6 @@ fun ToggleRow(title: String, why: String, on: Boolean, set: (Boolean) -> Unit) {
         Switch(checked = on, onCheckedChange = set, colors = SwitchDefaults.colors(checkedTrackColor = Ink.Violet))
     }
 }
-
-/** This build's signing fingerprint — what Google Cloud's Android client must have. */
-fun signingSha1(context: Context): String = runCatching {
-    val info = context.packageManager.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES)
-    val cert = info.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray() ?: return "?"
-    java.security.MessageDigest.getInstance("SHA-1").digest(cert).joinToString(":") { "%02X".format(it) }
-}.getOrDefault("?")
-
-/** The two values for the Android OAuth client, with copy buttons. */
-@Composable
-fun GoogleSetupHelp() {
-    val context = LocalContext.current
-    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-    val sha1 = remember { signingSha1(context) }
-    @Composable
-    fun Value(label: String, value: String) {
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(Squircle(14.dp)).background(Ink.Card)
-                .clickable {
-                    clipboard.setText(androidx.compose.ui.text.AnnotatedString(value))
-                    android.widget.Toast.makeText(context, "$label copiado", android.widget.Toast.LENGTH_SHORT).show()
-                }
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Label(label, Ink.Dim2, 11.sp, FontWeight.Bold)
-                Text(value, fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, color = Ink.Text)
-            }
-            Text("Copiar", color = Ink.VioletSoft, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-        Label("En Google Cloud → Credenciales → ID de cliente OAuth → Android:", Ink.Dim, 12.sp)
-        Value("Nombre del paquete", context.packageName)
-        Value("Huella SHA-1", sha1)
-    }
-}
-
 
 /** Auto (the season's, like Tokkip PC) or any one of the wardrobe. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -480,7 +439,7 @@ fun WipeRow() {
             title = { Text("¿Borrar todo?") },
             text = {
                 Column {
-                    Text("Esto no se puede deshacer. Tus tareas de Google Tasks siguen en Google; lo demás solo existe aquí.")
+                    Text("Esto no se puede deshacer. Todo esto solo existe aquí.")
                     Spacer(Modifier.height(12.dp))
                     androidx.compose.material3.OutlinedButton(onClick = {
                         val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())

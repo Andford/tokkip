@@ -76,7 +76,6 @@ dependencies {
     implementation("androidx.wear:wear-remote-interactions:1.1.0")
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation("androidx.car.app:app:1.7.0")
-    implementation("com.google.android.gms:play-services-auth:21.2.0")
     implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
     implementation("com.google.guava:guava:33.3.1-android")
     // Tokkip's assistant: Gemma on the phone (LiteRT-LM), his voice (Piper through sherpa-onnx,

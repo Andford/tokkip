@@ -14,7 +14,7 @@ import kotlin.math.min
 
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
-/** `remote`: a Google Tasks task (its id is Google's), as on the PC. */
+/** `remote`: came from Google Tasks back when the phone synced with it (kept so old data still reads). */
 data class Task(val id: String, val text: String, val done: Boolean, val createdAt: Long, val remote: Boolean = false)
 
 const val TASK_MAX_LEN = 200

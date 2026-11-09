@@ -61,7 +61,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import mx.loperstack.tokkip.data.AppData
-import mx.loperstack.tokkip.data.GoogleTasks
 import mx.loperstack.tokkip.data.Store
 import mx.loperstack.tokkip.character.Tokkip
 import mx.loperstack.tokkip.character.TokkipEngine
@@ -70,7 +69,7 @@ import mx.loperstack.tokkip.character.Sounds
 private const val STEPS = 7
 
 @Composable
-fun Welcome(data: AppData, google: GoogleTasks.Status, actions: Actions, connectGoogle: () -> Unit, done: () -> Unit) {
+fun Welcome(data: AppData, actions: Actions, done: () -> Unit) {
     val context = LocalContext.current
     var step by rememberSaveable { mutableIntStateOf(0) }
     var name by rememberSaveable { mutableStateOf(data.name) }
@@ -149,15 +148,7 @@ fun Welcome(data: AppData, google: GoogleTasks.Status, actions: Actions, connect
                             Title("Tu mini ecosistema")
                             Body("Tokkip te acompaña en todos tus dispositivos.")
                             Spacer(Modifier.height(14.dp))
-                            Devices(google)
-                            Spacer(Modifier.height(14.dp))
-                            if (google.connected) {
-                                IconLabel(Icons.Rounded.CheckCircle, "Google Tasks conectado", Ink.GreenSoft, size = 14.sp)
-                            } else {
-                                PrimaryButton("Conectar Google Tasks", color = Ink.VioletSoft, textColor = Ink.OnViolet, onClick = connectGoogle)
-                                if (google.error.isNotEmpty()) Label(google.error, Ink.Red)
-                                Label("Opcional · necesita el paso de android/GOOGLE.md", Ink.Dim2, 12.sp)
-                            }
+                            Devices()
                         }
                         6 -> Permissions()
                         else -> {

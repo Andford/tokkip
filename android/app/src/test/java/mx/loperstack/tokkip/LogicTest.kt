@@ -12,15 +12,12 @@ import mx.loperstack.tokkip.wellness.Breathing
 import mx.loperstack.tokkip.data.DayLog
 import mx.loperstack.tokkip.data.dayKey
 import mx.loperstack.tokkip.data.dayNumber
-import mx.loperstack.tokkip.data.fromGoogle
-import mx.loperstack.tokkip.data.gTaskOf
 import mx.loperstack.tokkip.data.logsJson
 import mx.loperstack.tokkip.data.logsOf
 import mx.loperstack.tokkip.data.streak
 import mx.loperstack.tokkip.data.withMood
 import mx.loperstack.tokkip.data.withNote
 import mx.loperstack.tokkip.data.withoutNote
-import org.json.JSONObject
 import mx.loperstack.tokkip.data.addMood
 import mx.loperstack.tokkip.data.averageMood
 import mx.loperstack.tokkip.data.removeMood
@@ -198,17 +195,6 @@ class LogicTest {
         val noon13 = java.util.Calendar.getInstance().apply { set(2026, 9, 13, 12, 0) }.timeInMillis
         assertEquals("2026-10-13", dayKey(noon13))
         assertEquals(2, streak(logs, noon13))
-    }
-
-    @Test fun googleTasksBecomeRemoteTasks() {
-        val a = gTaskOf(JSONObject("""{"id":"abc","title":" Comprar pan ","status":"needsAction","position":"002"}"""))!!
-        val b = gTaskOf(JSONObject("""{"id":"def","title":"Llamar","status":"completed","position":"001"}"""))!!
-        assertEquals(null, gTaskOf(JSONObject("""{"id":"x","title":"Borrada","deleted":true}""")))
-        assertEquals(null, gTaskOf(JSONObject("""{"id":"y","title":"  "}""")))
-        val tasks = fromGoogle(listOf(a, b))
-        assertEquals(listOf("Llamar", "Comprar pan"), tasks.map { it.text })
-        assertEquals(true, tasks.all { it.remote })
-        assertEquals(true, tasks[0].done)
     }
 
     private fun at(day: Int, h: Int, m: Int = 0) = java.util.Calendar.getInstance().apply { set(2026, 9, day, h, m, 0); set(java.util.Calendar.MILLISECOND, 0) }.timeInMillis

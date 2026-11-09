@@ -128,7 +128,6 @@ import mx.loperstack.tokkip.character.Tokkip
 import mx.loperstack.tokkip.character.Mood
 import mx.loperstack.tokkip.character.Haptics
 import mx.loperstack.tokkip.character.rememberMusicPlaying
-import mx.loperstack.tokkip.data.GoogleTasks
 import android.app.Activity
 import mx.loperstack.tokkip.character.Sounds
 import mx.loperstack.tokkip.wellness.BreathSession
@@ -411,15 +410,6 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
         else askWrite.launch(arrayOf(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR))
     }
 
-    // Google Tasks: Google's consent screen comes back here.
-    val googleTasks by GoogleTasks.status.collectAsState()
-    val googleConsent = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
-        (context as? Activity)?.let { GoogleTasks.onResult(it, r.data) }
-    }
-    val connectGoogle: () -> Unit = {
-        (context as? Activity)?.let { a -> GoogleTasks.connect(a) { req -> googleConsent.launch(req) } }
-    }
-
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     val startPomodoro = {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -434,7 +424,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
 
     TokkipTheme(data.theme) {
         if (!data.onboarded) {
-            Welcome(data, googleTasks, actions, connectGoogle) {
+            Welcome(data, actions) {
                 Store.setOnboarded(true)
                 calendarOk = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
             }
@@ -532,8 +522,7 @@ fun TokkipApp(startTab: Tab = Tab.HOME, breatheNow: Pair<Int, Long> = 0 to 0L, c
         if (showColors) {
             ModalBottomSheet(onDismissRequest = { showColors = false }, containerColor = Ink.CardHigh) {
                 SettingsSheet(
-                    data, color, googleTasks, connectGoogle, syncGoogle = { TaskSync.refresh(context) },
-                    disconnectGoogle = { GoogleTasks.disconnect(context) },
+                    data, color,
                     replayWelcome = { showColors = false; Store.setOnboarded(false) },
                 )
             }
@@ -1126,46 +1115,6 @@ fun DeskScreen(
         ) { EventSheet(e, actions) { changed -> openEvent = null; if (changed) agendaChanged() } }
     }
 }
-
-// ── Google Tasks (in the settings sheet) ──────────────────────────────────────
-
-@Composable
-fun GoogleTasksRow(st: GoogleTasks.Status, connect: () -> Unit, sync: () -> Unit, disconnect: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 28.dp).padding(bottom = 36.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Google Tasks", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Label(
-                    when {
-                        st.busy -> "Sincronizando…"
-                        st.connected -> "Conectado · la misma lista que en tu PC"
-                        else -> "Tus tareas, también en Google y en la PC"
-                    },
-                    if (st.connected) Ink.GreenSoft else Ink.Dim2,
-                )
-            }
-            if (st.connected) {
-                OutlinedButton(onClick = sync) { Text("Sincronizar", color = Ink.Text) }
-            } else {
-                PrimaryButton("Conectar", color = Ink.VioletSoft, onClick = connect)
-            }
-        }
-        if (st.error.isNotEmpty()) {
-            Spacer(Modifier.height(6.dp))
-            Label(st.error, Ink.Red)
-        }
-        if (!st.connected) GoogleSetupHelp()
-        if (st.connected) {
-            Text(
-                "Desconectar", color = Ink.Dim2, fontSize = 13.sp,
-                modifier = Modifier.padding(top = 8.dp).clickable(onClick = disconnect),
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-        Label("Los eventos nuevos se guardan en tu Google Calendar de este teléfono, sin conectar nada.", Ink.Dim2, 12.sp)
-    }
-}
-
 
 /** A place's screens, as pill chips with icons (PixelPlayer's "Songs · Albums"). */
 @Composable

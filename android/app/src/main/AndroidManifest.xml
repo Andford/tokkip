@@ -19,7 +19,7 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <!-- Events made in Tokkip go into your Google calendar on this phone. -->
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
-    <!-- Google Tasks. -->
+    <!-- The weather, the voice download and, if you allow it, Tokkip's web searches. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Hold to talk with Tokkip (the phone's own speech recognition). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
