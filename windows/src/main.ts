@@ -13,6 +13,7 @@ import { registerShortcutHandlers } from "./island/shortcuts";
 import { applySpotify, registerSpotifyHandlers } from "./island/spotify";
 import { SPOTIFY_ID } from "./core/spotify";
 import { registerWellness } from "./island/wellness";
+import { registerPhoneTokkip } from "./island/phone-tokkip";
 import { onLanguageChange, resolveLanguage, setLanguage, systemLanguages } from "./i18n/i18n";
 
 /** Shows the language Settings asks for ("" = the system's, when Tokkip has it). */
@@ -100,6 +101,7 @@ async function main() {
   registerShortcutHandlers(island, () => setPaused(false));
   registerSpotifyHandlers(island);
   registerWellness(island);
+  registerPhoneTokkip(island);
   // Rust may have read Spotify before this page listened: ask once.
   if (State.settings.activeIntegrations.includes(SPOTIFY_ID)) {
     void Bridge.spotifyRefresh().then((s) => s && applySpotify(island, s));

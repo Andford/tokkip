@@ -218,6 +218,7 @@ object Store {
     private fun changed() {
         onChange?.invoke()
         WearSync.push(app)
+        PcTokkip.push(app)
         Widgets.refresh(app)
     }
 

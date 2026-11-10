@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
         catchUp()
         Store.applyLook()
         WearSync.push(this)
+        mx.loperstack.tokkip.data.PcTokkip.push(this)
         mx.loperstack.tokkip.wellness.TokkipNotifier.sync(this)
         // A restored backup or a change of clock: the next alarm, again.
         mx.loperstack.tokkip.wellness.WakeAlarm.sync(this)

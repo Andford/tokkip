@@ -22,6 +22,7 @@ mod secrets;
 mod settings;
 mod shortcuts;
 mod healthy_pc;
+mod phone_tokkip;
 mod sounds;
 mod spotify;
 mod tray;
@@ -453,6 +454,8 @@ pub fn run() {
             sounds::reveal_sounds_folder,
             sounds::reload_sounds,
             healthy_pc::healthy_pc_note,
+            phone_tokkip::phone_tokkip,
+            phone_tokkip::set_pc_tokkip,
             spotify::spotify_refresh,
             spotify::spotify_control,
             spotify::spotify_open,

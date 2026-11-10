@@ -11,6 +11,8 @@ import {
   nextEvent, orderedTasks, pendingCount, pomodoroLeft, pomodoroProgress, upcomingEvents, type CalEvent, type WellnessTab,
 } from "../core/wellness";
 import { WellnessControl, refreshGoogle } from "../island/wellness";
+import { PhoneTokkip } from "../island/phone-tokkip";
+import { feelingLine } from "../core/phone-tokkip";
 import { Bridge } from "../core/bridge";
 import { createMiniBot } from "../tokkip/minibots";
 import { language, t, tl } from "../i18n/i18n";
@@ -315,7 +317,21 @@ export function buildWellnessCard(): WellnessHost {
     pcText.textContent = note.message;
     pcLine.title = note.message;
   }
-  const el = h("div", { class: "wl-card" }, head, pcLine, tasksPane, focusPane, breathePane, agendaPane);
+  // Today's feeling from the phone (Tokkip shared through Tokkip Phone).
+  const phoneText = h("span", { class: "wl-pc-text" });
+  const phoneLine = h("div", { class: "wl-pc wl-phone" }, phoneText);
+  phoneLine.style.display = "none";
+  let phoneKey = "";
+  function syncPhone() {
+    const f = PhoneTokkip.feeling;
+    phoneLine.style.display = f ? "" : "none";
+    const key = f ? `${f.day}|${f.mood}|${f.rest}|${language()}` : "";
+    if (!f || key === phoneKey) return;
+    phoneKey = key;
+    phoneText.textContent = t(feelingLine(f));
+    phoneLine.title = t("From your phone");
+  }
+  const el = h("div", { class: "wl-card" }, head, pcLine, phoneLine, tasksPane, focusPane, breathePane, agendaPane);
   let shownTab: WellnessTab | null = null;
 
   function sync() {
@@ -329,6 +345,7 @@ export function buildWellnessCard(): WellnessHost {
     }
     syncBadge();
     syncPc();
+    syncPhone();
     if (tab === "tasks") syncTasks();
     else if (tab === "focus") syncFocus(now);
     else if (tab === "agenda") syncAgenda(now);

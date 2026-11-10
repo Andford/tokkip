@@ -69,6 +69,10 @@ export const Bridge = {
 
   /** Tokkip Healthy PC's note about this PC (its raw text), if it left one. */
   healthyPcNote: () => call<string | null>("healthy_pc_note"),
+  /** Your phone's Tokkip (its raw JSON), as Tokkip Phone left it. */
+  phoneTokkip: () => call<string | null>("phone_tokkip"),
+  /** This island's Tokkip, for Tokkip Phone to carry to the phone. */
+  setPcTokkip: (json: string) => call<void>("set_pc_tokkip", { json }),
 
   quit: () => call<void>("quit_app"),
 

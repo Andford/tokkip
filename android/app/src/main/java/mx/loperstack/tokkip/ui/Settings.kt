@@ -204,9 +204,19 @@ fun Devices() {
             btOk && buds.isNotEmpty(), MShapes.Sunny,
         )
     }
+    // Tokkip PC: the same Tokkip, carried by Tokkip Phone (data/PcTokkip.kt).
+    val pcSeen = remember { mx.loperstack.tokkip.data.PcTokkip.lastFromPc(context) }
+    val hasPhoneApp = remember {
+        runCatching { context.packageManager.getPackageInfo(mx.loperstack.tokkip.data.PcTokkip.TOKKIP_PHONE, 0) }.isSuccess
+    }
     DeviceRow(
         Icons.Rounded.Laptop, "Tu laptop (Tokkip PC)",
-        "Tokkip también vive en la isla de tu PC", false, MShapes.Flower,
+        when {
+            pcSeen > 0 -> "El mismo Tokkip: su look, su ropa y cómo te sientes, por Tokkip Phone"
+            hasPhoneApp -> "Abre Tokkip Phone y Tokkip PC: Tokkip será el mismo en los dos"
+            else -> "Instala Tokkip Phone para que Tokkip sea el mismo en tu PC"
+        },
+        pcSeen > 0, MShapes.Flower,
     )
 }
 
