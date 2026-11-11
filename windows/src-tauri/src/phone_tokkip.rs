@@ -3,7 +3,7 @@
 // %APPDATA%\Tokkip\shared\phone-tokkip.json (~/.config/Tokkip/shared on
 // Linux), written by Tokkip Phone's PC app, and this island's goes back the
 // other way in pc-tokkip.json. The page decides which is newer; this side
-// only reads and writes the small files (Andford/tokkiphone,
+// only reads and writes the small files (Andford/tokkipphone,
 // docs/protocol/tokkip.md).
 
 use crate::platform;

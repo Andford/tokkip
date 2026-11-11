@@ -1,6 +1,6 @@
 // Tokkip shared with your phone: the same species, colours and outfit on
 // both, and how you feel today (from the phone's diary and sleep). Tokkip
-// Phone carries a small JSON each way (Andford/tokkiphone,
+// Phone carries a small JSON each way (Andford/tokkipphone,
 // docs/protocol/tokkip.md); src-tauri/src/phone_tokkip.rs reads and writes
 // the files, and src/island/phone-tokkip.ts decides who is newer.
 

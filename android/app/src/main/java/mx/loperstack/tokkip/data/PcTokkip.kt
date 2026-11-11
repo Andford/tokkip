@@ -3,7 +3,7 @@
 // last night's rest) for the island. This app hands its Tokkip to Tokkip
 // Phone (an explicit broadcast), which carries it to the PC; Tokkip PC's comes
 // back the same way (PcTokkipReceiver). The newer look wins (`changedAt`).
-// The JSON is described in Andford/tokkiphone, docs/protocol/tokkip.md.
+// The JSON is described in Andford/tokkipphone, docs/protocol/tokkip.md.
 
 package mx.loperstack.tokkip.data
 
