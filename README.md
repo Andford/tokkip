@@ -214,7 +214,7 @@ Una isla arriba de tu pantalla que se asoma cuando la necesitas.
 
 - **Música** (Spotify y lo que suene en Windows) y **GitHub**.
 - **Tokkip en el escritorio**: arrástralo fuera de la isla y se queda paseando.
-- **Tu PC sana**: si tienes [Tokkip Healthy PC](https://github.com/Andford/tokkiphealthypc)
+- **Tu PC sana**: si tienes [Tokkip Healthy PC](https://github.com/Andford/tokkiphealth)
   (el limpiador y optimizador con Tokkip, su propia app), la tarjeta de tu día
   muestra cómo se siente tu PC, y la isla te avisa cuando liberaste espacio o
   cuando tu PC necesita un respiro.
