@@ -48,7 +48,9 @@
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ],
-    "copyright": "Tokkip © Andy (LoperStack). Basado en el código MIT de Tokkip de Louis Raillé.",
+    "publisher": "LoperStack",
+    "homepage": "https://loperstack.com",
+    "copyright": "© 2026 Andy (LoperStack)",
     "category": "Productivity",
     "shortDescription": "Tokkip vive arriba de tu pantalla",
     "longDescription": "Tokkip vive arriba de tu pantalla: tus recordatorios y pendientes, un portapapeles inteligente, chat con IA, tu música y GitHub, sin dejar lo que estás haciendo.",

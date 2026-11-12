@@ -1,0 +1,230 @@
+/* Tokkip's setup window (setup.html): Material 3 Expressive, like Tokkip Phone's. */
+
+@import "../core/tokens.css";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+body.setup-window {
+  background: var(--c-surface);
+  color: var(--ink);
+  font: 400 14px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+#setup-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The title bar: drags the window, and the close button. */
+.su-bar {
+  flex: 0 0 auto;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 6px;
+}
+
+.su-close {
+  width: 34px;
+  height: 30px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dim);
+  font: 400 15px var(--font);
+  cursor: pointer;
+}
+
+.su-close:hover {
+  background: var(--c-surface-container-highest);
+  color: var(--ink);
+}
+
+.su-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 36px 24px;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+/* Tokkip, on his shape. */
+.su-hero {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin-top: 4px;
+  display: grid;
+  place-items: center;
+}
+
+.su-shape {
+  position: absolute;
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  fill: var(--c-primary-container);
+}
+
+.su-hero canvas {
+  position: relative;
+}
+
+h1 {
+  font: 600 26px/1.2 var(--display);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.su-text {
+  color: var(--dim);
+  max-width: 340px;
+}
+
+.su-error {
+  color: var(--c-error);
+  font-size: 12.5px;
+  max-width: 360px;
+  user-select: text;
+}
+
+.su-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.su-btn {
+  min-width: 200px;
+  height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 26px;
+  font: 600 16px var(--display);
+  cursor: pointer;
+  transition: border-radius 0.18s ease, filter 0.15s ease;
+}
+
+.su-btn:active:not(:disabled) {
+  border-radius: 14px;
+}
+
+.su-btn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.su-btn.primary {
+  background: var(--c-primary);
+  color: var(--c-on-primary);
+}
+
+.su-btn.danger {
+  background: var(--c-error);
+  color: var(--c-on-error);
+}
+
+.su-btn.text {
+  height: 40px;
+  min-width: 0;
+  background: transparent;
+  color: var(--c-primary);
+  font: 500 14px var(--font);
+}
+
+.su-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Working: an expressive wavy bar. */
+.su-progress {
+  width: 260px;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--c-secondary-container);
+  overflow: hidden;
+  position: relative;
+}
+
+.su-progress::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: 5px;
+  background: var(--c-primary);
+  animation: su-slide 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes su-slide {
+  from {
+    left: -40%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.su-details {
+  width: 100%;
+  text-align: left;
+  border-radius: 20px;
+  background: var(--c-surface-container);
+  padding: 4px 16px;
+  font-size: 12.5px;
+  color: var(--dim);
+}
+
+.su-details summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 600;
+  color: var(--ink);
+  list-style: none;
+}
+
+.su-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.su-details summary::after {
+  content: "›";
+  float: right;
+  transition: transform 0.2s ease;
+}
+
+.su-details[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.su-details ul {
+  padding: 0 0 12px 18px;
+}
+
+.su-maker {
+  font-size: 11.5px;
+  color: var(--dim-4);
+}

@@ -13,7 +13,12 @@ use std::path::PathBuf;
 const MAX_BYTES: usize = 4096;
 
 fn shared_dir() -> Option<PathBuf> {
-    Some(platform::config_dir().parent()?.join("Tokkip").join("shared"))
+    Some(
+        platform::config_dir()
+            .parent()?
+            .join("Tokkip")
+            .join("shared"),
+    )
 }
 
 /// What the phone's Tokkip is like, or nothing when Tokkip Phone hasn't said.

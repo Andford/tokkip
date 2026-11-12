@@ -23,6 +23,7 @@ mod settings;
 mod shortcuts;
 mod healthy_pc;
 mod phone_tokkip;
+mod setup;
 mod sounds;
 mod spotify;
 mod tray;
@@ -382,6 +383,15 @@ fn open_settings_window(app: AppHandle) {
 }
 
 pub fn run() {
+    // Once, so the app's pages are in the binary once.
+    let context = tauri::generate_context!();
+    // The installer's and the uninstaller's window (setup.rs): nothing else starts.
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(mode) = setup::from_args(&args) {
+        i18n::set_picked(&settings::load().language);
+        setup::run(mode, context);
+        return;
+    }
     platform::move_old_dirs();
     platform::prepare_environment();
     let loaded = settings::load();
@@ -520,6 +530,6 @@ pub fn run() {
             shortcuts::apply(&handle, &loaded.shortcuts);
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running Tokkip");
 }
