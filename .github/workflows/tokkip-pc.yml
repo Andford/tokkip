@@ -68,6 +68,26 @@ jobs:
           Copy-Item target/release/tokkip.exe release/Tokkip.exe
           Get-ChildItem release | Format-Table Name, Length
 
+      # The installer installs and removes silently, as the setup window asks it
+      # to (src-tauri/src/setup.rs): /S installs for this user, the uninstaller
+      # takes it away again.
+      - name: Install and uninstall
+        shell: pwsh
+        run: |
+          $setup = "release/Tokkip-Windows-${{ steps.pack.outputs.version }}-setup.exe"
+          Start-Process $setup -ArgumentList "/S" -Wait
+          $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Tokkip"
+          $entry = Get-ItemProperty $key
+          if ($entry.DisplayVersion -ne "${{ steps.pack.outputs.version }}") { throw "Apps lists $($entry.DisplayVersion)" }
+          if ($entry.Publisher -ne "LoperStack") { throw "publisher is $($entry.Publisher)" }
+          $dir = $entry.InstallLocation.Trim('"')
+          if (-not (Test-Path "$dir\tokkip.exe")) { throw "tokkip.exe isn't in $dir" }
+          Get-Process tokkip -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Process "$dir\uninstall.exe" -ArgumentList "/S", "_?=$dir" -Wait
+          if (Test-Path "$dir\tokkip.exe") { throw "tokkip.exe is still there" }
+          if (Test-Path $key) { throw "Apps still lists it" }
+          "installed and removed $dir"
+
       - uses: actions/upload-artifact@v4
         with:
           name: Tokkip-Windows-setup
