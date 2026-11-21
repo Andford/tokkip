@@ -25,6 +25,7 @@ import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.CleaningServices
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -79,6 +80,7 @@ val HOME_SECTIONS = listOf(
     HomeSection("streaks", "Rachas de hoy", Icons.Rounded.LocalFireDepartment, "Marca tus hábitos desde aquí"),
     HomeSection("money", "Dinero", Icons.Rounded.AccountBalanceWallet, "Lo que te queda de la semana"),
     HomeSection("screen", "Pantalla", Icons.Rounded.PhoneAndroid, "Tu scroll de hoy y la cara de Tokkip"),
+    HomeSection("phone", "Tu teléfono", Icons.Rounded.CleaningServices, "Cómo se siente, según Tokkip Health"),
     HomeSection("agenda", "Agenda", Icons.Rounded.CalendarMonth, "Hoy y mañana"),
     HomeSection("shortcuts", "Enfoque y Respirar", Icons.Rounded.Timer, "Dos atajos"),
     HomeSection("tasks", "Tareas", Icons.Rounded.TaskAlt, "Tus pendientes y uno nuevo"),
@@ -208,6 +210,42 @@ fun ScreenHomeCard(now: Long, open: () -> Unit) {
                 Label("${today.totalMin} min de pantalla hoy", Ink.Dim2, 12.sp)
             }
             Icon(Icons.Rounded.ChevronRight, "Ver Pantalla", tint = Ink.Dim)
+        }
+    }
+}
+
+/** Tu teléfono on Inicio: how Tokkip Health says the phone feels. Hidden until it has said something. */
+@Composable
+fun PhoneHealthHomeCard() {
+    val context = LocalContext.current
+    val d by Store.state.collectAsState()
+    remember { mx.loperstack.tokkip.data.PhoneHealth.load(context) }
+    val note by mx.loperstack.tokkip.data.PhoneHealth.note.collectAsState()
+    val n = note ?: return
+    val tone = when (n.mood) {
+        "happy", "calm" -> Ink.Green
+        "tired" -> Ink.Amber
+        else -> Ink.Red
+    }
+    val face = when (n.mood) {
+        "happy" -> mx.loperstack.tokkip.character.TokkipEngine.Eye.HAPPY
+        "tired" -> mx.loperstack.tokkip.character.TokkipEngine.Eye.SLEEPY
+        "dizzy" -> mx.loperstack.tokkip.character.TokkipEngine.Eye.SPIRAL
+        else -> null
+    }
+    Spacer(Modifier.height(12.dp))
+    Panel(Modifier.fillMaxWidth().clickable { mx.loperstack.tokkip.data.PhoneHealth.open(context) }, padding = 16.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(56.dp).clip(CircleShape).background(tone.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                mx.loperstack.tokkip.character.Tokkip(Modifier.size(52.dp, 44.dp), color = Color(d.tokkipColor), face = face)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Label("TU TELÉFONO · SALUD ${n.score}", tone, 11.sp, FontWeight.Bold)
+                Text(n.message, fontSize = 17.sp, fontWeight = FontWeight.ExtraBold)
+                Label(if (n.kind == "clean") "Tokkip Health acaba de limpiar" else "Según Tokkip Health", Ink.Dim2, 12.sp)
+            }
+            Icon(Icons.Rounded.ChevronRight, "Abrir Tokkip Health", tint = Ink.Dim)
         }
     }
 }

@@ -68,6 +68,8 @@
         </intent>
         <!-- Tokkip Phone carries Tokkip to Tokkip PC (data/PcTokkip.kt). -->
         <package android:name="mx.loperstack.tokkiphone" />
+        <!-- Tokkip Health, to open it from Tu teléfono (data/PhoneHealth.kt). -->
+        <package android:name="mx.loperstack.tokkiphealth" />
     </queries>
 
     <application
@@ -186,6 +188,12 @@
         <receiver android:name=".data.PcTokkipReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="mx.loperstack.tokkip.action.PC_TOKKIP" />
+            </intent-filter>
+        </receiver>
+        <!-- How the phone feels, from Tokkip Health (data/PhoneHealth.kt). Only a short note comes in. -->
+        <receiver android:name=".data.PhoneHealthReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="mx.loperstack.tokkip.action.PHONE_HEALTH" />
             </intent-filter>
         </receiver>
         <receiver

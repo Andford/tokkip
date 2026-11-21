@@ -761,6 +761,7 @@ fun HomeScreen(
             "money" -> MoneyHomeCard(now, goMoney)
             "streaks" -> StreaksHomeCard(now, goStreaks)
             "screen" -> ScreenHomeCard(now, goScreen)
+            "phone" -> PhoneHealthHomeCard()
             "agenda" -> {
                 Spacer(Modifier.height(20.dp))
                 if (calendarOk) {
