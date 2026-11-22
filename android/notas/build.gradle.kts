@@ -16,8 +16,8 @@ android {
         applicationId = "mx.loperstack.tokkipnotas"
         minSdk = 31
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.4.0"
+        versionCode = 7
+        versionName = "0.4.1"
     }
 
     // The same stable key as Tokkip (.github/workflows/android.yml).
