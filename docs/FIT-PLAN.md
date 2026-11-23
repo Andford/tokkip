@@ -38,7 +38,7 @@ teléfono y `android/fitwear` para el Pixel Watch. Tokkip viene de
 
 ## Fases
 
-- [ ] **0.1: Hoy y la base.** El módulo, el tema (Material 3 Expressive,
+- [x] **0.1: Hoy y la base.** El módulo, el tema (Material 3 Expressive,
   Google Sans, colores de Material You), la navegación de cinco secciones, Hoy
   con Health Connect (solo lectura), Tokkip reaccionando al día, la racha, el
   reto del día y las metas. Datos de ejemplo mientras no conectes Health
