@@ -37,6 +37,28 @@
             </intent-filter>
         </activity>
 
+        <!-- Home screen widgets (widget/NotasWidgets.kt). -->
+        <receiver android:name=".widget.QuickNoteWidgetReceiver" android:exported="true" android:label="@string/widget_quick">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_quick" />
+        </receiver>
+        <receiver android:name=".widget.MyPagesWidgetReceiver" android:exported="true" android:label="@string/widget_pages">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_pages" />
+        </receiver>
+        <receiver android:name=".widget.PinnedPageWidgetReceiver" android:exported="true" android:label="@string/widget_pinned">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_pinned" />
+        </receiver>
+        <activity
+            android:name=".widget.PinPageActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:label="@string/widget_pinned">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" /></intent-filter>
+        </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

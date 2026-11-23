@@ -78,3 +78,16 @@ fun captureOf(text: String): Pair<String, String> {
     return if (first.length <= 80) first to lines.drop(1).joinToString("\n").trim()
     else "" to text.trim()
 }
+
+/** Ticks or unticks the step on line `line` (as the widget sees it); anything else stays as it was. */
+fun toggleStep(body: String, line: Int): String {
+    if (isInkBody(body)) return body
+    val blocks = blocksOf(body).toMutableList()
+    val b = blocks.getOrNull(line) ?: return body
+    blocks[line] = when (b.kind) {
+        BlockKind.TODO -> b.copy(kind = BlockKind.DONE)
+        BlockKind.DONE -> b.copy(kind = BlockKind.TODO)
+        else -> return body
+    }
+    return bodyOf(blocks)
+}

@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Tokkip Notas</string>
+    <string name="widget_quick">Nota rápida</string>
+    <string name="widget_quick_desc">Una nota, una hoja a mano o buscar, de un toque</string>
+    <string name="widget_pages">Mis páginas</string>
+    <string name="widget_pages_desc">Tus favoritas y lo último que abriste</string>
+    <string name="widget_pinned">Una página</string>
+    <string name="widget_pinned_desc">La página que elijas, con sus pasos para palomear</string>
 </resources>

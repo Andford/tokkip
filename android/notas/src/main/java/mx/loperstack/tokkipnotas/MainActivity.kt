@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
         Sync.init(this)
         Prefs.init(this)
         Sounds.init(this)
+        mx.loperstack.tokkipnotas.widget.NotasWidgets.watch(this)
         if (savedInstanceState == null) handle(intent)
         setContent { NotasApp() }
     }
@@ -47,6 +48,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent?) {
+        // From the home screen widgets: tokkipnotas://page/<id>, new/doc, new/ink, search, home.
+        val link = intent?.data?.takeIf { it.scheme == "tokkipnotas" }
+        if (link != null) {
+            val parts = listOfNotNull(link.host) + link.pathSegments
+            when (parts.firstOrNull()) {
+                "page" -> parts.getOrNull(1)?.takeIf { Store.page(it) != null }?.let { Nav.home(); Nav.page(it) }
+                "new" -> {
+                    val kind = if (parts.getOrNull(1) == "ink") mx.loperstack.tokkipnotas.data.PageKind.INK else mx.loperstack.tokkipnotas.data.PageKind.DOC
+                    val p = Store.newPage(INBOX_ID, kind, first = true)
+                    Hop.now()
+                    Nav.home(); Nav.page(p.id)
+                }
+                "search" -> { Nav.home(); Nav.go("search") }
+                "home" -> Nav.home()
+            }
+            return
+        }
         when (intent?.action) {
             Intent.ACTION_SEND -> {
                 val text = listOfNotNull(intent.getStringExtra(Intent.EXTRA_SUBJECT), intent.getStringExtra(Intent.EXTRA_TEXT))

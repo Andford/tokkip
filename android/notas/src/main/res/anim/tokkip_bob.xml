@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- At rest: a soft bob with a little squish. -->
+<set xmlns:android="http://schemas.android.com/apk/res/android" android:shareInterpolator="false">
+    <scale android:startOffset="0" android:duration="900" android:fromXScale="1" android:toXScale="0.97" android:fromYScale="1" android:toYScale="1.05"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+    <translate android:startOffset="0" android:duration="900" android:fromYDelta="0%" android:toYDelta="-3%" android:interpolator="@anim/half_cycle" />
+    <scale android:startOffset="880" android:duration="360" android:fromXScale="1" android:toXScale="1.05" android:fromYScale="1" android:toYScale="0.95"
+        android:pivotX="50%" android:pivotY="92%" android:interpolator="@anim/half_cycle" />
+</set>
