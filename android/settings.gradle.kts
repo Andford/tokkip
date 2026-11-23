@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "Tokkip"
-include(":app", ":shared", ":wear", ":watchface", ":notas")
+include(":app", ":shared", ":wear", ":watchface", ":notas", ":fit")

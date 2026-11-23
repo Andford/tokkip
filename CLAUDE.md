@@ -2,13 +2,15 @@
 
 Tokkip is Andy's (LoperStack) personal companion app family: a character
 (bunny, kitten, puppy, robot or raccoon) that lives on the phone, the watch, the
-car and the PC, plus Tokkip Notas, a Notion-style notebook. Spanish first.
+car and the PC, plus Tokkip Notas, a Notion-style notebook, and Tokkip Fit,
+exercise with Tokkip (`docs/FIT-PLAN.md`). Spanish first.
 
 ## Where things are
 - `android/app` — Tokkip for the phone (Kotlin, Compose, Glance widgets, Android Auto). Package `mx.loperstack.tokkip`.
 - `android/shared` — the character (`mx.loperstack.tokkip.character`), sounds (`res/raw`, synthesised by `android/tools/make_sounds.py`), wellness logic shared with the watch.
 - `android/wear`, `android/watchface` — the watch app and the Watch Face Format face.
 - `android/notas` — Tokkip Notas for Android (`mx.loperstack.tokkipnotas`).
+- `android/fit` — Tokkip Fit (`mx.loperstack.tokkipfit`): Health Connect (reads; writes its own workouts), no cloud. Its plan and phases are in `docs/FIT-PLAN.md`; its privacy text in `android/fit/PRIVACY.md` (and on its privacy screen, which Health Connect opens).
 - `windows/` — Tokkip PC, the island at the top of the screen (Tauri 2: Rust in `src-tauri/`, TypeScript in `src/`). Its look is Material 3 Expressive: colours from `src/core/theme.ts` (a scheme grown from one seed, light or dark, written as `--c-*` CSS variables; canvases use `palette()`), tokens in `src/core/tokens.css`, icons from Material Symbols in `src/views/icons.ts`, the shape behind Tokkip in `src/tokkip/shapes.ts`. Use the tokens, never fixed colours (brand marks aside). Bundled third-party works are listed in `windows/THIRD-PARTY-NOTICES.md`. Its texts are English keys with their Spanish in `src/i18n/es.json` (Spanish and English only, de tú, Mexican Spanish).
 - `notas-pc/` — Tokkip Notas for Windows (Tauri 2, Preact). `notas-sync/` — `sync.php`, its sync server for the user's own hosting.
 - Tokkip Healthy PC (the PC cleaner) lives in its own repo, Andford/tokkiphealth.
@@ -19,7 +21,7 @@ car and the PC, plus Tokkip Notas, a Notion-style notebook. Spanish first.
 - Tokkip Notas PC: `cd notas-pc && npm install && npm run tauri dev` (CI: `tokkip-notas-pc.yml`).
 
 ## Rules
-- Keep the app identifiers: `mx.loperstack.tokkip` (phone and watch: they must match), `mx.loperstack.tokkip.watchface`, `mx.loperstack.tokkipnotas` and Tokkip PC's `mx.loperstack.tokkippc`. Changing one makes a new app and loses the user's data. Older names only survive where old data is read once: `wellness/Legacy.kt` (old backups), `windows/src/core/legacy.ts`, `platform::move_old_dirs` and `secrets.rs` (`OLD_IDENTIFIER`).
+- Keep the app identifiers: `mx.loperstack.tokkip` (phone and watch: they must match), `mx.loperstack.tokkip.watchface`, `mx.loperstack.tokkipnotas`, `mx.loperstack.tokkipfit` and Tokkip PC's `mx.loperstack.tokkippc`. Changing one makes a new app and loses the user's data. Older names only survive where old data is read once: `wellness/Legacy.kt` (old backups), `windows/src/core/legacy.ts`, `platform::move_old_dirs` and `secrets.rs` (`OLD_IDENTIFIER`).
 - Tokkip's motion and clothes are his own: `windows/src/tokkip/` (motion.ts, figure.ts, ropa.ts, wardrobe.ts, greeting.ts), `windows/src/upload/` and, on Android, `character/TokkipEngine.kt` and `Ropa.kt`. Both platforms share the same moods, acts, dance and calendar: change them together.
 - The code started from Coucou (MIT, Louis Raillé): keep its notice in `LICENSE`. Tokkip uses its own name, character, sounds and art — never Coucou's or Mochi's.
 - Secrets in the Keystore / Credential Manager, never on disk or in git. The signing keystore is private and never committed.

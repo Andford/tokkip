@@ -83,6 +83,7 @@ jobs:
           cp android/wear/build/outputs/apk/release/wear-release.apk "out/Tokkip-Reloj-${GITHUB_SHA::7}.apk"
           cp android/watchface/build/outputs/apk/release/watchface-release.apk "out/Tokkip-Caratula-${GITHUB_SHA::7}.apk"
           cp android/notas/build/outputs/apk/release/notas-release.apk "out/TokkipNotas-${GITHUB_SHA::7}.apk"
+          cp android/fit/build/outputs/apk/release/fit-release.apk "out/TokkipFit-${GITHUB_SHA::7}.apk"
 
       # The SHA-1 Google Cloud's Android OAuth client needs (Google Tasks), as an annotation.
       - name: Signing fingerprint
