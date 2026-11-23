@@ -72,6 +72,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -298,9 +299,10 @@ private fun SettingsSheet(onPrivacy: () -> Unit, connected: Boolean, onConnect: 
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            for (c in TOKKIP_PALETTE.take(8)) {
+            for (color in TOKKIP_PALETTE.take(8)) {
+                val c = color.toArgb().toLong() and 0xFFFFFFFFL
                 Box(
-                    Modifier.size(32.dp).clip(CircleShape).background(Color(c))
+                    Modifier.size(32.dp).clip(CircleShape).background(color)
                         .clickable { Prefs.set(color = c); Sounds.play("pop") },
                     contentAlignment = Alignment.Center,
                 ) {
