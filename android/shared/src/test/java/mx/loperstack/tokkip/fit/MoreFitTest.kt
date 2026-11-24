@@ -14,7 +14,7 @@ class GymTest {
         val history = listOf(GymSet("press_banca", 60.0, 10), GymSet("press_banca", 70.0, 5), GymSet("sentadilla", 80.0, 8))
         val r = records(history)
         assertEquals(70.0, r["press_banca"]!!.heaviest.kg, 0.0)
-        assertEquals(80.0, r["press_banca"]!!.best.oneRm, 0.01) // 60 × (1 + 10/30)
+        assertEquals(81.67, r["press_banca"]!!.best.oneRm, 0.01) // 70 × (1 + 5/30)
         assertTrue(isRecord(GymSet("press_banca", 72.5, 5), history))
         assertFalse(isRecord(GymSet("press_banca", 60.0, 8), history))
         assertFalse("the first time isn't a record", isRecord(GymSet("curl", 10.0, 10), history))
