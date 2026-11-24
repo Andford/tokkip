@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import mx.loperstack.tokkip.character.Look
 import mx.loperstack.tokkip.character.Sounds
 import mx.loperstack.tokkip.fit.Done
+import mx.loperstack.tokkip.fit.clean
 
 object Prefs {
     var goals by mutableStateOf(Goals())

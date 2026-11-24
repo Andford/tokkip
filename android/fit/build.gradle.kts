@@ -78,7 +78,7 @@ dependencies {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        // Health Connect's feature check (mindfulness) was experimental in some releases.
-        optIn.add("androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi")
+        // Mindfulness sessions are still marked experimental in connect-client 1.1.0.
+        optIn.add("androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi")
     }
 }
