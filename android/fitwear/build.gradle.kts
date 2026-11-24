@@ -17,8 +17,8 @@ android {
         applicationId = "mx.loperstack.tokkipfit"
         minSdk = 33
         targetSdk = 35
-        versionCode = 200005
-        versionName = "0.5.0"
+        versionCode = 200006
+        versionName = "0.6.0"
     }
 
     signingConfigs {

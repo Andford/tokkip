@@ -119,6 +119,9 @@ fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
     var breathe by rememberSaveable { mutableStateOf<String?>(null) }
     var breatheMin by rememberSaveable { mutableStateOf(3) }
     var badgesOpen by rememberSaveable { mutableStateOf(false) }
+    // Editing one of yours: its id, or "new".
+    var editRoutine by rememberSaveable { mutableStateOf<String?>(null) }
+    var editPlan by rememberSaveable { mutableStateOf<String?>(null) }
     // From a widget or the cardio notification: tokkipfit://home, gym, cardio, breathe, routine/<id>.
     LaunchedEffect(link) {
         val l = link ?: return@LaunchedEffect
@@ -148,7 +151,7 @@ fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
     val ask = rememberLauncherForActivityResult(HealthData.permissionContract()) { refresh() }
     val connect = {
         when (HealthData.status(context)) {
-            HealthData.Status.AVAILABLE -> ask.launch(HealthData.PERMISSIONS)
+            HealthData.Status.AVAILABLE -> ask.launch(HealthData.permissions(context))
             // Android 13 and before: Health Connect is an app from the Play Store.
             else -> runCatching {
                 context.startActivity(
@@ -169,14 +172,14 @@ fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
     FitTheme {
         val cs = MaterialTheme.colorScheme
         Box(Modifier.fillMaxSize().background(cs.surface)) {
-            val routine = playing?.let { mx.loperstack.tokkip.fit.routine(it) }
+            val routine = playing?.let { Prefs.routine(it) }
             if (privacy) {
                 BackHandler { privacy = false }
                 PrivacyScreen { privacy = false }
             } else if (routine != null) {
                 PlayerScreen(routine) { playing = null; refresh() }
             } else if (gym != null) {
-                val plan = mx.loperstack.tokkip.fit.gymPlan(gym!!) ?: FREE_PLAN
+                val plan = Prefs.plan(gym!!) ?: FREE_PLAN
                 GymSessionScreen(plan) { gym = null; refresh() }
             } else if (cardio != null || mx.loperstack.tokkipfit.data.CardioLive.running) {
                 BackHandler { }
@@ -184,6 +187,10 @@ fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
             } else if (breathe != null) {
                 val p = mx.loperstack.tokkip.wellness.BREATH_PATTERNS.firstOrNull { it.id == breathe } ?: mx.loperstack.tokkip.wellness.BREATH_PATTERNS.first()
                 BreatheSessionScreen(p, breatheMin) { breathe = null; refresh() }
+            } else if (editRoutine != null) {
+                MyRoutineEditor(editRoutine.takeIf { it != "new" }) { editRoutine = null }
+            } else if (editPlan != null) {
+                MyPlanEditor(editPlan.takeIf { it != "new" }) { editPlan = null }
             } else if (badgesOpen) {
                 BadgesScreen(today) { badgesOpen = false }
             } else if (wardrobe) {
@@ -202,8 +209,8 @@ fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
             ) { s ->
                 when (s) {
                     Section.TODAY -> TodayScreen(today, bottom, onConnect = connect, onSettings = { settings = true }, onRefresh = { refresh(); Sounds.play("blip") }, onBadges = { badgesOpen = true; Sounds.play("pop") })
-                    Section.HOME -> HomeScreen(bottom) { playing = it.id; Sounds.play("pop") }
-                    Section.GYM -> GymScreen(bottom) { gym = it.id; Sounds.play("pop") }
+                    Section.HOME -> HomeScreen(bottom, onStart = { playing = it.id; Sounds.play("pop") }, onEdit = { editRoutine = it ?: "new"; Sounds.play("pop") })
+                    Section.GYM -> GymScreen(bottom, onStart = { gym = it.id; Sounds.play("pop") }, onEdit = { editPlan = it ?: "new"; Sounds.play("pop") })
                     Section.CARDIO -> CardioScreen(bottom) { cardio = it.id; Sounds.play("pop") }
                     Section.BREATHE -> BreatheScreen(bottom) { p, m -> breathe = p.id; breatheMin = m; Sounds.play("pop") }
                 }
@@ -351,6 +358,13 @@ private fun SettingsSheet(onPrivacy: () -> Unit, onWardrobe: () -> Unit, connect
             Text("Sonidos", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Switch(Prefs.sounds, { Prefs.set(sounds = it) })
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Contarle a Tokkip", style = MaterialTheme.typography.bodyLarge)
+                Text("Festeja tus entrenamientos en su app y le dan cariño", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            }
+            Switch(Prefs.tellTokkip, { Prefs.setTellTokkip(it) })
+        }
 
         Text("Health Connect", style = MaterialTheme.typography.titleMedium, color = cs.primary)
         Text(
@@ -400,9 +414,10 @@ fun PrivacyScreen(onBack: () -> Unit) {
 private val PRIVACY = listOf(
     "Tus datos no salen del teléfono" to "Tokkip Fit no tiene servidor ni nube, y no manda telemetría. Lo que lee de Health Connect se queda en tu teléfono y solo sirve para mostrártelo.",
     "Qué lee de Health Connect" to "Pasos, distancia, calorías activas y sesiones de ejercicio (para tus anillos y tu semana), sueño (cuánto dormiste) y pulso (tu pulso en reposo). Cada permiso es opcional: sin uno, solo falta esa cifra.",
-    "Qué escribe" to "Solo los entrenamientos que haces con Tokkip (desde el teléfono o el reloj): la sesión y sus calorías activas, para que también los veas en Samsung Health o Fitbit. Nada más.",
+    "Qué escribe" to "Solo los entrenamientos que haces con Tokkip (desde el teléfono o el reloj): la sesión, sus calorías activas y, en cardio, la distancia y la ruta, para que también los veas en Samsung Health o Fitbit. Respira se guarda como sesión de mindfulness donde Health Connect las tiene. Nada más.",
     "Tu reloj" to "El reloj manda cada entrenamiento terminado a tu teléfono, directo y sin internet, y el teléfono le manda el look de Tokkip.",
     "El Tokkip de la app de Tokkip" to "Si quieres el mismo Tokkip, Fit lee su look (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque las dos están firmadas por ti.",
+    "La app de Tokkip" to "Si la tienes, Fit le cuenta a Tokkip cada entrenamiento que terminas (qué, cuándo y cuánto duró) para que lo festeje y le dé cariño. Solo eso, de una app tuya a otra, sin internet. Lo apagas en Ajustes.",
     "Tu ubicación (Cardio)" to "Solo mientras corres, caminas o pedaleas, para dibujar tu ruta y medir la distancia. Se queda en tu teléfono y, si lo permites, en Health Connect con el entrenamiento.",
     "Cómo quitarle el acceso" to "En Health Connect → Permisos de apps → Tokkip Fit. Puedes quitar cualquier permiso o borrar lo que Fit haya escrito.",
 )

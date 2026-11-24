@@ -87,6 +87,8 @@ data class AppData(
     /** Inicio, your way: the sections' order and the ones hidden (ui/HomeLayout.kt). */
     val homeLayout: List<String> = emptyList(),
     val homeHidden: Set<String> = emptySet(),
+    /** Workouts Tokkip Fit told him about, newest last (at most 200). */
+    val fit: List<mx.loperstack.tokkip.fit.Done> = emptyList(),
 )
 
 /** Tokkip's notifications (Ajustes → Notificaciones). Times in minutes of the day. */
@@ -122,6 +124,7 @@ fun AppData.routine(): Routine = Routine(
     logs = logs, habits = habits, breaths = sessions.map { it.at },
     nights = sleep.map { Night(it.night, it.minutes, it.quality) }, sleepGoalMin = sleepGoal.minutes,
     money = money, budget = budget, debts = debts, screenDays = screenDays, screenGoal = screen.goal,
+    workouts = fit.map { it.at },
 )
 
 /** The rhythm you picked, for a session of `minutes`. */
@@ -208,7 +211,8 @@ object Store {
             doom = prefs.getInt("doom", 0), doomAt = prefs.getLong("doomAt", 0), doomTop = prefs.getString("doomTop", "") ?: "",
             doomSession = prefs.getInt("doomSession", 0),
             homeLayout = (prefs.getString("homeLayout", "") ?: "").split(",").filter { it.isNotBlank() },
-            homeHidden = (prefs.getString("homeHidden", "") ?: "").split(",").filter { it.isNotBlank() }.toSet())
+            homeHidden = (prefs.getString("homeHidden", "") ?: "").split(",").filter { it.isNotBlank() }.toSet(),
+            fit = mx.loperstack.tokkip.fit.Done.list(prefs.getString("fitDone", null)))
         mx.loperstack.tokkip.wellness.PomodoroConfig.current = _state.value.pomodoroConfig
         mx.loperstack.tokkip.character.Haptics.strength = _state.value.hapticStrength
         mx.loperstack.tokkip.character.Haptics.enabled = _state.value.haptics
@@ -252,6 +256,16 @@ object Store {
         _state.value = _state.value.copy(sessions = list)
         prefs.edit().putString("sessions", sessionsJson(list)).apply()
         changed()
+    }
+
+    /** A workout from Tokkip Fit; false if he already knew about it. */
+    fun addFitWorkout(d: mx.loperstack.tokkip.fit.Done): Boolean {
+        if (_state.value.fit.any { it.at == d.at && it.routine == d.routine }) return false
+        val list = (_state.value.fit + d).sortedBy { it.at }.takeLast(200)
+        _state.value = _state.value.copy(fit = list)
+        prefs.edit().putString("fitDone", mx.loperstack.tokkip.fit.Done.json(list)).apply()
+        changed()
+        return true
     }
 
     fun setLogs(logs: List<DayLog>) {

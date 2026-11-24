@@ -1,6 +1,6 @@
 // Tokkip grows with you: every day you look after yourself gives him cariño
 // (care points) — ticking a streak, writing in the diary, logging your mood,
-// breathing, sleeping what you meant to, keeping track of your money. Enough cariño and he reaches the next
+// breathing, sleeping what you meant to, keeping track of your money, training in Tokkip Fit. Enough cariño and he reaches the next
 // stage; past the last one the cycle goes round again (Leyenda ★1, ★2…).
 //
 // Nothing is stored: the points are worked out from your own history every
@@ -30,6 +30,8 @@ data class Routine(
     /** Pantalla: a summary per day, and your daily scroll goal (minutes). */
     val screenDays: List<ScreenDay> = emptyList(),
     val screenGoal: Int = 60,
+    /** Workouts finished in Tokkip Fit (when they ended). */
+    val workouts: List<Long> = emptyList(),
 )
 
 data class Stage(val level: Int, val name: String, val from: Int, val blurb: String)
@@ -48,7 +50,7 @@ const val LOOP = 600
 
 /** The kinds of care, in the order they're shown, with their daily ceiling. */
 enum class Care(val label: String, val cap: Int) {
-    RACHAS("Rachas", 9), DIARIO("Diario", 7), ANIMO("Ánimo", 2), RESPIRAR("Respirar", 6), SUENO("Sueño", 3), FINANZAS("Finanzas", 2), PANTALLA("Pantalla", 3),
+    RACHAS("Rachas", 9), DIARIO("Diario", 7), ANIMO("Ánimo", 2), RESPIRAR("Respirar", 6), SUENO("Sueño", 3), FINANZAS("Finanzas", 2), PANTALLA("Pantalla", 3), EJERCICIO("Ejercicio", 6),
 }
 
 data class Growth(
@@ -96,6 +98,7 @@ fun carePerDay(r: Routine, today: String): Map<String, Map<Care, Int>> {
         if (n.minutes >= r.sleepGoalMin - 30) add(n.day, Care.SUENO, 2)
     }
     for (m in r.money) add(dayKey(m.at), Care.FINANZAS, 2)
+    for (w in r.workouts) add(dayKey(w), Care.EJERCICIO, 3)
     // A whole day within your scroll goal (today counts once it's over).
     for (d in r.screenDays) if (d.day < today && d.totalMin > 0 && d.scrollMin <= r.screenGoal) add(d.day, Care.PANTALLA, 3)
     return raw.mapValues { (_, m) -> m.mapValues { (c, v) -> minOf(v, c.cap) } }

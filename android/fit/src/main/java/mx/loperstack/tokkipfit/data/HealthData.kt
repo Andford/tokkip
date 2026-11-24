@@ -15,6 +15,8 @@ import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.MindfulnessSessionRecord
+import androidx.health.connect.client.feature.HealthConnectFeatures
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.Record
@@ -46,11 +48,24 @@ object HealthData {
     private val WRITE_EXERCISE = HealthPermission.getWritePermission(ExerciseSessionRecord::class)
     private val WRITE_KCAL = HealthPermission.getWritePermission(ActiveCaloriesBurnedRecord::class)
     private val WRITE_DISTANCE = HealthPermission.getWritePermission(DistanceRecord::class)
+    /** Respira as a mindfulness session (where this phone's Health Connect has them). */
+    private val WRITE_MINDFUL = HealthPermission.getWritePermission(MindfulnessSessionRecord::class)
     private const val WRITE_ROUTE = HealthPermission.PERMISSION_WRITE_EXERCISE_ROUTE
     /** So the widgets can read Hoy while Fit isn't open (optional). */
     private const val BACKGROUND = HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
 
-    val PERMISSIONS = setOf(STEPS, DISTANCE, KCAL, EXERCISE, SLEEP, HEART, RESTING, WRITE_EXERCISE, WRITE_KCAL, WRITE_DISTANCE, WRITE_ROUTE, BACKGROUND)
+    private val BASE = setOf(STEPS, DISTANCE, KCAL, EXERCISE, SLEEP, HEART, RESTING, WRITE_EXERCISE, WRITE_KCAL, WRITE_DISTANCE, WRITE_ROUTE, BACKGROUND)
+    val PERMISSIONS = BASE + WRITE_MINDFUL
+
+    /** What to ask for: mindfulness only where Health Connect has it. */
+    fun permissions(context: Context): Set<String> = if (mindfulness(context)) PERMISSIONS else BASE
+
+    /** Whether this phone's Health Connect keeps mindfulness sessions (Android 16 and newer Health Connect). */
+    fun mindfulness(context: Context): Boolean = runCatching {
+        status(context) == Status.AVAILABLE &&
+            HealthConnectClient.getOrCreate(context).features.getFeatureStatus(HealthConnectFeatures.FEATURE_MINDFULNESS_SESSION) ==
+            HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+    }.getOrDefault(false)
 
     /**
      * Saves a workout done in Fit (phone or watch) as an exercise session and its active
@@ -59,7 +74,6 @@ object HealthData {
     suspend fun write(context: Context, d: Done, route: List<mx.loperstack.tokkip.fit.Point> = emptyList()): Boolean {
         if (status(context) != Status.AVAILABLE) return false
         val granted = granted(context)
-        if (WRITE_EXERCISE !in granted) return false
         val client = HealthConnectClient.getOrCreate(context)
         val end = Instant.ofEpochMilli(d.at)
         val start = end.minusSeconds(d.seconds.toLong().coerceAtLeast(1))
@@ -69,6 +83,17 @@ object HealthData {
             manufacturer = if (d.from == "watch") null else android.os.Build.MANUFACTURER,
             model = if (d.from == "watch") null else android.os.Build.MODEL,
         )
+        // Respira: a mindfulness session where there are; a guided-breathing workout otherwise.
+        if (d.kind == "breathe" && WRITE_MINDFUL in granted && mindfulness(context)) {
+            val r = MindfulnessSessionRecord(
+                startTime = start, startZoneOffset = zone, endTime = end, endZoneOffset = zone,
+                metadata = Metadata.activelyRecorded(device),
+                mindfulnessSessionType = MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_BREATHING,
+                title = "${d.name} · Tokkip Fit",
+            )
+            if (runCatching { client.insertRecords(listOf(r)) }.isSuccess) return true
+        }
+        if (WRITE_EXERCISE !in granted) return false
         val type = when (d.kind) {
             "stretch" -> ExerciseSessionRecord.EXERCISE_TYPE_STRETCHING
             "strength" -> ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS

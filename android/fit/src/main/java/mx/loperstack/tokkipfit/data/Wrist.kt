@@ -35,6 +35,16 @@ object Wrist {
         }
     }
 
+    /** Your own routines, so the watch can play them too. */
+    fun pushMine(context: Context, mine: List<mx.loperstack.tokkip.fit.MyRoutine>) {
+        runCatching {
+            val req = PutDataMapRequest.create(mx.loperstack.tokkip.fit.FIT_MINE_PATH).apply {
+                dataMap.putString("json", mx.loperstack.tokkip.fit.MyRoutine.json(mine))
+            }.asPutDataRequest().setUrgent()
+            Wearable.getDataClient(context.applicationContext).putDataItem(req)
+        }
+    }
+
     private fun send(context: Context, look: Look) {
         runCatching {
             val req = PutDataMapRequest.create(Look.FIT_LOOK_PATH).apply {

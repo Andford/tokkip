@@ -68,13 +68,20 @@ teléfono y `android/fitwear` para el Pixel Watch. Tokkip viene de
   anillos, Entrena), tarjeta del reloj con los anillos y complicación de
   pasos.
 
+- [x] **0.6: Lo tuyo y Tokkip.** Rutinas propias en En casa (movimientos,
+  segundos, descanso y rondas; también en el reloj, por `/tokkipfit/mine`) y
+  planes propios en el Gym (`fit/Custom.kt`). Cada entrenamiento se le cuenta a
+  la app de Tokkip (`FitProvider`, solo apps con la misma firma): lo festeja con
+  una notificación y le da cariño (Ejercicio, +3, hasta 6 al día). Respira se
+  guarda como mindfulness en Health Connect donde lo tiene (connect-client
+  1.1.0, compileSdk 36, AGP 8.10).
+
 ## Lo que sigue
 
-- Mindfulness de verdad en Health Connect (llega con connect-client 1.1.0,
-  que pide compileSdk 36).
-- Avisarle a Tokkip (la app) cuando terminas un entrenamiento, para que lo
-  festeje allá también.
-- Rutinas propias en En casa y en el Gym.
+- Un mapa bajo la ruta de Cardio (sin servicios de mapas de terceros: teselas
+  que el usuario elija, o solo la línea).
+- Planes del Gym en el reloj (anotar series desde la muñeca).
+- Leer las sesiones de mindfulness de otras apps para el anillo de Respira.
 
 ## Permisos de Health Connect
 
@@ -84,6 +91,7 @@ teléfono y `android/fitwear` para el Pixel Watch. Tokkip viene de
 | 0.2 | | Ejercicio, pulso, calorías activas |
 | 0.4 | | Ruta del ejercicio, distancia |
 | 0.5 | Salud en segundo plano (opcional, para los widgets) | |
+| 0.6 | | Mindfulness (donde Health Connect lo tiene) |
 
 Health Connect pide una pantalla que diga para qué quiere la app cada permiso:
 es la pantalla de privacidad de Fit, y su texto también está en

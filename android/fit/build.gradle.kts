@@ -10,15 +10,15 @@ plugins {
 
 android {
     namespace = "mx.loperstack.tokkipfit"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "mx.loperstack.tokkipfit"
         // Health Connect: built into Android 14, an app from the Play Store before.
         minSdk = 31
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.5.0"
+        versionCode = 4
+        versionName = "0.6.0"
     }
 
     // The same stable key as Tokkip (.github/workflows/android.yml).
@@ -69,8 +69,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.glance:glance-appwidget:1.1.1")
-    // 1.1.0-alpha12 (1.1.0 needs compileSdk 36): records need a recording method (Metadata.activelyRecorded…).
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha12")
+    // 1.1.0 (compileSdk 36): records need a recording method (Metadata.activelyRecorded…); mindfulness sessions.
+    implementation("androidx.health.connect:connect-client:1.1.0")
 
     testImplementation("junit:junit:4.13.2")
 }
@@ -78,5 +78,7 @@ dependencies {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        // Health Connect's feature check (mindfulness) was experimental in some releases.
+        optIn.add("androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi")
     }
 }

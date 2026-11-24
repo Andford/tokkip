@@ -7,13 +7,19 @@
   de ejercicio (para tus anillos y tu semana), sueño (cuánto dormiste) y pulso
   (tu pulso en reposo). Cada permiso es opcional: sin uno, solo falta esa cifra.
 - **Qué escribe:** solo los entrenamientos que haces con Tokkip (desde el
-  teléfono o el reloj): la sesión y sus calorías activas, para que también los
-  veas en Samsung Health o Fitbit. Nada más.
+  teléfono o el reloj): la sesión, sus calorías activas y, en cardio, la
+  distancia y la ruta, para que también los veas en Samsung Health o Fitbit.
+  Respira se guarda como sesión de mindfulness donde Health Connect las tiene.
+  Nada más.
 - **Tu reloj:** manda cada entrenamiento terminado a tu teléfono, directo y sin
   internet, y el teléfono le manda el look de Tokkip.
 - **El Tokkip de la app de Tokkip:** si quieres el mismo Tokkip, Fit lee su look
   (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque
   las dos están firmadas con la misma llave.
+- **La app de Tokkip:** si la tienes, Fit le cuenta a Tokkip cada
+  entrenamiento que terminas (qué, cuándo y cuánto duró) para que lo festeje y
+  le dé cariño. Solo eso, de una app tuya a otra, sin internet. Lo apagas en
+  Ajustes.
 - **Tu ubicación (Cardio):** solo mientras corres, caminas o pedaleas, para
   dibujar tu ruta y medir la distancia. Se queda en tu teléfono y, si lo
   permites, en Health Connect con el entrenamiento.

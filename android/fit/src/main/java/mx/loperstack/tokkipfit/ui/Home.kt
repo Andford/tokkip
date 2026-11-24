@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -107,7 +108,7 @@ private fun levelOf(level: Int): Triple<String, Color, Color> {
 }
 
 @Composable
-fun HomeScreen(bottom: PaddingValues, onStart: (Routine) -> Unit) {
+fun HomeScreen(bottom: PaddingValues, onStart: (Routine) -> Unit, onEdit: (String?) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val done = remember { Prefs.workouts() }
     LazyColumn(
@@ -131,6 +132,20 @@ fun HomeScreen(bottom: PaddingValues, onStart: (Routine) -> Unit) {
         }
         item {
             Appear(ROUTINES.size + 1) {
+                Text("Tuyas", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 6.dp))
+            }
+        }
+        itemsIndexed(Prefs.myRoutines, key = { _, m -> m.id }) { i, m ->
+            val r = m.routine()
+            Appear(ROUTINES.size + 2 + i) { RoutineCard(r, onEdit = { onEdit(m.id) }) { onStart(r) } }
+        }
+        item {
+            Appear(ROUTINES.size + 2 + Prefs.myRoutines.size) {
+                CreateCard("Crear rutina", "Elige tus movimientos, el descanso y las rondas.") { onEdit(null) }
+            }
+        }
+        item {
+            Appear(ROUTINES.size + 3 + Prefs.myRoutines.size) {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(cs.surfaceContainerHigh).padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -145,12 +160,19 @@ fun HomeScreen(bottom: PaddingValues, onStart: (Routine) -> Unit) {
 }
 
 @Composable
-private fun RoutineCard(r: Routine, onClick: () -> Unit) {
+private fun RoutineCard(r: Routine, onEdit: (() -> Unit)? = null, onClick: () -> Unit) {
     val (level, bg, fg) = levelOf(r.level)
     FitCard(color = bg, onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(level.uppercase(), style = MaterialTheme.typography.labelLarge, color = fg.copy(alpha = 0.75f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text((if (onEdit != null) "Tuya · " else "") + level.uppercase(), style = MaterialTheme.typography.labelLarge, color = fg.copy(alpha = 0.75f))
+                    if (onEdit != null) {
+                        androidx.compose.material3.IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
+                            Icon(androidx.compose.material.icons.Icons.Rounded.Edit, "Editar", tint = fg, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(r.name, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = DisplayFont), color = fg)
                 Spacer(Modifier.height(4.dp))

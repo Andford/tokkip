@@ -106,6 +106,7 @@ object TokkipNotifier {
     const val CH_STREAK = "tk_streaks"
     const val CH_MONEY = "tk_money"
     const val CH_SCREEN = "tk_screen"
+    const val CH_FIT = "tk_fit"
     const val EXTRA_KIND = "kind"
     const val EXTRA_ID = "id"
     const val EXTRA_TITLE = "title"
@@ -136,6 +137,7 @@ object TokkipNotifier {
                 channel(context, CH_STREAK, "Rachas", "Los recordatorios de tus hábitos", NotificationManager.IMPORTANCE_DEFAULT, mx.loperstack.tokkip.shared.R.raw.notif_streak),
                 channel(context, CH_MONEY, "Pagos y deudas", "Antes de la fecha de tus pagos", NotificationManager.IMPORTANCE_HIGH, mx.loperstack.tokkip.shared.R.raw.notif_money),
                 channel(context, CH_SCREEN, "Pantalla", "Cuando llevas mucho rato de scroll", NotificationManager.IMPORTANCE_DEFAULT, mx.loperstack.tokkip.shared.R.raw.notif_screen),
+                channel(context, CH_FIT, "Tokkip Fit", "Tokkip festeja tus entrenamientos", NotificationManager.IMPORTANCE_DEFAULT, mx.loperstack.tokkip.shared.R.raw.notif_streak),
             ),
         )
     }
@@ -379,6 +381,7 @@ object TokkipNotifier {
         NIGHT(0xFF1E1B4B.toInt(), 0xFF4C1D95.toInt(), 0xFFA78BFA.toInt()),
         STREAK(0xFFFED7AA.toInt(), 0xFFFBCFE8.toInt(), 0xFFEA580C.toInt()),
         MONEY(0xFFBBF7D0.toInt(), 0xFFBAE6FD.toInt(), 0xFF059669.toInt()),
+        FIT(0xFF99F6E4.toInt(), 0xFFFDE68A.toInt(), 0xFF0F766E.toInt()),
     }
 
     /** The card shown when the notification opens up: a soft gradient, Tokkip and the words. */
@@ -441,6 +444,28 @@ object TokkipNotifier {
             .setAutoCancel(true)
         action?.let { (label, pi) -> b.addAction(0, label, pi) }
         runCatching { context.getSystemService(NotificationManager::class.java).notify(id, b.build()) }
+    }
+
+    /** A workout you finished in Tokkip Fit (data/FitProvider.kt): he celebrates it. */
+    fun cheerWorkout(context: Context, d: mx.loperstack.tokkip.fit.Done) {
+        channels(context)
+        val min = ((d.seconds + 30) / 60).coerceAtLeast(1)
+        val km = if (d.meters >= 100) " · " + String.format(java.util.Locale.US, "%.1f km", d.meters / 1000.0) else ""
+        val line = when (d.kind) {
+            "run" -> "¡Qué carrera! $min min$km. Yo me cansé nada más de verte."
+            "walk" -> "Buena caminata: $min min$km. Paso a pasito se llega lejos."
+            "bike" -> "¡A rodar! $min min$km en bici."
+            "gym" -> "¡Fierro! $min min de gym${if (d.sets > 0) " y ${d.sets} series" else ""}. Ya se te notan los músculos."
+            "breathe" -> "$min min respirando conmigo. Qué paz, ¿no?"
+            "stretch" -> "$min min estirando. Tu cuerpo te lo agradece."
+            else -> "¡Lo hiciste! $min min de ${d.name}. Estoy orgullosísimo."
+        }
+        post(
+            context, 9100, CH_FIT, title = d.name, text = line,
+            // Up to two workouts a day give cariño (data/Growth.kt).
+            sub = if (Store.state.value.fit.count { mx.loperstack.tokkip.data.dayKey(it.at) == mx.loperstack.tokkip.data.dayKey(d.at) } <= 2) "Tokkip Fit · +3 de cariño" else "Tokkip Fit",
+            theme = Theme.FIT, face = TokkipEngine.Eye.STAR, open = openApp(context, "home"),
+        )
     }
 
     /** A sample of each, from Ajustes. */

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.SkipNext
@@ -105,7 +106,7 @@ import kotlin.math.roundToInt
 val FREE_PLAN = GymPlan("libre", "Sesión libre", "Agrega los ejercicios que vayas haciendo.", emptyList())
 
 @Composable
-fun GymScreen(bottom: PaddingValues, onStart: (GymPlan) -> Unit) {
+fun GymScreen(bottom: PaddingValues, onStart: (GymPlan) -> Unit, onEdit: (String?) -> Unit) {
     val cs = MaterialTheme.colorScheme
     val recs = remember { records(Prefs.gymSets()).values.sortedByDescending { it.best.at }.take(8) }
     LazyColumn(
@@ -138,6 +139,33 @@ fun GymScreen(bottom: PaddingValues, onStart: (GymPlan) -> Unit) {
                         }
                     }
                 }
+            }
+        }
+        if (Prefs.myPlans.isNotEmpty()) item {
+            Appear(GYM_PLANS.size + 1) { Text("Tuyos", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 6.dp)) }
+        }
+        items(Prefs.myPlans, key = { it.id }) { p ->
+            FitCard(color = cs.secondaryContainer, onClick = { onStart(p) }) {
+                val fg = cs.onSecondaryContainer
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(p.name, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = DisplayFont), color = fg)
+                        Text(p.about, style = MaterialTheme.typography.bodyMedium, color = fg.copy(alpha = 0.85f))
+                        Spacer(Modifier.height(8.dp))
+                        Text("${p.lifts.size} ejercicios · ${p.sets}×${p.reps} · descanso ${p.restSeconds} s", style = MaterialTheme.typography.labelLarge, color = fg.copy(alpha = 0.8f))
+                    }
+                    androidx.compose.material3.IconButton(onClick = { onEdit(p.id) }) {
+                        Icon(Icons.Rounded.Edit, "Editar", tint = fg)
+                    }
+                    Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+                        Tokkip(Modifier.size(72.dp, 64.dp), color = Color(Prefs.color), exercise = lift(p.lifts.first())?.move ?: Exercise.LIFT, tempo = 0.8f)
+                    }
+                }
+            }
+        }
+        item {
+            Appear(GYM_PLANS.size + 1) {
+                CreateCard("Crear plan", "Tus ejercicios, con sus series, repeticiones y descanso.") { onEdit(null) }
             }
         }
         item {

@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.DirectionsRun
 import androidx.compose.material.icons.rounded.EditNote
 import androidx.compose.material.icons.rounded.FamilyRestroom
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Lock
@@ -131,6 +132,7 @@ private fun careIcon(c: Care): ImageVector = when (c) {
     Care.SUENO -> Icons.Rounded.Bedtime
     Care.FINANZAS -> Icons.Rounded.Savings
     Care.PANTALLA -> Icons.Rounded.PhoneAndroid
+    Care.EJERCICIO -> Icons.Rounded.FitnessCenter
 }
 
 private fun careHow(c: Care): String = when (c) {
@@ -141,6 +143,7 @@ private fun careHow(c: Care): String = when (c) {
     Care.SUENO -> "+1 al registrar tu noche, +2 si cumples tu meta"
     Care.FINANZAS -> "+2 el día que anotas tus gastos o ingresos"
     Care.PANTALLA -> "+3 cada día que te quedas dentro de tu meta de scroll"
+    Care.EJERCICIO -> "+3 por entrenamiento en Tokkip Fit (hasta 6 al día)"
 }
 
 /** The growth and the note of the day, recomputed when your history changes (and each hour). */

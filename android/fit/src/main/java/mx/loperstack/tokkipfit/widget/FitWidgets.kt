@@ -57,7 +57,6 @@ import androidx.glance.text.TextStyle
 import mx.loperstack.tokkip.character.Mood
 import mx.loperstack.tokkip.character.TokkipEngine
 import mx.loperstack.tokkip.character.tokkipBitmap
-import mx.loperstack.tokkip.fit.routine
 import mx.loperstack.tokkip.fit.weekChallenge
 import mx.loperstack.tokkipfit.MainActivity
 import mx.loperstack.tokkipfit.data.HealthData
@@ -191,7 +190,7 @@ class TrainWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         Prefs.init(context)
-        val last = Prefs.workouts().firstOrNull { routine(it.routine) != null }?.let { routine(it.routine) }
+        val last = Prefs.workouts().firstOrNull { Prefs.routine(it.routine) != null }?.let { Prefs.routine(it.routine) }
         provideContent { TrainContent(context, last) }
     }
 }

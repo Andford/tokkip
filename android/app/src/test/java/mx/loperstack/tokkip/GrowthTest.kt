@@ -46,6 +46,13 @@ class GrowthTest {
         assertEquals(Care.RACHAS.cap + Care.RESPIRAR.cap, g.today)
     }
 
+    @Test fun workoutsFromFitGiveCarino() {
+        val g = growth(Routine(workouts = listOf(ago(0, 7), ago(0, 12), ago(0, 19), ago(1))), now)
+        // Three a day, two count; yesterday's another three.
+        assertEquals(Care.EJERCICIO.cap + 3, g.byCare[Care.EJERCICIO])
+        assertEquals(Care.EJERCICIO.cap, g.today)
+    }
+
     @Test fun diarySleepAndMoodAddUp() {
         val long = (1..45).joinToString(" ") { "palabra" }
         val r = Routine(logs = listOf(log(1, 4, long)), nights = listOf(Night(day(1), 480)), sleepGoalMin = 480)

@@ -20,6 +20,11 @@ object Prefs {
     /** Wear the Tokkip app's look (when it's installed). */
     var follow by mutableStateOf(true)
     var sounds by mutableStateOf(true)
+    /** Tell the Tokkip app about each workout (he celebrates it there, and it gives him cariño). */
+    var tellTokkip by mutableStateOf(true)
+    /** Your own routines (En casa) and plans (Gym), newest first. */
+    var myRoutines by mutableStateOf<List<mx.loperstack.tokkip.fit.MyRoutine>>(emptyList())
+    var myPlans by mutableStateOf<List<mx.loperstack.tokkip.fit.GymPlan>>(emptyList())
     val color: Long get() = look.color
     private var ctx: Context? = null
 
@@ -33,6 +38,9 @@ object Prefs {
             ?: Look(color = p.getLong("color", 0xFFF5F6F8), species = p.getString("species", null) ?: "CONEJO")
         follow = p.getBoolean("follow", true)
         sounds = p.getBoolean("sounds", true)
+        tellTokkip = p.getBoolean("tell_tokkip", true)
+        myRoutines = mx.loperstack.tokkip.fit.MyRoutine.list(p.getString("my_routines", null))
+        myPlans = mx.loperstack.tokkip.fit.MyPlans.list(p.getString("my_plans", null))
         Sounds.enabled = sounds
         refreshLook()
     }
@@ -43,6 +51,7 @@ object Prefs {
         if (follow) Look.fromTokkip(c)?.let { look = it }
         look.apply()
         Wrist.pushLook(c, look)
+        Wrist.pushMine(c, myRoutines)
     }
 
     /** Whether the Tokkip app is there to follow. */
@@ -65,6 +74,44 @@ object Prefs {
         follow = on
         ctx?.let { prefs(it).edit().putBoolean("follow", on).apply() }
         refreshLook()
+    }
+
+    fun setTellTokkip(on: Boolean) {
+        tellTokkip = on
+        ctx?.let { prefs(it).edit().putBoolean("tell_tokkip", on).apply() }
+    }
+
+    /** A routine to play: one of Fit's or one of yours. */
+    fun routine(id: String): mx.loperstack.tokkip.fit.Routine? =
+        mx.loperstack.tokkip.fit.routine(id) ?: myRoutines.firstOrNull { it.id == id }?.routine()
+
+    fun plan(id: String): mx.loperstack.tokkip.fit.GymPlan? =
+        mx.loperstack.tokkip.fit.gymPlan(id) ?: myPlans.firstOrNull { it.id == id }
+
+    /** Saves a routine of yours (new or edited); the watch gets them too. */
+    fun saveRoutine(r: mx.loperstack.tokkip.fit.MyRoutine) {
+        val c = r.clean()
+        myRoutines = listOf(c) + myRoutines.filter { it.id != c.id }
+        storeMine()
+    }
+
+    fun deleteRoutine(id: String) { myRoutines = myRoutines.filter { it.id != id }; storeMine() }
+
+    fun savePlan(p: mx.loperstack.tokkip.fit.GymPlan) {
+        val c = p.clean()
+        myPlans = listOf(c) + myPlans.filter { it.id != c.id }
+        storeMine()
+    }
+
+    fun deletePlan(id: String) { myPlans = myPlans.filter { it.id != id }; storeMine() }
+
+    private fun storeMine() {
+        val c = ctx ?: return
+        prefs(c).edit()
+            .putString("my_routines", mx.loperstack.tokkip.fit.MyRoutine.json(myRoutines))
+            .putString("my_plans", mx.loperstack.tokkip.fit.MyPlans.json(myPlans))
+            .apply()
+        Wrist.pushMine(c, myRoutines)
     }
 
     /** Every gym set, oldest first (the last 4,000): records and the weight to suggest come from here. */
@@ -114,5 +161,6 @@ object Prefs {
         val c = ctx ?: return
         val list = (listOf(d) + workouts()).take(200)
         prefs(c).edit().putString("done", Done.json(list)).apply()
+        if (tellTokkip) TokkipNotice.tell(c, d)
     }
 }

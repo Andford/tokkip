@@ -45,6 +45,8 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
 
     <queries>
+        <!-- Tokkip Fit, to check it's signed like Tokkip when it tells him about a workout. -->
+        <package android:name="mx.loperstack.tokkipfit" />
         <!-- Hold to talk with Tokkip: the phone's speech recognition. -->
         <intent>
             <action android:name="android.speech.RecognitionService" />
@@ -267,6 +269,12 @@
             android:authorities="mx.loperstack.tokkip.look"
             android:exported="true"
             android:readPermission="mx.loperstack.tokkip.permission.READ_LOOK" />
+
+        <!-- Tokkip Fit tells him about your workouts; only apps signed with the same key (data/FitProvider.kt). -->
+        <provider
+            android:name=".data.FitProvider"
+            android:authorities="mx.loperstack.tokkip.fit"
+            android:exported="true" />
 
         <!-- Sharing the diary's day as an image. -->
         <provider

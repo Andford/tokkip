@@ -126,6 +126,29 @@ object WatchLook {
     }
 }
 
+/** Your own routines, made on the phone (shared fit/Custom.kt). */
+object WatchMine {
+    var routines by mutableStateOf<List<mx.loperstack.tokkip.fit.MyRoutine>>(emptyList())
+
+    fun load(context: Context) {
+        routines = mx.loperstack.tokkip.fit.MyRoutine.list(context.getSharedPreferences("fitwear", Context.MODE_PRIVATE).getString("mine", null))
+    }
+
+    fun save(context: Context, json: String) {
+        routines = mx.loperstack.tokkip.fit.MyRoutine.list(json)
+        context.getSharedPreferences("fitwear", Context.MODE_PRIVATE).edit().putString("mine", json).apply()
+    }
+
+    suspend fun fetch(context: Context) {
+        runCatching {
+            val items = Wearable.getDataClient(context).getDataItems(Uri.parse("wear://*${mx.loperstack.tokkip.fit.FIT_MINE_PATH}")).await()
+            val raw = items.firstOrNull()?.let { DataMapItem.fromDataItem(it).dataMap.getString("json") }
+            items.release()
+            raw?.let { save(context, it) }
+        }
+    }
+}
+
 class LookListener : WearableListenerService() {
     override fun onDataChanged(events: DataEventBuffer) {
         for (e in events) {
@@ -134,6 +157,7 @@ class LookListener : WearableListenerService() {
             when (e.dataItem.uri.path) {
                 Look.FIT_LOOK_PATH -> Look.parse(json)?.let { WatchLook.save(this, it) }
                 "/tokkipfit/today" -> Rings.save(this, json)
+                mx.loperstack.tokkip.fit.FIT_MINE_PATH -> WatchMine.save(this, json)
             }
         }
     }
@@ -145,9 +169,10 @@ class FitWearActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WatchLook.load(this)
+        WatchMine.load(this)
         Sounds.init(this)
         setContent {
-            LaunchedEffect(Unit) { WatchLook.fetch(this@FitWearActivity) }
+            LaunchedEffect(Unit) { WatchLook.fetch(this@FitWearActivity); WatchMine.fetch(this@FitWearActivity) }
             MaterialTheme(colors = FitColors) { FitWatch(onTrain = { on -> keepOn(on); if (on) askHeart() }, askGps = { askGps() }) }
         }
     }
@@ -220,6 +245,18 @@ private fun Routines(onPick: (Routine) -> Unit, onCardio: (Sport) -> Unit, onBre
         item {
             Chip(onClick = onRest, label = { Text("Descanso del gym", fontWeight = FontWeight.Bold) }, secondaryLabel = { Text("Cuenta tus series y descansos") },
                 colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF2A2D33)), modifier = Modifier.fillMaxWidth())
+        }
+        if (WatchMine.routines.isNotEmpty()) {
+            item { Text("Tuyas", fontSize = 12.sp, color = Lime, fontWeight = FontWeight.Bold) }
+            items(WatchMine.routines.map { it.routine() }) { r ->
+                Chip(
+                    onClick = { onPick(r) },
+                    label = { Text(r.name, fontWeight = FontWeight.Bold) },
+                    secondaryLabel = { Text("${r.minutes} min · ${r.moves} movimientos") },
+                    colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF1E2A1C)),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         item { Text("En casa", fontSize = 12.sp, color = Lime, fontWeight = FontWeight.Bold) }
         items(ROUTINES) { r ->
