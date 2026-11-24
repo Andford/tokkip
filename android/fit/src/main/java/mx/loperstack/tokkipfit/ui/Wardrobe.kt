@@ -120,7 +120,7 @@ fun WardrobeScreen(onBack: () -> Unit) {
     val tokkipThere = remember { Prefs.tokkipAround() }
     var jump by remember { mutableIntStateOf(0) }
     fun set(l: Look, loud: Boolean = true) {
-        Prefs.setLook(l)
+        Prefs.changeLook(l)
         if (loud) { jump++; Sounds.play("pop"); Haptics.tick(context) }
     }
 
@@ -150,7 +150,7 @@ fun WardrobeScreen(onBack: () -> Unit) {
                                 style = MaterialTheme.typography.bodyMedium, color = cs.onTertiaryContainer.copy(alpha = 0.85f),
                             )
                         }
-                        Switch(Prefs.follow, { Prefs.setFollow(it); jump++; Sounds.play("pop") })
+                        Switch(Prefs.follow, { Prefs.followTokkip(it); jump++; Sounds.play("pop") })
                     }
                 }
             }

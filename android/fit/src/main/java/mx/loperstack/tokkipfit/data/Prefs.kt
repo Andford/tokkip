@@ -55,13 +55,13 @@ object Prefs {
     }
 
     /** A change of look made here: Fit keeps its own from now on. */
-    fun setLook(l: Look) {
+    fun changeLook(l: Look) {
         look = l; follow = false
         l.apply()
         ctx?.let { prefs(it).edit().putString("look", l.json()).putBoolean("follow", false).apply(); Wrist.pushLook(it, l) }
     }
 
-    fun setFollow(on: Boolean) {
+    fun followTokkip(on: Boolean) {
         follow = on
         ctx?.let { prefs(it).edit().putBoolean("follow", on).apply() }
         refreshLook()
