@@ -75,17 +75,27 @@ data class Done(
     val kcal: Double,
     /** Average heart rate from the watch, 0 if none. */
     val bpm: Int = 0,
+    /** hiit, strength, stretch (En casa); gym; run, walk, bike (Cardio); breathe (Respira). */
     val kind: String = "hiit",
     /** "phone" or "watch". */
     val from: String = "phone",
+    /** Cardio: metres covered. */
+    val meters: Double = 0.0,
+    /** Gym: sets done, and the weight moved (kg × reps). */
+    val sets: Int = 0,
+    val volume: Double = 0.0,
 ) {
+    val minutes get() = (seconds / 60.0)
+
     fun toJson(): JSONObject = JSONObject().put("at", at).put("routine", routine).put("name", name).put("seconds", seconds)
         .put("kcal", kcal).put("bpm", bpm).put("kind", kind).put("from", from)
+        .put("meters", meters).put("sets", sets).put("volume", volume)
 
     companion object {
         fun of(o: JSONObject) = Done(
             o.optLong("at"), o.optString("routine"), o.optString("name"), o.optInt("seconds"),
             o.optDouble("kcal", 0.0), o.optInt("bpm", 0), o.optString("kind", "hiit"), o.optString("from", "phone"),
+            o.optDouble("meters", 0.0), o.optInt("sets", 0), o.optDouble("volume", 0.0),
         )
 
         fun list(raw: String?): List<Done> = runCatching {

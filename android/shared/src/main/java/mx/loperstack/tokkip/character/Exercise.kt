@@ -11,5 +11,6 @@ enum class Exercise(val label: String) {
     RUN("Rodillas arriba"),
     PUNCH("Golpes al aire"),
     STRETCH("Estiramiento"),
+    LIFT("Levantar"),
     REST("Descanso"),
 }

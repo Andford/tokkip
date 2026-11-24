@@ -84,6 +84,7 @@ import mx.loperstack.tokkip.character.TokkipEngine
 import mx.loperstack.tokkip.fit.Done
 import mx.loperstack.tokkip.fit.FIT_DONE_PATH
 import mx.loperstack.tokkip.fit.ROUTINES
+import mx.loperstack.tokkip.fit.Sport
 import mx.loperstack.tokkip.fit.Routine
 import mx.loperstack.tokkip.fit.at
 import mx.loperstack.tokkip.fit.kcal
@@ -128,8 +129,11 @@ object WatchLook {
 class LookListener : WearableListenerService() {
     override fun onDataChanged(events: DataEventBuffer) {
         for (e in events) {
-            if (e.type == DataEvent.TYPE_CHANGED && e.dataItem.uri.path == Look.FIT_LOOK_PATH) {
-                Look.parse(DataMapItem.fromDataItem(e.dataItem).dataMap.getString("json"))?.let { WatchLook.save(this, it) }
+            if (e.type != DataEvent.TYPE_CHANGED) continue
+            val json = DataMapItem.fromDataItem(e.dataItem).dataMap.getString("json") ?: continue
+            when (e.dataItem.uri.path) {
+                Look.FIT_LOOK_PATH -> Look.parse(json)?.let { WatchLook.save(this, it) }
+                "/tokkipfit/today" -> Rings.save(this, json)
             }
         }
     }
@@ -144,12 +148,18 @@ class FitWearActivity : ComponentActivity() {
         Sounds.init(this)
         setContent {
             LaunchedEffect(Unit) { WatchLook.fetch(this@FitWearActivity) }
-            MaterialTheme(colors = FitColors) { FitWatch(onTrain = { on -> keepOn(on); if (on) askHeart() }) }
+            MaterialTheme(colors = FitColors) { FitWatch(onTrain = { on -> keepOn(on); if (on) askHeart() }, askGps = { askGps() }) }
         }
     }
 
     private fun keepOn(on: Boolean) {
         if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    private fun askGps() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ask.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        }
     }
 
     private fun askHeart() {
@@ -158,18 +168,32 @@ class FitWearActivity : ComponentActivity() {
     }
 }
 
+/** What the watch is doing: choosing, a routine, cardio, breathing or a rest timer. */
+private sealed interface Mode {
+    data object Menu : Mode
+    data class Play(val r: Routine) : Mode
+    data class Run(val sport: Sport) : Mode
+    data object Breathe : Mode
+    data object Rest : Mode
+}
+
 @Composable
-private fun FitWatch(onTrain: (Boolean) -> Unit) {
-    var playing by remember { mutableStateOf<Routine?>(null) }
-    val r = playing
+private fun FitWatch(onTrain: (Boolean) -> Unit, askGps: () -> Unit) {
+    var mode by remember { mutableStateOf<Mode>(Mode.Menu) }
+    fun go(m: Mode) { mode = m; onTrain(m != Mode.Menu); if (m is Mode.Run) askGps() }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        if (r == null) Routines { playing = it; onTrain(true) }
-        else Player(r) { playing = null; onTrain(false) }
+        when (val m = mode) {
+            Mode.Menu -> Routines(onPick = { go(Mode.Play(it)) }, onCardio = { go(Mode.Run(it)) }, onBreathe = { go(Mode.Breathe) }, onRest = { go(Mode.Rest) })
+            is Mode.Play -> Player(m.r) { go(Mode.Menu) }
+            is Mode.Run -> CardioWatch(m.sport) { go(Mode.Menu) }
+            Mode.Breathe -> BreatheWatch { go(Mode.Menu) }
+            Mode.Rest -> RestWatch { go(Mode.Menu) }
+        }
     }
 }
 
 @Composable
-private fun Routines(onPick: (Routine) -> Unit) {
+private fun Routines(onPick: (Routine) -> Unit, onCardio: (Sport) -> Unit, onBreathe: () -> Unit, onRest: () -> Unit) {
     val state = rememberScalingLazyListState()
     ScalingLazyColumn(Modifier.fillMaxSize(), state = state, horizontalAlignment = Alignment.CenterHorizontally) {
         item {
@@ -179,6 +203,25 @@ private fun Routines(onPick: (Routine) -> Unit) {
                 Text("¿Qué hacemos hoy?", fontSize = 12.sp, color = Color.White.copy(alpha = 0.7f))
             }
         }
+        item { Text("Cardio con GPS", fontSize = 12.sp, color = Teal, fontWeight = FontWeight.Bold) }
+        items(Sport.entries) { sp ->
+            Chip(
+                onClick = { onCardio(sp) },
+                label = { Text(sp.label, fontWeight = FontWeight.Bold) },
+                secondaryLabel = { Text("Ruta, ritmo y pulso") },
+                colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF15302C)),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            Chip(onClick = onBreathe, label = { Text("Respira", fontWeight = FontWeight.Bold) }, secondaryLabel = { Text("Calma 4·6, 3 min") },
+                colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF242A44)), modifier = Modifier.fillMaxWidth())
+        }
+        item {
+            Chip(onClick = onRest, label = { Text("Descanso del gym", fontWeight = FontWeight.Bold) }, secondaryLabel = { Text("Cuenta tus series y descansos") },
+                colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF2A2D33)), modifier = Modifier.fillMaxWidth())
+        }
+        item { Text("En casa", fontSize = 12.sp, color = Lime, fontWeight = FontWeight.Bold) }
         items(ROUTINES) { r ->
             Chip(
                 onClick = { onPick(r) },

@@ -67,6 +67,46 @@ object Prefs {
         refreshLook()
     }
 
+    /** Every gym set, oldest first (the last 4,000): records and the weight to suggest come from here. */
+    fun gymSets(): List<mx.loperstack.tokkip.fit.GymSet> = ctx?.let { mx.loperstack.tokkip.fit.GymSet.list(prefs(it).getString("gym_sets", null)) } ?: emptyList()
+
+    fun addGymSet(s: mx.loperstack.tokkip.fit.GymSet) {
+        val c = ctx ?: return
+        val list = (gymSets() + s).takeLast(4_000)
+        prefs(c).edit().putString("gym_sets", mx.loperstack.tokkip.fit.GymSet.json(list)).apply()
+    }
+
+    /** Records beaten so far (for the "Récord" badge). */
+    var recordsBeaten: Int
+        get() = ctx?.let { prefs(it).getInt("records_beaten", 0) } ?: 0
+        set(v) { ctx?.let { prefs(it).edit().putInt("records_beaten", v).apply() } }
+
+    /** The routes of the last cardio sessions, by when they ended (for their summaries). */
+    fun saveRoute(at: Long, points: List<mx.loperstack.tokkip.fit.Point>) {
+        val c = ctx ?: return
+        val a = org.json.JSONArray()
+        // Every other point past 2,000 is plenty for a drawing.
+        val step = if (points.size > 2_000) points.size / 2_000 + 1 else 1
+        points.filterIndexed { i, _ -> i % step == 0 }.forEach { a.put(org.json.JSONArray().put(it.lat).put(it.lon)) }
+        val p = prefs(c)
+        val keys = (p.getString("routes", "") ?: "").split(',').filter { it.isNotBlank() }
+        val keep = (keys + "$at").takeLast(20)
+        val e = p.edit()
+        for (k in keys - keep.toSet()) e.remove("route_$k")
+        e.putString("route_$at", a.toString()).putString("routes", keep.joinToString(",")).apply()
+    }
+
+    fun route(at: Long): List<Pair<Double, Double>> = ctx?.let { c ->
+        runCatching {
+            val a = org.json.JSONArray(prefs(c).getString("route_$at", null) ?: return@let emptyList())
+            (0 until a.length()).map { a.getJSONArray(it).let { p -> p.getDouble(0) to p.getDouble(1) } }
+        }.getOrDefault(emptyList())
+    } ?: emptyList()
+
+    /** Hoy as last read, for the widgets and the watch (they can't always ask Health Connect). */
+    fun saveToday(json: String) { ctx?.let { prefs(it).edit().putString("today", json).apply() } }
+    fun savedToday(): String? = ctx?.let { prefs(it).getString("today", null) }
+
     /** The workouts done in Fit, newest first (at most 200): they feed the history and Hoy. */
     fun workouts(): List<Done> = ctx?.let { Done.list(prefs(it).getString("done", null)) } ?: emptyList()
 

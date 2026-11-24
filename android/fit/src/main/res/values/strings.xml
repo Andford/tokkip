@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Tokkip Fit</string>
+    <string name="widget_rings">Tus anillos</string>
+    <string name="widget_rings_desc">Tokkip dentro de tus anillos de hoy, con tu racha</string>
+    <string name="widget_train">Entrena</string>
+    <string name="widget_train_desc">Un toque para entrenar con Tokkip: casa, gym, cardio o respirar</string>
 </resources>

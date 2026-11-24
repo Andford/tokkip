@@ -14,6 +14,9 @@
 - **El Tokkip de la app de Tokkip:** si quieres el mismo Tokkip, Fit lee su look
   (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque
   las dos están firmadas con la misma llave.
+- **Tu ubicación (Cardio):** solo mientras corres, caminas o pedaleas, para
+  dibujar tu ruta y medir la distancia. Se queda en tu teléfono y, si lo
+  permites, en Health Connect con el entrenamiento.
 - **Cómo quitarle el acceso:** en Health Connect → Permisos de apps → Tokkip
   Fit. Puedes quitar cualquier permiso o borrar lo que Fit haya escrito.
 

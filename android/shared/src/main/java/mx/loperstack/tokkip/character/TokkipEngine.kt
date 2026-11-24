@@ -1002,6 +1002,7 @@ class TokkipEngine {
         Exercise.SQUAT, Exercise.PLANK -> Face(Eye.SQUINT, Lips.GRIN, brow = 0.5f, blush = 0.35f)
         Exercise.JUMP, Exercise.RUN -> Face(Eye.HAPPY, Lips.OPEN, blush = 0.4f)
         Exercise.PUNCH -> Face(Eye.OPEN, Lips.GRIN, brow = 0.6f, blush = 0.25f)
+        Exercise.LIFT -> Face(Eye.SQUINT, Lips.GRIN, brow = 0.7f, blush = 0.45f)
         Exercise.STRETCH -> Face(Eye.CLOSED, Lips.SMILE, blush = 0.2f)
         Exercise.REST -> Face(Eye.OPEN, Lips.OPEN, blush = 0.5f)
     }
@@ -1073,6 +1074,19 @@ class TokkipEngine {
                     d.pawL = P(-64f, -40f, 0f); d.pawLw = hit * k
                     d.pawR = P(58f, -20f, -0.3f); d.pawRw = guard
                 }
+            }
+            // Lifting a weight: both paws push up over his head and come back, every 2.4 s.
+            Exercise.LIFT -> {
+                val up = (1f - cos(TWO_PI * s / 2.4f)) / 2f
+                val strain = sin(s * 31f) * 0.004f * up
+                d.sy += (0.05f * up - 0.04f * (1f - up)) * k
+                d.sx -= 0.03f * up * k
+                d.x += strain * k
+                d.earL -= 12f * up * k
+                d.earR += 12f * up * k
+                val y = -20f - 104f * up
+                d.pawL = P(-78f, y, -0.2f); d.pawLw = k
+                d.pawR = P(78f, y, 0.2f); d.pawRw = k
             }
             // A slow side bend each way, one arm overhead.
             Exercise.STRETCH -> {

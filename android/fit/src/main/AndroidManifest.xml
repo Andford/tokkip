@@ -13,6 +13,16 @@
     <!-- Its own workouts, written back so Samsung Health and Fitbit see them. -->
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
     <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE_ROUTE" />
+    <!-- So the widgets can read Hoy while Fit isn't open (optional). -->
+    <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
+    <!-- Cardio with GPS: following your route, also with the screen off. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- The Tokkip app's look, when you want the same Tokkip (only apps with Tokkip's key). -->
     <permission
         android:name="mx.loperstack.tokkip.permission.READ_LOOK"
@@ -58,6 +68,22 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+        <!-- Cardio with GPS (data/CardioService.kt). -->
+        <service
+            android:name=".data.CardioService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
+
+        <!-- Home screen widgets (widget/FitWidgets.kt). -->
+        <receiver android:name=".widget.RingsWidgetReceiver" android:exported="true" android:label="@string/widget_rings">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_rings" />
+        </receiver>
+        <receiver android:name=".widget.TrainWidgetReceiver" android:exported="true" android:label="@string/widget_train">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_train" />
+        </receiver>
+
         <!-- Workouts finished on the watch (data/Wrist.kt). -->
         <service
             android:name=".data.FitWristService"

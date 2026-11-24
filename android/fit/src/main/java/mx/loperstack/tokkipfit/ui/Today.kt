@@ -79,7 +79,7 @@ import kotlin.math.roundToInt
 private val Spanish = Locale.forLanguageTag("es-MX")
 
 @Composable
-fun TodayScreen(today: Today, bottom: PaddingValues, onConnect: () -> Unit, onSettings: () -> Unit, onRefresh: () -> Unit) {
+fun TodayScreen(today: Today, bottom: PaddingValues, onConnect: () -> Unit, onSettings: () -> Unit, onRefresh: () -> Unit, onBadges: () -> Unit = {}) {
     val fit = LocalFit.current
     val cs = MaterialTheme.colorScheme
     val vibe = vibeOf(today, LocalTime.now().hour)
@@ -124,6 +124,7 @@ fun TodayScreen(today: Today, bottom: PaddingValues, onConnect: () -> Unit, onSe
         }
         item { Appear(5) { Week(today) } }
         item { Appear(6) { ChallengeCard(today) } }
+        item { Appear(7) { WeekCard(today, onBadges) } }
     }
 }
 

@@ -27,6 +27,14 @@ object Wrist {
         pending = Runnable { send(app, look) }.also { main.postDelayed(it, 700) }
     }
 
+    /** Hoy's numbers for the watch's tile and complication. */
+    fun pushToday(context: Context, json: String) {
+        runCatching {
+            val req = PutDataMapRequest.create(Snapshot.PATH).apply { dataMap.putString("json", json) }.asPutDataRequest()
+            Wearable.getDataClient(context.applicationContext).putDataItem(req)
+        }
+    }
+
     private fun send(context: Context, look: Look) {
         runCatching {
             val req = PutDataMapRequest.create(Look.FIT_LOOK_PATH).apply {
@@ -41,10 +49,17 @@ object Wrist {
 class FitWristService : WearableListenerService() {
     override fun onMessageReceived(event: MessageEvent) {
         if (event.path != FIT_DONE_PATH) return
-        val done = runCatching { Done.of(JSONObject(String(event.data))) }.getOrNull() ?: return
+        val o = runCatching { JSONObject(String(event.data)) }.getOrNull() ?: return
+        val done = runCatching { Done.of(o) }.getOrNull() ?: return
+        // Cardio from the watch brings its route: [[lat, lon, t]…].
+        val route = runCatching {
+            val a = o.optJSONArray("route") ?: return@runCatching emptyList()
+            (0 until a.length()).map { a.getJSONArray(it).let { p -> mx.loperstack.tokkip.fit.Point(p.getDouble(0), p.getDouble(1), p.getLong(2)) } }
+        }.getOrDefault(emptyList())
         Prefs.init(this)
         if (Prefs.workouts().any { it.at == done.at && it.routine == done.routine }) return
         Prefs.addWorkout(done)
-        runBlocking { runCatching { HealthData.write(this@FitWristService, done) } }
+        if (route.isNotEmpty()) Prefs.saveRoute(done.at, route)
+        runBlocking { runCatching { HealthData.write(this@FitWristService, done, route) } }
     }
 }

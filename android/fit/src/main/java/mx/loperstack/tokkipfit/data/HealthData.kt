@@ -21,7 +21,9 @@ import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.metadata.Device
 import androidx.health.connect.client.records.metadata.Metadata
+import androidx.health.connect.client.records.ExerciseRoute
 import androidx.health.connect.client.units.Energy
+import androidx.health.connect.client.units.Length
 import mx.loperstack.tokkip.fit.Done
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -43,14 +45,18 @@ object HealthData {
 
     private val WRITE_EXERCISE = HealthPermission.getWritePermission(ExerciseSessionRecord::class)
     private val WRITE_KCAL = HealthPermission.getWritePermission(ActiveCaloriesBurnedRecord::class)
+    private val WRITE_DISTANCE = HealthPermission.getWritePermission(DistanceRecord::class)
+    private const val WRITE_ROUTE = HealthPermission.PERMISSION_WRITE_EXERCISE_ROUTE
+    /** So the widgets can read Hoy while Fit isn't open (optional). */
+    private const val BACKGROUND = HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
 
-    val PERMISSIONS = setOf(STEPS, DISTANCE, KCAL, EXERCISE, SLEEP, HEART, RESTING, WRITE_EXERCISE, WRITE_KCAL)
+    val PERMISSIONS = setOf(STEPS, DISTANCE, KCAL, EXERCISE, SLEEP, HEART, RESTING, WRITE_EXERCISE, WRITE_KCAL, WRITE_DISTANCE, WRITE_ROUTE, BACKGROUND)
 
     /**
      * Saves a workout done in Fit (phone or watch) as an exercise session and its active
      * calories. False if Health Connect isn't there or that permission wasn't given.
      */
-    suspend fun write(context: Context, d: Done): Boolean {
+    suspend fun write(context: Context, d: Done, route: List<mx.loperstack.tokkip.fit.Point> = emptyList()): Boolean {
         if (status(context) != Status.AVAILABLE) return false
         val granted = granted(context)
         if (WRITE_EXERCISE !in granted) return false
@@ -66,14 +72,34 @@ object HealthData {
         val type = when (d.kind) {
             "stretch" -> ExerciseSessionRecord.EXERCISE_TYPE_STRETCHING
             "strength" -> ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS
+            "gym" -> ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING
+            "run" -> ExerciseSessionRecord.EXERCISE_TYPE_RUNNING
+            "walk" -> ExerciseSessionRecord.EXERCISE_TYPE_WALKING
+            "bike" -> ExerciseSessionRecord.EXERCISE_TYPE_BIKING
+            "breathe" -> ExerciseSessionRecord.EXERCISE_TYPE_GUIDED_BREATHING
             else -> ExerciseSessionRecord.EXERCISE_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING
         }
+        val path = if (route.size >= 2 && WRITE_ROUTE in granted) ExerciseRoute(
+            route.filter { it.at in start.toEpochMilli()..end.toEpochMilli() }.map {
+                ExerciseRoute.Location(
+                    time = Instant.ofEpochMilli(it.at), latitude = it.lat, longitude = it.lon,
+                    horizontalAccuracy = Length.meters(it.accuracy.toDouble()), altitude = it.alt?.let { a -> Length.meters(a) },
+                )
+            },
+        ) else null
         val records = buildList<Record> {
             add(
                 ExerciseSessionRecord(
                     startTime = start, startZoneOffset = zone, endTime = end, endZoneOffset = zone,
                     metadata = Metadata.activelyRecorded(device),
                     exerciseType = type, title = "${d.name} · Tokkip Fit",
+                    exerciseRoute = path,
+                ),
+            )
+            if (d.meters > 0 && WRITE_DISTANCE in granted) add(
+                DistanceRecord(
+                    startTime = start, startZoneOffset = zone, endTime = end, endZoneOffset = zone,
+                    distance = Length.meters(d.meters), metadata = Metadata.activelyRecorded(device),
                 ),
             )
             if (d.kcal > 0.5 && WRITE_KCAL in granted) add(

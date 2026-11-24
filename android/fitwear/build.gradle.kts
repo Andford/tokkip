@@ -17,8 +17,8 @@ android {
         applicationId = "mx.loperstack.tokkipfit"
         minSdk = 33
         targetSdk = 35
-        versionCode = 200002
-        versionName = "0.2.0"
+        versionCode = 200005
+        versionName = "0.5.0"
     }
 
     signingConfigs {
@@ -62,6 +62,10 @@ dependencies {
     implementation("androidx.wear.compose:compose-material:1.4.0")
     implementation("androidx.wear.compose:compose-foundation:1.4.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.wear.tiles:tiles:1.4.1")
+    implementation("androidx.wear.protolayout:protolayout:1.2.1")
+    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1")
+    implementation("com.google.guava:guava:33.3.1-android")
 }
 
 kotlin {

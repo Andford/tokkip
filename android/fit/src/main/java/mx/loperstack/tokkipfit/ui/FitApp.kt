@@ -105,7 +105,7 @@ enum class Section(val label: String, val icon: ImageVector) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FitApp(startOnPrivacy: Boolean = false) {
+fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var section by rememberSaveable { mutableStateOf(Section.TODAY) }
@@ -114,11 +114,35 @@ fun FitApp(startOnPrivacy: Boolean = false) {
     var privacy by rememberSaveable { mutableStateOf(startOnPrivacy) }
     var wardrobe by rememberSaveable { mutableStateOf(false) }
     var playing by rememberSaveable { mutableStateOf<String?>(null) }
+    var gym by rememberSaveable { mutableStateOf<String?>(null) }
+    var cardio by rememberSaveable { mutableStateOf<String?>(null) }
+    var breathe by rememberSaveable { mutableStateOf<String?>(null) }
+    var breatheMin by rememberSaveable { mutableStateOf(3) }
+    var badgesOpen by rememberSaveable { mutableStateOf(false) }
+    // From a widget or the cardio notification: tokkipfit://home, gym, cardio, breathe, routine/<id>.
+    LaunchedEffect(link) {
+        val l = link ?: return@LaunchedEffect
+        when {
+            l.startsWith("routine/") -> playing = l.removePrefix("routine/")
+            l == "home" -> section = Section.HOME
+            l == "gym" -> section = Section.GYM
+            l == "cardio" -> section = Section.CARDIO
+            l == "breathe" -> section = Section.BREATHE
+            l == "today" -> section = Section.TODAY
+        }
+    }
 
     fun refresh() {
         scope.launch {
             val real = runCatching { HealthData.today(context, Prefs.goals) }.getOrNull()
             today = real ?: sampleWeek(LocalDate.now(), Prefs.goals)
+            // For the widgets and the watch (they can't always ask Health Connect themselves).
+            val snap = mx.loperstack.tokkipfit.data.Snapshot.of(today).json()
+            if (real != null) {
+                Prefs.saveToday(snap)
+                mx.loperstack.tokkipfit.data.Wrist.pushToday(context, snap)
+            }
+            runCatching { mx.loperstack.tokkipfit.widget.FitWidgets.refresh(context) }
         }
     }
     val ask = rememberLauncherForActivityResult(HealthData.permissionContract()) { refresh() }
@@ -151,6 +175,17 @@ fun FitApp(startOnPrivacy: Boolean = false) {
                 PrivacyScreen { privacy = false }
             } else if (routine != null) {
                 PlayerScreen(routine) { playing = null; refresh() }
+            } else if (gym != null) {
+                val plan = mx.loperstack.tokkip.fit.gymPlan(gym!!) ?: FREE_PLAN
+                GymSessionScreen(plan) { gym = null; refresh() }
+            } else if (cardio != null || mx.loperstack.tokkipfit.data.CardioLive.running) {
+                BackHandler { }
+                CardioLiveScreen(mx.loperstack.tokkip.fit.Sport.of(cardio ?: mx.loperstack.tokkipfit.data.CardioLive.sport.id)) { cardio = null; refresh() }
+            } else if (breathe != null) {
+                val p = mx.loperstack.tokkip.wellness.BREATH_PATTERNS.firstOrNull { it.id == breathe } ?: mx.loperstack.tokkip.wellness.BREATH_PATTERNS.first()
+                BreatheSessionScreen(p, breatheMin) { breathe = null; refresh() }
+            } else if (badgesOpen) {
+                BadgesScreen(today) { badgesOpen = false }
             } else if (wardrobe) {
                 BackHandler { wardrobe = false }
                 WardrobeScreen { wardrobe = false }
@@ -166,9 +201,11 @@ fun FitApp(startOnPrivacy: Boolean = false) {
                 label = "section",
             ) { s ->
                 when (s) {
-                    Section.TODAY -> TodayScreen(today, bottom, onConnect = connect, onSettings = { settings = true }, onRefresh = { refresh(); Sounds.play("blip") })
+                    Section.TODAY -> TodayScreen(today, bottom, onConnect = connect, onSettings = { settings = true }, onRefresh = { refresh(); Sounds.play("blip") }, onBadges = { badgesOpen = true; Sounds.play("pop") })
                     Section.HOME -> HomeScreen(bottom) { playing = it.id; Sounds.play("pop") }
-                    else -> SoonScreen(s, bottom)
+                    Section.GYM -> GymScreen(bottom) { gym = it.id; Sounds.play("pop") }
+                    Section.CARDIO -> CardioScreen(bottom) { cardio = it.id; Sounds.play("pop") }
+                    Section.BREATHE -> BreatheScreen(bottom) { p, m -> breathe = p.id; breatheMin = m; Sounds.play("pop") }
                 }
             }
             NavPill(section, Modifier.align(Alignment.BottomCenter)) {
@@ -366,5 +403,6 @@ private val PRIVACY = listOf(
     "Qué escribe" to "Solo los entrenamientos que haces con Tokkip (desde el teléfono o el reloj): la sesión y sus calorías activas, para que también los veas en Samsung Health o Fitbit. Nada más.",
     "Tu reloj" to "El reloj manda cada entrenamiento terminado a tu teléfono, directo y sin internet, y el teléfono le manda el look de Tokkip.",
     "El Tokkip de la app de Tokkip" to "Si quieres el mismo Tokkip, Fit lee su look (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque las dos están firmadas por ti.",
+    "Tu ubicación (Cardio)" to "Solo mientras corres, caminas o pedaleas, para dibujar tu ruta y medir la distancia. Se queda en tu teléfono y, si lo permites, en Health Connect con el entrenamiento.",
     "Cómo quitarle el acceso" to "En Health Connect → Permisos de apps → Tokkip Fit. Puedes quitar cualquier permiso o borrar lo que Fit haya escrito.",
 )
