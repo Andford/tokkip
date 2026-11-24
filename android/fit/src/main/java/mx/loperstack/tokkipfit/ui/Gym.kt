@@ -283,9 +283,9 @@ fun GymSessionScreen(plan: GymPlan, onClose: () -> Unit) {
                         face = if (party > 0 && restLeft > plan.restSeconds - 4) TokkipEngine.Eye.STAR else null,
                         jump = party, interactive = true,
                     )
-                    AnimatedVisibility(restLeft > 0, enter = scaleIn() + fadeIn(), exit = scaleOut() + fadeOut(), modifier = Modifier.align(Alignment.BottomCenter)) {
+                    if (restLeft > 0) {
                         Row(
-                            Modifier.clip(CircleShape).background(cs.secondary).clickable { restLeft = 0 }.padding(horizontal = 16.dp, vertical = 8.dp),
+                            Modifier.align(Alignment.BottomCenter).clip(CircleShape).background(cs.secondary).clickable { restLeft = 0 }.padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text("Descanso ${restLeft} s", color = cs.onSecondary, style = MaterialTheme.typography.labelLarge)
