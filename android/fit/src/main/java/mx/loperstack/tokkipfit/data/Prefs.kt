@@ -77,7 +77,7 @@ object Prefs {
         refreshLook()
     }
 
-    fun setTellTokkip(on: Boolean) {
+    fun changeTellTokkip(on: Boolean) {
         tellTokkip = on
         ctx?.let { prefs(it).edit().putBoolean("tell_tokkip", on).apply() }
     }

@@ -363,7 +363,7 @@ private fun SettingsSheet(onPrivacy: () -> Unit, onWardrobe: () -> Unit, connect
                 Text("Contarle a Tokkip", style = MaterialTheme.typography.bodyLarge)
                 Text("Festeja tus entrenamientos en su app y le dan cariño", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
             }
-            Switch(Prefs.tellTokkip, { Prefs.setTellTokkip(it) })
+            Switch(Prefs.tellTokkip, { Prefs.changeTellTokkip(it) })
         }
 
         Text("Health Connect", style = MaterialTheme.typography.titleMedium, color = cs.primary)
