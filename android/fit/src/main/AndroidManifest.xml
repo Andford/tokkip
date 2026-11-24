@@ -10,9 +10,18 @@
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+    <!-- Its own workouts, written back so Samsung Health and Fitbit see them. -->
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
+    <!-- The Tokkip app's look, when you want the same Tokkip (only apps with Tokkip's key). -->
+    <permission
+        android:name="mx.loperstack.tokkip.permission.READ_LOOK"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="mx.loperstack.tokkip.permission.READ_LOOK" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
+        <package android:name="mx.loperstack.tokkip" />
     </queries>
 
     <application
@@ -49,5 +58,14 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+        <!-- Workouts finished on the watch (data/Wrist.kt). -->
+        <service
+            android:name=".data.FitWristService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/tokkipfit/" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

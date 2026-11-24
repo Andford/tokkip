@@ -72,6 +72,10 @@
         <package android:name="mx.loperstack.tokkiphealth" />
     </queries>
 
+    <permission
+        android:name="mx.loperstack.tokkip.permission.READ_LOOK"
+        android:protectionLevel="signature" />
+
     <application
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"
@@ -256,6 +260,13 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Tokkip's look for his other apps signed with the same key (data/LookProvider.kt). -->
+        <provider
+            android:name=".data.LookProvider"
+            android:authorities="mx.loperstack.tokkip.look"
+            android:exported="true"
+            android:readPermission="mx.loperstack.tokkip.permission.READ_LOOK" />
 
         <!-- Sharing the diary's day as an image. -->
         <provider

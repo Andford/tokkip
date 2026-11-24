@@ -112,6 +112,8 @@ fun FitApp(startOnPrivacy: Boolean = false) {
     var today by remember { mutableStateOf<Today>(sampleWeek(LocalDate.now(), Prefs.goals)) }
     var settings by remember { mutableStateOf(false) }
     var privacy by rememberSaveable { mutableStateOf(startOnPrivacy) }
+    var wardrobe by rememberSaveable { mutableStateOf(false) }
+    var playing by rememberSaveable { mutableStateOf<String?>(null) }
 
     fun refresh() {
         scope.launch {
@@ -134,6 +136,7 @@ fun FitApp(startOnPrivacy: Boolean = false) {
         Unit
     }
     LifecycleResumeEffect(Unit) {
+        Prefs.refreshLook()
         refresh()
         onPauseOrDispose { }
     }
@@ -142,9 +145,15 @@ fun FitApp(startOnPrivacy: Boolean = false) {
     FitTheme {
         val cs = MaterialTheme.colorScheme
         Box(Modifier.fillMaxSize().background(cs.surface)) {
+            val routine = playing?.let { mx.loperstack.tokkip.fit.routine(it) }
             if (privacy) {
                 BackHandler { privacy = false }
                 PrivacyScreen { privacy = false }
+            } else if (routine != null) {
+                PlayerScreen(routine) { playing = null; refresh() }
+            } else if (wardrobe) {
+                BackHandler { wardrobe = false }
+                WardrobeScreen { wardrobe = false }
             } else {
             BackHandler(enabled = section != Section.TODAY) { section = Section.TODAY }
             val bottom = PaddingValues(bottom = 104.dp)
@@ -158,6 +167,7 @@ fun FitApp(startOnPrivacy: Boolean = false) {
             ) { s ->
                 when (s) {
                     Section.TODAY -> TodayScreen(today, bottom, onConnect = connect, onSettings = { settings = true }, onRefresh = { refresh(); Sounds.play("blip") })
+                    Section.HOME -> HomeScreen(bottom) { playing = it.id; Sounds.play("pop") }
                     else -> SoonScreen(s, bottom)
                 }
             }
@@ -172,7 +182,7 @@ fun FitApp(startOnPrivacy: Boolean = false) {
         }
         if (settings) {
             ModalBottomSheet(onDismissRequest = { settings = false }, containerColor = cs.surfaceContainerLow) {
-                SettingsSheet(onPrivacy = { settings = false; privacy = true }, connected = !today.sample, onConnect = connect)
+                SettingsSheet(onPrivacy = { settings = false; privacy = true }, onWardrobe = { settings = false; wardrobe = true }, connected = !today.sample, onConnect = connect)
             }
         }
     }
@@ -269,7 +279,7 @@ private fun SoonScreen(s: Section, bottom: PaddingValues) {
 
 /** Goals, Tokkip and sounds. */
 @Composable
-private fun SettingsSheet(onPrivacy: () -> Unit, connected: Boolean, onConnect: () -> Unit) {
+private fun SettingsSheet(onPrivacy: () -> Unit, onWardrobe: () -> Unit, connected: Boolean, onConnect: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val context = LocalContext.current
     Column(
@@ -285,28 +295,18 @@ private fun SettingsSheet(onPrivacy: () -> Unit, connected: Boolean, onConnect: 
         TextButton(onClick = { Prefs.set(goals = Goals()) }) { Text("Volver a las metas de siempre") }
 
         Text("Tokkip", style = MaterialTheme.typography.titleMedium, color = cs.primary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            for (sp in Species.entries) {
-                val on = TokkipStyle.species == sp
-                Text(
-                    sp.label,
-                    color = if (on) cs.onPrimary else cs.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.clip(CircleShape).background(if (on) cs.primary else cs.surfaceContainerHigh)
-                        .clickable { Prefs.set(species = sp); Sounds.play("pop"); Haptics.tick(context) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            for (color in TOKKIP_PALETTE.take(8)) {
-                val c = color.toArgb().toLong() and 0xFFFFFFFFL
-                Box(
-                    Modifier.size(32.dp).clip(CircleShape).background(color)
-                        .clickable { Prefs.set(color = c); Sounds.play("pop") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (Prefs.color == c) Box(Modifier.size(12.dp).clip(CircleShape).background(cs.primary))
+        FitCard(color = cs.primaryContainer, onClick = onWardrobe) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+                    Tokkip(Modifier.size(64.dp, 56.dp), color = Color(Prefs.color), mood = Mood.HAPPY)
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Tu Tokkip", style = MaterialTheme.typography.titleMedium, color = cs.onPrimaryContainer)
+                    Text(
+                        if (Prefs.follow && Prefs.tokkipAround()) "Igual que en la app de Tokkip" else "Especie, colores, piel y accesorios",
+                        style = MaterialTheme.typography.bodyMedium, color = cs.onPrimaryContainer.copy(alpha = 0.85f),
+                    )
                 }
             }
         }
@@ -363,6 +363,8 @@ fun PrivacyScreen(onBack: () -> Unit) {
 private val PRIVACY = listOf(
     "Tus datos no salen del teléfono" to "Tokkip Fit no tiene servidor ni nube, y no manda telemetría. Lo que lee de Health Connect se queda en tu teléfono y solo sirve para mostrártelo.",
     "Qué lee de Health Connect" to "Pasos, distancia, calorías activas y sesiones de ejercicio (para tus anillos y tu semana), sueño (cuánto dormiste) y pulso (tu pulso en reposo). Cada permiso es opcional: sin uno, solo falta esa cifra.",
-    "Qué escribe" to "Por ahora nada. Cuando lleguen los entrenamientos, se guardarán en Health Connect para que también los veas en Samsung Health o Fitbit, y te lo pedirá antes.",
+    "Qué escribe" to "Solo los entrenamientos que haces con Tokkip (desde el teléfono o el reloj): la sesión y sus calorías activas, para que también los veas en Samsung Health o Fitbit. Nada más.",
+    "Tu reloj" to "El reloj manda cada entrenamiento terminado a tu teléfono, directo y sin internet, y el teléfono le manda el look de Tokkip.",
+    "El Tokkip de la app de Tokkip" to "Si quieres el mismo Tokkip, Fit lee su look (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque las dos están firmadas por ti.",
     "Cómo quitarle el acceso" to "En Health Connect → Permisos de apps → Tokkip Fit. Puedes quitar cualquier permiso o borrar lo que Fit haya escrito.",
 )

@@ -84,12 +84,13 @@ jobs:
           cp android/watchface/build/outputs/apk/release/watchface-release.apk "out/Tokkip-Caratula-${GITHUB_SHA::7}.apk"
           cp android/notas/build/outputs/apk/release/notas-release.apk "out/TokkipNotas-${GITHUB_SHA::7}.apk"
           cp android/fit/build/outputs/apk/release/fit-release.apk "out/TokkipFit-${GITHUB_SHA::7}.apk"
+          cp android/fitwear/build/outputs/apk/release/fitwear-release.apk "out/TokkipFit-Reloj-${GITHUB_SHA::7}.apk"
 
       # The SHA-1 Google Cloud's Android OAuth client needs (Google Tasks), as an annotation.
       - name: Signing fingerprint
         run: |
           signer=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
-          apk=$(ls out/Tokkip-*.apk | grep -v Reloj | grep -v Caratula | head -1)
+          apk=$(ls out/Tokkip-*.apk | grep -v Reloj | grep -v Caratula | grep -v Fit | head -1)
           sha=$("$signer" verify --print-certs "$apk" 2>&1 | grep -m1 'SHA-1 digest' | awk '{print $NF}' | sed 's/../&:/g;s/:$//' | tr a-f A-F)
           echo "::notice::SHA-1 de la firma de Tokkip: $sha"
 

@@ -108,11 +108,17 @@ fun Tokkip(
     sigh: Boolean = false,
     /** The sound of his hello (each screen can have its own). */
     greetSound: String = "greet",
+    /** A workout move he does in a loop (Tokkip Fit), and how fast. */
+    exercise: Exercise? = null,
+    tempo: Float = 1f,
 ) {
     val own = remember { TokkipEngine() }
     val engine = engine ?: own
     var frame by remember { mutableLongStateOf(0L) }
-    SideEffect { engine.configure(color, mood, breathing, dancing, face, wear) }
+    SideEffect {
+        engine.configure(color, mood, breathing, dancing, face, wear)
+        engine.exercise(exercise, tempo)
+    }
 
     LaunchedEffect(jump) { if (jump > 0) engine.cheer() }
 

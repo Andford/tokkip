@@ -274,6 +274,13 @@ class TokkipEngine {
     private var danceLevel = 0f
     private var danceT0 = now()
 
+    // A workout move (Tokkip Fit): which, since when, how fast, and how much of it shows.
+    private var exercise: Exercise? = null
+    private var exerciseT0 = now()
+    private var exerciseTempo = 1f
+    private var exerciseLevel = 0f
+    private var nextSweat = 0.0
+
     private val acts = ArrayList<Act>()
     private val particles = ArrayList<Particle>()
     private var pawL = P(-80f, 96f)
@@ -298,6 +305,18 @@ class TokkipEngine {
     var greetSound = "greet"
 
     // ── What the app sets ─────────────────────────────────────────────────────
+
+    /**
+     * Does a workout move (Tokkip Fit), in a loop, until null. `tempo` > 1 is faster.
+     * Fit's own: not one of the moods or acts Tokkip PC shares.
+     */
+    fun exercise(move: Exercise?, tempo: Float = 1f) {
+        exerciseTempo = tempo.coerceIn(0.4f, 2.5f)
+        if (move == exercise) return
+        if (move != null) exerciseT0 = now()
+        exercise = move
+        wake()
+    }
 
     /** The body colour and mood, and the breathing session (if any). Cheap to call on every composition. */
     fun configure(color: Color, mood: Mood, breathing: Breathing?, dancing: Boolean = false, face: Eye? = null, wear: Boolean = true) {
@@ -776,6 +795,7 @@ class TokkipEngine {
         get() = acts.isNotEmpty() || particles.isNotEmpty() || held != null ||
             isBreathing || breathLevel > 0.001f || dizzy.value || mood == Mood.SLEEPY ||
             dancing || danceLevel > 0.001f ||
+            exercise != null || exerciseLevel > 0.001f ||
             now() - blinkAt < 0.2 ||
             springs.any { it.moving } ||
             abs(tint - tintT) > 0.003f ||
@@ -941,6 +961,13 @@ class TokkipEngine {
         }
 
         danceLevel = if (dancing) min(1f, danceLevel + dt / 0.25f) else max(0f, danceLevel - dt / 0.4f)
+        exerciseLevel = if (exercise != null) min(1f, exerciseLevel + dt / 0.3f) else max(0f, exerciseLevel - dt / 0.35f)
+        // Working hard: a drop of sweat now and then; resting: a few.
+        val ex = exercise
+        if (ex != null && n > nextSweat) {
+            if (ex != Exercise.STRETCH) emit(Kind.DROP, 1, if (Random.nextBoolean()) 0.45f else -0.45f)
+            nextSweat = n + if (ex == Exercise.REST) rand(1.2, 2.0) else rand(2.6, 4.2)
+        }
         val s = session
         breathFill = if (s != null) breathFrame(s, System.currentTimeMillis()).fill else 0f
         breathLevel = if (isBreathing) min(1f, breathLevel + dt / 0.6f) else max(0f, breathLevel - dt / 0.8f)
@@ -967,6 +994,106 @@ class TokkipEngine {
         psy.snap(squash)
         psx.snap(1f + (1f - squash) * 0.8f)
         py.snap(-lift)
+    }
+
+    // ── Workout moves (Tokkip Fit) ──────────────────────────────────────────
+
+    private fun exerciseFace(e: Exercise): Face = when (e) {
+        Exercise.SQUAT, Exercise.PLANK -> Face(Eye.SQUINT, Lips.GRIN, brow = 0.5f, blush = 0.35f)
+        Exercise.JUMP, Exercise.RUN -> Face(Eye.HAPPY, Lips.OPEN, blush = 0.4f)
+        Exercise.PUNCH -> Face(Eye.OPEN, Lips.GRIN, brow = 0.6f, blush = 0.25f)
+        Exercise.STRETCH -> Face(Eye.CLOSED, Lips.SMILE, blush = 0.2f)
+        Exercise.REST -> Face(Eye.OPEN, Lips.OPEN, blush = 0.5f)
+    }
+
+    /** One move at `s` seconds (already scaled by the tempo), faded in by `k`. */
+    private fun exerciseMove(e: Exercise, s: Float, k: Float, d: Delta) {
+        when (e) {
+            // Down and up every 2 s, arms out in front.
+            Exercise.SQUAT -> {
+                val down = (1f - cos(TWO_PI * s / 2f)) / 2f
+                d.y += 0.2f * down * k
+                d.sy -= 0.17f * down * k
+                d.sx += 0.11f * down * k
+                d.droop += 10f * down * k
+                d.nod -= 0.15f * down * k
+                d.pawL = P(-100f, -6f, 0.25f); d.pawLw = down * k
+                d.pawR = P(100f, -6f, -0.25f); d.pawRw = down * k
+            }
+            // Jumping jacks: up with arms overhead, a squash on landing.
+            Exercise.JUMP -> {
+                val ph = s / 0.9f - floor(s / 0.9f)
+                val up = sin(PI_F * ph)
+                val land = (1f - up).pow(4)
+                d.y -= 0.3f * up * k
+                d.sy += (0.08f * up - 0.12f * land) * k
+                d.sx += (0.1f * land - 0.04f * up) * k
+                d.earL -= 22f * up * k
+                d.earR += 22f * up * k
+                d.pawL = P(-96f, -118f, -0.6f); d.pawLw = up * k
+                d.pawR = P(96f, -118f, 0.6f); d.pawRw = up * k
+            }
+            // Leaning forward, firm, trembling a little.
+            Exercise.PLANK -> {
+                val shake = sin(s * 38f) * 0.006f + sin(s * 23f) * 0.004f
+                d.lean += 0.32f * k
+                d.y += 0.12f * k
+                d.sy -= 0.12f * k
+                d.sx += 0.14f * k
+                d.x += shake * k
+                d.nod -= 0.2f * k
+                d.pawL = P(-70f, 104f, 0f); d.pawLw = k
+                d.pawR = P(90f, 100f, 0f); d.pawRw = k
+            }
+            // High knees: a quick bounce, arms pumping in turn.
+            Exercise.RUN -> {
+                val b = sin(TWO_PI * s / 0.5f)
+                d.y -= 0.09f * abs(b) * k
+                d.sy += 0.04f * abs(b) * k
+                d.lean += 0.06f * k
+                d.earL -= 10f * abs(b) * k
+                d.earR += 10f * abs(b) * k
+                d.pawL = P(-92f, -36f, -0.5f); d.pawLw = max(0f, b) * k
+                d.pawR = P(92f, -36f, 0.5f); d.pawRw = max(0f, -b) * k
+            }
+            // Punches, one paw then the other, turning into each.
+            Exercise.PUNCH -> {
+                val ph = s / 0.7f
+                val i = floor(ph).toInt()
+                val hit = sin(PI_F * (ph - i)).pow(2)
+                val side = if (i % 2 == 0) 1f else -1f
+                d.turn += 0.25f * side * hit * k
+                d.lean -= 0.04f * side * hit * k
+                d.x += 0.03f * side * hit * k
+                val guard = 0.7f * k
+                if (side > 0) {
+                    d.pawR = P(64f, -40f, 0f); d.pawRw = hit * k
+                    d.pawL = P(-58f, -20f, 0.3f); d.pawLw = guard
+                } else {
+                    d.pawL = P(-64f, -40f, 0f); d.pawLw = hit * k
+                    d.pawR = P(58f, -20f, -0.3f); d.pawRw = guard
+                }
+            }
+            // A slow side bend each way, one arm overhead.
+            Exercise.STRETCH -> {
+                val sw = sin(TWO_PI * s / 5f)
+                d.lean += 0.26f * sw * k
+                d.y += 0.03f * abs(sw) * k
+                d.earL += 14f * sw * k
+                d.earR += 14f * sw * k
+                d.pawR = P(52f, -138f, 0.4f); d.pawRw = max(0f, -sw) * k
+                d.pawL = P(-52f, -138f, -0.4f); d.pawLw = max(0f, sw) * k
+            }
+            // Catching his breath: big, quick breaths.
+            Exercise.REST -> {
+                val br = sin(s * 5.2f)
+                d.sy += 0.04f * br * k
+                d.sx -= 0.02f * br * k
+                d.droop += 6f * k
+                d.pawL = P(-60f, 70f, 0.4f); d.pawLw = 0.6f * k
+                d.pawR = P(60f, 70f, -0.4f); d.pawRw = 0.6f * k
+            }
+        }
     }
 
     // ── His face ──────────────────────────────────────────────────────────────
@@ -999,6 +1126,7 @@ class TokkipEngine {
     private fun faceNow(): Face {
         if (isBreathing || breathLevel > 0.5f) return Face(Eye.CLOSED, if (breathFill > 0.5f) Lips.O else Lips.FLAT, blush = 0.2f)
         if (dizzy.value) return Face(Eye.SPIRAL, Lips.WAVY)
+        exercise?.let { if (exerciseLevel > 0.3f && acts.none { a -> a.face?.eye != null }) return exerciseFace(it) }
         for (i in acts.indices.reversed()) {
             val f = acts[i].face
             if (f?.eye != null) return f
@@ -1057,6 +1185,8 @@ class TokkipEngine {
             val el = max(0f, (n - a.start).toFloat())
             a.play((el / a.dur).coerceIn(0f, 1f), el, d)
         }
+        val ex = exercise
+        if (ex != null || exerciseLevel > 0.001f) exerciseMove(ex ?: Exercise.REST, ((n - exerciseT0) * exerciseTempo).toFloat(), exerciseLevel, d)
 
         val cx = w / 2f + (px.v + d.x) * r
         val cy = h / 2f + (py.v + d.y) * r + r * 0.16f

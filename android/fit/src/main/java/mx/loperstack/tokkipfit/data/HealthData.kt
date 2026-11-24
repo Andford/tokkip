@@ -1,7 +1,8 @@
 // Health Connect: where Samsung Health, Fitbit and the Pixel Watch put what you
-// did. 0.1 only reads (steps, distance, active calories, exercise, sleep, heart
-// rate); writing workouts back comes with them (0.2). Each figure is read only
-// if its permission was given, so a "no" to one never hides the others.
+// did. Fit reads steps, distance, active calories, exercise, sleep and heart
+// rate, and writes its own workouts back (a session and its calories), so they
+// show up in Samsung Health and Fitbit too. Each figure is read only if its
+// permission was given, so a "no" to one never hides the others.
 
 package mx.loperstack.tokkipfit.data
 
@@ -16,7 +17,12 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.records.metadata.Device
+import androidx.health.connect.client.records.metadata.Metadata
+import androidx.health.connect.client.units.Energy
+import mx.loperstack.tokkip.fit.Done
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -35,7 +41,50 @@ object HealthData {
     private val HEART = HealthPermission.getReadPermission(HeartRateRecord::class)
     private val RESTING = HealthPermission.getReadPermission(RestingHeartRateRecord::class)
 
-    val PERMISSIONS = setOf(STEPS, DISTANCE, KCAL, EXERCISE, SLEEP, HEART, RESTING)
+    private val WRITE_EXERCISE = HealthPermission.getWritePermission(ExerciseSessionRecord::class)
+    private val WRITE_KCAL = HealthPermission.getWritePermission(ActiveCaloriesBurnedRecord::class)
+
+    val PERMISSIONS = setOf(STEPS, DISTANCE, KCAL, EXERCISE, SLEEP, HEART, RESTING, WRITE_EXERCISE, WRITE_KCAL)
+
+    /**
+     * Saves a workout done in Fit (phone or watch) as an exercise session and its active
+     * calories. False if Health Connect isn't there or that permission wasn't given.
+     */
+    suspend fun write(context: Context, d: Done): Boolean {
+        if (status(context) != Status.AVAILABLE) return false
+        val granted = granted(context)
+        if (WRITE_EXERCISE !in granted) return false
+        val client = HealthConnectClient.getOrCreate(context)
+        val end = Instant.ofEpochMilli(d.at)
+        val start = end.minusSeconds(d.seconds.toLong().coerceAtLeast(1))
+        val zone = java.time.ZoneId.systemDefault().rules.getOffset(end)
+        val device = Device(
+            type = if (d.from == "watch") Device.TYPE_WATCH else Device.TYPE_PHONE,
+            manufacturer = if (d.from == "watch") null else android.os.Build.MANUFACTURER,
+            model = if (d.from == "watch") null else android.os.Build.MODEL,
+        )
+        val type = when (d.kind) {
+            "stretch" -> ExerciseSessionRecord.EXERCISE_TYPE_STRETCHING
+            "strength" -> ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS
+            else -> ExerciseSessionRecord.EXERCISE_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING
+        }
+        val records = buildList<Record> {
+            add(
+                ExerciseSessionRecord(
+                    startTime = start, startZoneOffset = zone, endTime = end, endZoneOffset = zone,
+                    metadata = Metadata.activelyRecorded(device),
+                    exerciseType = type, title = "${d.name} · Tokkip Fit",
+                ),
+            )
+            if (d.kcal > 0.5 && WRITE_KCAL in granted) add(
+                ActiveCaloriesBurnedRecord(
+                    startTime = start, startZoneOffset = zone, endTime = end, endZoneOffset = zone,
+                    energy = Energy.kilocalories(d.kcal), metadata = Metadata.activelyRecorded(device),
+                ),
+            )
+        }
+        return runCatching { client.insertRecords(records) }.isSuccess
+    }
 
     enum class Status { AVAILABLE, NEEDS_UPDATE, MISSING }
 
@@ -56,7 +105,7 @@ object HealthData {
     suspend fun today(context: Context, goals: Goals): Today? {
         if (status(context) != Status.AVAILABLE) return null
         val granted = granted(context)
-        if (granted.none { it in PERMISSIONS }) return null
+        if (granted.none { it in PERMISSIONS && it.contains("READ") }) return null
         val client = HealthConnectClient.getOrCreate(context)
         val start = LocalDate.now().minusDays(6)
         val metrics = buildSet<AggregateMetric<*>> {

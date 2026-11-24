@@ -17,8 +17,8 @@ android {
         // Health Connect: built into Android 14, an app from the Play Store before.
         minSdk = 31
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
 
     // The same stable key as Tokkip (.github/workflows/android.yml).
@@ -68,7 +68,8 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
+    // 1.1.0 (stable): records need a recording method (Metadata.activelyRecorded…).
+    implementation("androidx.health.connect:connect-client:1.1.0")
 
     testImplementation("junit:junit:4.13.2")
 }

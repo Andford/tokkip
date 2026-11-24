@@ -43,10 +43,15 @@ teléfono y `android/fitwear` para el Pixel Watch. Tokkip viene de
   con Health Connect (solo lectura), Tokkip reaccionando al día, la racha, el
   reto del día y las metas. Datos de ejemplo mientras no conectes Health
   Connect, para que nunca se vea vacía.
-- [ ] **0.2: En casa y el reloj.** Rutinas guiadas con Tokkip haciendo los
-  ejercicios (movimientos nuevos en `android/shared`: sentadilla, salto,
-  plancha, respirar). `android/fitwear`: entrenar desde la muñeca con Health
-  Services (pulso en vivo). Los entrenamientos se escriben en Health Connect.
+- [x] **0.2: En casa, el reloj y tu Tokkip.** Rutinas guiadas con Tokkip
+  haciendo los ejercicios (movimientos nuevos en `android/shared`,
+  `character/Exercise.kt`: sentadilla, saltos de tijera, plancha, rodillas
+  arriba, golpes, estiramiento y descanso; las rutinas en `fit/Routines.kt`,
+  compartidas con el reloj). `android/fitwear`: entrenar desde la muñeca con el
+  pulso en vivo del sensor; el entrenamiento llega al teléfono y se escribe en
+  Health Connect. Tokkip personalizable como en la app de Tokkip (especie,
+  piel, colores, accesorios), o igual que en ella (`character/Look.kt`, que la
+  app de Tokkip comparte solo con apps firmadas con su llave).
 - [ ] **0.3: Gym.** Rutinas, series, récords, historial por ejercicio. En el
   reloj: la serie actual y el descanso.
 - [ ] **0.4: Cardio con GPS.** Ruta, ritmo, pulso y kilómetros, en teléfono y
