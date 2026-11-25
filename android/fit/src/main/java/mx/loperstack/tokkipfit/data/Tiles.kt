@@ -26,7 +26,7 @@ object Tiles {
     private val mem = LruCache<Tile, ImageBitmap>(80)
     // OpenStreetMap's tile policy: few connections at a time, and say who's asking.
     private val gate = Semaphore(2)
-    private const val AGENT = "TokkipFit/0.7 (app personal de Android; github.com/Andford/tokkip)"
+    private const val AGENT = "TokkipFit/0.8 (app personal de Android; github.com/Andford/tokkip)"
     private const val MONTH = 30L * 24 * 60 * 60 * 1000
 
     fun cached(t: Tile): ImageBitmap? = mem.get(t)

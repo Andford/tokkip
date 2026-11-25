@@ -262,7 +262,7 @@ fun MyPlanEditor(id: String?, onClose: () -> Unit) {
 private fun Counter(label: String, value: String, minus: () -> Unit, plus: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().clip(CircleShape).background(cs.surfaceContainerHigh).padding(6.dp),
+        Modifier.fillMaxWidth().glass(CircleShape).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilledTonalIconButton(onClick = { minus(); Sounds.play("tick") }) { Icon(Icons.Rounded.Remove, "Menos") }

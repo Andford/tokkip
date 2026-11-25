@@ -147,7 +147,7 @@ fun HomeScreen(bottom: PaddingValues, onStart: (Routine) -> Unit, onEdit: (Strin
         item {
             Appear(ROUTINES.size + 3 + Prefs.myRoutines.size) {
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(cs.surfaceContainerHigh).padding(16.dp),
+                    Modifier.fillMaxWidth().glass(RoundedCornerShape(22.dp)).padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Rounded.Watch, null, tint = cs.primary)
@@ -260,7 +260,7 @@ fun PlayerScreen(r: Routine, onClose: () -> Unit) {
         }
     }
 
-    Box(Modifier.fillMaxSize().background(cs.surface)) {
+    Box(Modifier.fillMaxSize()) {
         val done = finished
         if (done != null) {
             SummaryScreen(r, done, onClose)

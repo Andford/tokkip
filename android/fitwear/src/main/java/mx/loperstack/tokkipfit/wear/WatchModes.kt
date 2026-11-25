@@ -72,9 +72,9 @@ import mx.loperstack.tokkip.wellness.Breathing
 import mx.loperstack.tokkip.wellness.breathFrame
 import kotlin.math.roundToInt
 
-private val Teal = Color(0xFF5EEAD4)
-private val Lime = Color(0xFFB9F35A)
-private val Coral = Color(0xFFFF7A6B)
+private val Teal = Color(0xFF00E5FF)
+private val Lime = Color(0xFFD7FF3A)
+private val Coral = Color(0xFFFF3D8B)
 
 internal fun buzzOnce(context: Context, ms: Long = 60, amp: Int = 160) {
     val vm = context.getSystemService(VibratorManager::class.java) ?: return

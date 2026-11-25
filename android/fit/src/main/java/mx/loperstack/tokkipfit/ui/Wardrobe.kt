@@ -68,6 +68,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -200,7 +201,7 @@ private fun Section(text: String) {
 private fun Pill(label: String, on: Boolean, icon: ImageVector, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.clip(CircleShape).background(if (on) cs.primary else cs.surfaceContainerHigh).clickable(onClick = onClick)
+        Modifier.then(if (on) Modifier.clip(CircleShape).background(Brush.linearGradient(listOf(LocalFit.current.steps, LocalFit.current.stepsTo))) else Modifier.glass(CircleShape)).clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -88,18 +88,30 @@ private fun ringsBitmap(context: Context, s: Snapshot, side: Int): Bitmap {
     val bmp = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
     val night = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-    val steps = context.getColor(if (night) android.R.color.system_accent1_200 else android.R.color.system_accent1_600)
-    val minutes = if (night) 0xFFB9F35A.toInt() else 0xFF4F8A10.toInt()
-    val kcal = if (night) 0xFFFF7A6B.toInt() else 0xFFD93A2B.toInt()
-    val track = if (night) 0x26FFFFFF else 0x1A000000
+    val N = mx.loperstack.tokkip.fit.Neon
+    val rings = if (night) listOf(Triple(N.STEPS, N.STEPS_TO, s.stepsRing), Triple(N.MINUTES, N.MINUTES_TO, s.minutesRing), Triple(N.KCAL, N.KCAL_TO, s.kcalRing))
+    else listOf(Triple(N.STEPS_LIGHT, N.STEPS_TO_LIGHT, s.stepsRing), Triple(N.MINUTES_LIGHT, N.MINUTES_TO_LIGHT, s.minutesRing), Triple(N.KCAL_LIGHT, N.KCAL_TO_LIGHT, s.kcalRing))
     val w = side * 0.085f
     val gap = side * 0.025f
     val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = w; strokeCap = Paint.Cap.ROUND }
-    listOf(steps to s.stepsRing, minutes to s.minutesRing, kcal to s.kcalRing).forEachIndexed { i, (color, v) ->
-        val inset = w / 2 + i * (w + gap)
+    // Neon: each ring a gradient from the top round to where it is, with a soft glow behind.
+    val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = w * 1.6f; strokeCap = Paint.Cap.ROUND; maskFilter = android.graphics.BlurMaskFilter(w * 0.8f, android.graphics.BlurMaskFilter.Blur.NORMAL) }
+    rings.forEachIndexed { i, (from, to, v) ->
+        val inset = w / 2 + i * (w + gap) + w * 0.3f
         val r = RectF(inset, inset, side - inset, side - inset)
-        p.color = track; c.drawArc(r, 0f, 360f, false, p)
-        p.color = color; c.drawArc(r, -90f, 360f * v.coerceIn(0f, 1f), false, p)
+        val f = v.coerceIn(0f, 1f).coerceAtLeast(0.001f)
+        p.shader = null
+        p.color = (from and 0x00FFFFFF) or (if (night) 0x24000000 else 0x2A000000)
+        c.drawArc(r, 0f, 360f, false, p)
+        val shader = android.graphics.SweepGradient(side / 2f, side / 2f, intArrayOf(from, to, to), floatArrayOf(0f, f, 1f)).apply {
+            setLocalMatrix(android.graphics.Matrix().apply { setRotate(-90f, side / 2f, side / 2f) })
+        }
+        if (v > 0.01f) {
+            glow.shader = shader; glow.alpha = 150
+            c.drawArc(r, -90f, 360f * f, false, glow)
+            p.shader = shader
+            c.drawArc(r, -90f, 360f * f, false, p)
+        }
     }
     val inner = (side - 2 * (3 * w + 2 * gap) - side * 0.04f).toInt().coerceAtLeast(1)
     val closed = listOf(s.stepsRing, s.minutesRing, s.kcalRing).count { it >= 1f }
@@ -123,7 +135,7 @@ private suspend fun snapshot(context: Context): Snapshot? {
 @Composable
 private fun Card(modifier: GlanceModifier = GlanceModifier, content: @Composable () -> Unit) {
     GlanceTheme {
-        Box(GlanceModifier.fillMaxSize().appWidgetBackground().background(GlanceTheme.colors.widgetBackground).cornerRadius(28.dp).then(modifier).padding(12.dp)) { content() }
+        Box(GlanceModifier.fillMaxSize().appWidgetBackground().background(androidx.glance.color.ColorProvider(day = androidx.compose.ui.graphics.Color(0xEBFFFFFF), night = androidx.compose.ui.graphics.Color(0xEB0B1020))).cornerRadius(28.dp).then(modifier).padding(12.dp)) { content() }
     }
 }
 

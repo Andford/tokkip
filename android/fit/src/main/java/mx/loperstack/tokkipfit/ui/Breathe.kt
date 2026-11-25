@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -110,7 +111,7 @@ fun BreatheScreen(bottom: PaddingValues, onStart: (BreathPattern, Int) -> Unit) 
                         Text(
                             "$m min", style = MaterialTheme.typography.labelLarge, color = if (on) cs.onPrimary else cs.onSurface,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.weight(1f).clip(CircleShape).background(if (on) cs.primary else cs.surfaceContainerHigh)
+                            modifier = Modifier.weight(1f).then(if (on) Modifier.clip(CircleShape).background(Brush.linearGradient(listOf(LocalFit.current.steps, LocalFit.current.stepsTo))) else Modifier.glass(CircleShape))
                                 .clickable { minutes = m; Sounds.play("tick") }.padding(vertical = 10.dp),
                         )
                     }
@@ -159,7 +160,7 @@ fun BreatheSessionScreen(p: BreathPattern, minutes: Int, onClose: () -> Unit) {
             runCatching { HealthData.write(context, d) }
         }
     }
-    Column(Modifier.fillMaxSize().background(cs.surface).statusBarsPadding().navigationBarsPadding().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             FilledTonalIconButton(onClick = onClose) { Icon(Icons.Rounded.Close, "Salir") }
             Spacer(Modifier.width(12.dp))

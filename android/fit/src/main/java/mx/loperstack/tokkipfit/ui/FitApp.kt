@@ -171,7 +171,8 @@ fun FitApp(startOnPrivacy: Boolean = false, link: String? = null) {
 
     FitTheme {
         val cs = MaterialTheme.colorScheme
-        Box(Modifier.fillMaxSize().background(cs.surface)) {
+        Box(Modifier.fillMaxSize()) {
+            Aurora()
             val routine = playing?.let { Prefs.routine(it) }
             if (privacy) {
                 BackHandler { privacy = false }
@@ -240,9 +241,7 @@ private fun NavPill(current: Section, modifier: Modifier, onPick: (Section) -> U
         modifier
             .navigationBarsPadding()
             .padding(bottom = 14.dp)
-            .shadow(14.dp, CircleShape)
-            .clip(CircleShape)
-            .background(cs.surfaceContainerHighest)
+            .glass(CircleShape, solid = true)
             .padding(8.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -309,7 +308,7 @@ private fun SoonScreen(s: Section, bottom: PaddingValues) {
         points.forEachIndexed { i, p ->
             Appear(3 + i) {
                 Row(
-                    Modifier.fillMaxWidth().clip(CircleShape).background(cs.surfaceContainerHigh).padding(horizontal = 18.dp, vertical = 14.dp),
+                    Modifier.fillMaxWidth().glass(CircleShape).padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.size(10.dp).clip(CircleShape).background(cs.tertiary))
@@ -390,7 +389,7 @@ private fun SettingsSheet(onPrivacy: () -> Unit, onWardrobe: () -> Unit, connect
 private fun Stepper(label: String, value: String, minus: () -> Unit, plus: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().clip(CircleShape).background(cs.surfaceContainerHigh).padding(6.dp),
+        Modifier.fillMaxWidth().glass(CircleShape).padding(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FilledTonalIconButton(onClick = { minus(); Sounds.play("tick") }) { Icon(Icons.Rounded.Remove, "Menos") }

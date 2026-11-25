@@ -58,10 +58,9 @@ data class Rings(val steps: Long = 0, val goalSteps: Long = 8000, val minutes: L
     }
 }
 
-private const val TEAL = 0xFF5EEAD4.toInt()
-private const val LIME = 0xFFB9F35A.toInt()
-private const val CORAL = 0xFFFF7A6B.toInt()
-private const val TRACK = 0x33FFFFFF
+private const val TEAL = 0xFF00E5FF.toInt()
+private const val LIME = 0xFFD7FF3A.toInt()
+private const val CORAL = 0xFFFF3D8B.toInt()
 
 private fun fmt(n: Long): String = String.format(java.util.Locale.US, "%,d", n)
 
@@ -72,7 +71,7 @@ class FitTileService : TileService() {
         fun arc(size: Float, color: Int, v: Float) = LayoutElementBuilders.Arc.Builder()
             .setAnchorAngle(degrees(0f))
             .setAnchorType(LayoutElementBuilders.ARC_ANCHOR_START)
-            .addContent(LayoutElementBuilders.ArcLine.Builder().setLength(degrees(359.9f)).setThickness(dp(9f)).setColor(argb(TRACK)).build())
+            .addContent(LayoutElementBuilders.ArcLine.Builder().setLength(degrees(359.9f)).setThickness(dp(9f)).setColor(argb((color and 0x00FFFFFF) or 0x38000000)).build())
             .build().let { track ->
                 LayoutElementBuilders.Box.Builder().setWidth(dp(size)).setHeight(dp(size))
                     .addContent(track)

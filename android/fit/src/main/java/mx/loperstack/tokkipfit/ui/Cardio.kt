@@ -179,10 +179,10 @@ fun CardioScreen(bottom: PaddingValues, onStart: (Sport) -> Unit) {
             itemsIndexed(past.take(6)) { _, d ->
                 val route = remember(d.at) { Prefs.route(d.at) }
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(cs.surfaceContainer).padding(12.dp),
+                    Modifier.fillMaxWidth().glass(RoundedCornerShape(22.dp)).padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHighest)) {
+                    Box(Modifier.size(64.dp).glass(RoundedCornerShape(16.dp))) {
                         RouteDrawing(route, Modifier.fillMaxSize(), LocalFit.current.steps, 1f, 3.dp, pad = 8.dp)
                     }
                     Spacer(Modifier.width(12.dp))
@@ -326,7 +326,7 @@ fun CardioLiveScreen(sport: Sport, onClose: () -> Unit) {
     }
 
     val done = finished
-    Box(Modifier.fillMaxSize().background(cs.surface)) {
+    Box(Modifier.fillMaxSize()) {
         if (done != null) {
             CardioSummary(done, route, onClose)
         } else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 18.dp)) {
@@ -338,7 +338,7 @@ fun CardioLiveScreen(sport: Sport, onClose: () -> Unit) {
                 Spacer(Modifier.width(4.dp))
                 Text(if (CardioLive.hasFix) "GPS listo" else "Buscando GPS…", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
             }
-            Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 10.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 10.dp).glass(RoundedCornerShape(32.dp)), contentAlignment = Alignment.Center) {
                 if (route.size >= 2) RouteDrawing(route, Modifier.fillMaxSize(), fit.steps, 1f, 6.dp, dot = true, pad = 28.dp, map = Prefs.map)
                 else Text("Tu ruta aparece aquí en cuanto te muevas", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
                 Tokkip(
@@ -390,7 +390,7 @@ private fun CardioSummary(d: Done, route: List<Pair<Double, Double>>, onClose: (
         Spacer(Modifier.height(16.dp))
         Title("¡${sport.verb}!", size = 42.sp)
         Text(String.format(java.util.Locale.US, "%.2f km en %s", d.meters / 1000, clock(d.seconds.toLong())), style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant)
-        Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 12.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 12.dp).glass(RoundedCornerShape(32.dp)), contentAlignment = Alignment.Center) {
             if (route.size >= 2) RouteDrawing(route, Modifier.fillMaxSize(), fit.steps, draw.value, 6.dp, pad = 28.dp, map = Prefs.map)
             Tokkip(Modifier.align(Alignment.BottomEnd).padding(10.dp).size(120.dp, 106.dp), color = Color(Prefs.color), mood = Mood.HAPPY, face = TokkipEngine.Eye.STAR, dancing = true, jump = jump)
         }

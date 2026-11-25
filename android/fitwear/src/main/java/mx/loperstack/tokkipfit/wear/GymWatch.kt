@@ -61,8 +61,8 @@ import mx.loperstack.tokkip.fit.lift
 import mx.loperstack.tokkip.fit.startOf
 import kotlin.math.roundToInt
 
-private val GymCoral = Color(0xFFFF7A6B)
-private val GymLime = Color(0xFFB9F35A)
+private val GymCoral = Color(0xFFFF3D8B)
+private val GymLime = Color(0xFFD7FF3A)
 private val Pill = Color(0xFF2A2D33)
 
 @Composable

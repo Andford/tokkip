@@ -187,7 +187,7 @@ fun GymScreen(bottom: PaddingValues, onStart: (GymPlan) -> Unit, onEdit: (String
             items(recs, key = { it.lift }) { r ->
                 val l = lift(r.lift)
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(cs.surfaceContainer).padding(14.dp),
+                    Modifier.fillMaxWidth().glass(RoundedCornerShape(22.dp)).padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(Icons.Rounded.EmojiEvents, null, tint = LocalFit.current.kcal)
@@ -256,7 +256,7 @@ fun GymSessionScreen(plan: GymPlan, onClose: () -> Unit) {
     LaunchedEffect(finished) { finished?.let { runCatching { HealthData.write(context, it) } } }
 
     val done = finished
-    Box(Modifier.fillMaxSize().background(cs.surface)) {
+    Box(Modifier.fillMaxSize()) {
         if (done != null) {
             GymSummary(plan, done, entries.sumOf { e -> e.sets.count { it.record } }, onClose)
         } else Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
