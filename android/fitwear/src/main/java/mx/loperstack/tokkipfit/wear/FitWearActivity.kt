@@ -129,22 +129,40 @@ object WatchLook {
 /** Your own routines, made on the phone (shared fit/Custom.kt). */
 object WatchMine {
     var routines by mutableStateOf<List<mx.loperstack.tokkip.fit.MyRoutine>>(emptyList())
+    var plans by mutableStateOf<List<mx.loperstack.tokkip.fit.GymPlan>>(emptyList())
+    /** Your last set of each lift, from the phone: where the watch's weights start. */
+    var last by mutableStateOf<List<mx.loperstack.tokkip.fit.GymSet>>(emptyList())
+
+    private fun prefs(context: Context) = context.getSharedPreferences("fitwear", Context.MODE_PRIVATE)
 
     fun load(context: Context) {
-        routines = mx.loperstack.tokkip.fit.MyRoutine.list(context.getSharedPreferences("fitwear", Context.MODE_PRIVATE).getString("mine", null))
+        val p = prefs(context)
+        routines = mx.loperstack.tokkip.fit.MyRoutine.list(p.getString("mine", null))
+        plans = mx.loperstack.tokkip.fit.MyPlans.list(p.getString("mine_plans", null))
+        last = mx.loperstack.tokkip.fit.GymSet.list(p.getString("mine_last", null))
     }
 
-    fun save(context: Context, json: String) {
-        routines = mx.loperstack.tokkip.fit.MyRoutine.list(json)
-        context.getSharedPreferences("fitwear", Context.MODE_PRIVATE).edit().putString("mine", json).apply()
+    fun save(context: Context, map: com.google.android.gms.wearable.DataMap) {
+        prefs(context).edit()
+            .putString("mine", map.getString("json") ?: "[]")
+            .putString("mine_plans", map.getString("plans") ?: "[]")
+            .putString("mine_last", map.getString("last") ?: "[]")
+            .apply()
+        load(context)
+    }
+
+    /** The sets done on the watch count as your last ones until the phone answers. */
+    fun remember(context: Context, sets: List<mx.loperstack.tokkip.fit.GymSet>) {
+        last = mx.loperstack.tokkip.fit.lastSets(last + sets)
+        prefs(context).edit().putString("mine_last", mx.loperstack.tokkip.fit.GymSet.json(last)).apply()
     }
 
     suspend fun fetch(context: Context) {
         runCatching {
             val items = Wearable.getDataClient(context).getDataItems(Uri.parse("wear://*${mx.loperstack.tokkip.fit.FIT_MINE_PATH}")).await()
-            val raw = items.firstOrNull()?.let { DataMapItem.fromDataItem(it).dataMap.getString("json") }
+            val map = items.firstOrNull()?.let { DataMapItem.fromDataItem(it).dataMap }
             items.release()
-            raw?.let { save(context, it) }
+            map?.let { save(context, it) }
         }
     }
 }
@@ -153,11 +171,12 @@ class LookListener : WearableListenerService() {
     override fun onDataChanged(events: DataEventBuffer) {
         for (e in events) {
             if (e.type != DataEvent.TYPE_CHANGED) continue
-            val json = DataMapItem.fromDataItem(e.dataItem).dataMap.getString("json") ?: continue
+            val map = DataMapItem.fromDataItem(e.dataItem).dataMap
+            val json = map.getString("json") ?: continue
             when (e.dataItem.uri.path) {
                 Look.FIT_LOOK_PATH -> Look.parse(json)?.let { WatchLook.save(this, it) }
                 "/tokkipfit/today" -> Rings.save(this, json)
-                mx.loperstack.tokkip.fit.FIT_MINE_PATH -> WatchMine.save(this, json)
+                mx.loperstack.tokkip.fit.FIT_MINE_PATH -> WatchMine.save(this, map)
             }
         }
     }
@@ -200,6 +219,7 @@ private sealed interface Mode {
     data class Run(val sport: Sport) : Mode
     data object Breathe : Mode
     data object Rest : Mode
+    data class Gym(val plan: mx.loperstack.tokkip.fit.GymPlan) : Mode
 }
 
 @Composable
@@ -208,7 +228,8 @@ private fun FitWatch(onTrain: (Boolean) -> Unit, askGps: () -> Unit) {
     fun go(m: Mode) { mode = m; onTrain(m != Mode.Menu); if (m is Mode.Run) askGps() }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         when (val m = mode) {
-            Mode.Menu -> Routines(onPick = { go(Mode.Play(it)) }, onCardio = { go(Mode.Run(it)) }, onBreathe = { go(Mode.Breathe) }, onRest = { go(Mode.Rest) })
+            Mode.Menu -> Routines(onPick = { go(Mode.Play(it)) }, onCardio = { go(Mode.Run(it)) }, onBreathe = { go(Mode.Breathe) }, onRest = { go(Mode.Rest) }, onGym = { go(Mode.Gym(it)) })
+            is Mode.Gym -> GymWatch(m.plan) { go(Mode.Menu) }
             is Mode.Play -> Player(m.r) { go(Mode.Menu) }
             is Mode.Run -> CardioWatch(m.sport) { go(Mode.Menu) }
             Mode.Breathe -> BreatheWatch { go(Mode.Menu) }
@@ -218,7 +239,7 @@ private fun FitWatch(onTrain: (Boolean) -> Unit, askGps: () -> Unit) {
 }
 
 @Composable
-private fun Routines(onPick: (Routine) -> Unit, onCardio: (Sport) -> Unit, onBreathe: () -> Unit, onRest: () -> Unit) {
+private fun Routines(onPick: (Routine) -> Unit, onCardio: (Sport) -> Unit, onBreathe: () -> Unit, onRest: () -> Unit, onGym: (mx.loperstack.tokkip.fit.GymPlan) -> Unit) {
     val state = rememberScalingLazyListState()
     ScalingLazyColumn(Modifier.fillMaxSize(), state = state, horizontalAlignment = Alignment.CenterHorizontally) {
         item {
@@ -242,8 +263,18 @@ private fun Routines(onPick: (Routine) -> Unit, onCardio: (Sport) -> Unit, onBre
             Chip(onClick = onBreathe, label = { Text("Respira", fontWeight = FontWeight.Bold) }, secondaryLabel = { Text("Calma 4·6, 3 min") },
                 colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF242A44)), modifier = Modifier.fillMaxWidth())
         }
+        item { Text("Gym", fontSize = 12.sp, color = Coral, fontWeight = FontWeight.Bold) }
+        items(WatchMine.plans + mx.loperstack.tokkip.fit.GYM_PLANS) { p ->
+            Chip(
+                onClick = { onGym(p) },
+                label = { Text(p.name, fontWeight = FontWeight.Bold) },
+                secondaryLabel = { Text("${p.lifts.size} ejercicios · ${p.sets}×${p.reps}") },
+                colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF33231F)),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         item {
-            Chip(onClick = onRest, label = { Text("Descanso del gym", fontWeight = FontWeight.Bold) }, secondaryLabel = { Text("Cuenta tus series y descansos") },
+            Chip(onClick = onRest, label = { Text("Solo descansos", fontWeight = FontWeight.Bold) }, secondaryLabel = { Text("Cuenta tus series y descansos") },
                 colors = ChipDefaults.chipColors(backgroundColor = Color(0xFF2A2D33)), modifier = Modifier.fillMaxWidth())
         }
         if (WatchMine.routines.isNotEmpty()) {
@@ -386,7 +417,7 @@ private fun Player(r: Routine, onEnd: () -> Unit) {
 }
 
 @Composable
-private fun Summary(d: Done, onEnd: () -> Unit) {
+internal fun Summary(d: Done, onEnd: () -> Unit) {
     var jump by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { repeat(3) { delay(900); jump++ } }
     Column(Modifier.fillMaxSize().padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {

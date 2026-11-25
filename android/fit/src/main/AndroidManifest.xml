@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Only for the map under Cardio routes, when you turn it on (data/Tiles.kt). -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Health Connect, read only for now (docs/FIT-PLAN.md: what each phase asks for). -->
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />

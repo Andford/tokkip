@@ -16,6 +16,11 @@
 - **El Tokkip de la app de Tokkip:** si quieres el mismo Tokkip, Fit lee su look
   (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque
   las dos están firmadas con la misma llave.
+- **El mapa (si lo prendes):** con "Mapa bajo tu ruta" prendido, Fit baja de
+  OpenStreetMap los pedacitos de mapa de la zona de tu ruta para dibujarla
+  encima. A OpenStreetMap solo le llega qué pedacitos pides (como cualquier
+  mapa en internet), no tu cuenta ni nada más. Se guardan en el teléfono y se
+  borran al apagarlo. Viene apagado; es lo único para lo que Fit usa internet.
 - **La app de Tokkip:** si la tienes, Fit le cuenta a Tokkip cada
   entrenamiento que terminas (qué, cuándo y cuánto duró) para que lo festeje y
   le dé cariño. Solo eso, de una app tuya a otra, sin internet. Lo apagas en

@@ -35,11 +35,13 @@ object Wrist {
         }
     }
 
-    /** Your own routines, so the watch can play them too. */
-    fun pushMine(context: Context, mine: List<mx.loperstack.tokkip.fit.MyRoutine>) {
+    /** Your own routines and plans, and your last weights, so the watch can play and suggest them. */
+    fun pushMine(context: Context) {
         runCatching {
             val req = PutDataMapRequest.create(mx.loperstack.tokkip.fit.FIT_MINE_PATH).apply {
-                dataMap.putString("json", mx.loperstack.tokkip.fit.MyRoutine.json(mine))
+                dataMap.putString("json", mx.loperstack.tokkip.fit.MyRoutine.json(Prefs.myRoutines))
+                dataMap.putString("plans", mx.loperstack.tokkip.fit.MyPlans.json(Prefs.myPlans))
+                dataMap.putString("last", mx.loperstack.tokkip.fit.GymSet.json(mx.loperstack.tokkip.fit.lastSets(Prefs.gymSets())))
             }.asPutDataRequest().setUrgent()
             Wearable.getDataClient(context.applicationContext).putDataItem(req)
         }
@@ -70,6 +72,12 @@ class FitWristService : WearableListenerService() {
         if (Prefs.workouts().any { it.at == done.at && it.routine == done.routine }) return
         Prefs.addWorkout(done)
         if (route.isNotEmpty()) Prefs.saveRoute(done.at, route)
+        // Gym from the watch brings its sets: they count for your records like the phone's.
+        val sets = mx.loperstack.tokkip.fit.GymSet.list(o.optJSONArray("sets")?.toString())
+        for (s in sets) {
+            if (mx.loperstack.tokkip.fit.isRecord(s, Prefs.gymSets())) Prefs.recordsBeaten = Prefs.recordsBeaten + 1
+            Prefs.addGymSet(s)
+        }
         runBlocking { runCatching { HealthData.write(this@FitWristService, done, route) } }
     }
 }

@@ -76,11 +76,16 @@ teléfono y `android/fitwear` para el Pixel Watch. Tokkip viene de
   guarda como mindfulness en Health Connect donde lo tiene (connect-client
   1.1.0, compileSdk 36, AGP 8.10).
 
+- [x] **0.7: El Gym en el reloj y el mapa.** Los planes (de Fit y tuyos) en el
+  reloj: cada ejercicio con tu último peso y repeticiones (el teléfono se los
+  manda por `/tokkipfit/mine`), - y +, "Hecha" y el descanso; al terminar, las
+  series vuelven al teléfono y cuentan para tus récords. En Cardio, un mapa de
+  OpenStreetMap bajo la ruta, solo si lo prendes en Ajustes (`data/Tiles.kt`:
+  es lo único para lo que Fit usa internet; las teselas se guardan 30 días y
+  se borran al apagarlo).
+
 ## Lo que sigue
 
-- Un mapa bajo la ruta de Cardio (sin servicios de mapas de terceros: teselas
-  que el usuario elija, o solo la línea).
-- Planes del Gym en el reloj (anotar series desde la muñeca).
 - Leer las sesiones de mindfulness de otras apps para el anillo de Respira.
 
 ## Permisos de Health Connect

@@ -48,4 +48,13 @@ class CustomTest {
         assertEquals(listOf(plan), back)
         assertNotNull(MyPlans.of(plan.toJson()))
     }
+
+    @Test fun watchStartsFromYourLastWeights() {
+        val h = listOf(GymSet("curl", 10.0, 12), GymSet("press_banca", 60.0, 10), GymSet("curl", 12.5, 10))
+        val last = lastSets(h)
+        assertEquals(2, last.size)
+        val plan = GYM_PLANS.first()
+        assertEquals(GymSet("curl", 12.5, 10), startOf("curl", plan, last))
+        assertEquals(GymSet("sentadilla", 0.0, plan.reps), startOf("sentadilla", plan, last))
+    }
 }

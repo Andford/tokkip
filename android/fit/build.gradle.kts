@@ -17,8 +17,8 @@ android {
         // Health Connect: built into Android 14, an app from the Play Store before.
         minSdk = 31
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.6.0"
+        versionCode = 5
+        versionName = "0.7.0"
     }
 
     // The same stable key as Tokkip (.github/workflows/android.yml).

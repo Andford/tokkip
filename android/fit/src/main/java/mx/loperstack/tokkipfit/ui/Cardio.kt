@@ -75,6 +75,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import mx.loperstack.tokkipfit.data.Tile
+import mx.loperstack.tokkipfit.data.Tiles
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.log2
+import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.math.tan
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -165,7 +183,7 @@ fun CardioScreen(bottom: PaddingValues, onStart: (Sport) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)).background(cs.surfaceContainerHighest)) {
-                        RouteDrawing(route, Modifier.fillMaxSize().padding(8.dp), LocalFit.current.steps, 1f, 3.dp)
+                        RouteDrawing(route, Modifier.fillMaxSize(), LocalFit.current.steps, 1f, 3.dp, pad = 8.dp)
                     }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
@@ -182,34 +200,90 @@ fun CardioScreen(bottom: PaddingValues, onStart: (Sport) -> Unit) {
     }
 }
 
-/** A route as a line, fitted to its box (north up); `upTo` 0…1 draws only that much of it. */
+/** Where the route sits in a box: Web Mercator (so it lines up with map tiles), fit and centred. */
+internal class RouteFrame(route: List<Pair<Double, Double>>, val w: Float, val h: Float, pad: Float) {
+    val xs = route.map { (it.second + 180.0) / 360.0 }
+    val ys = route.map { val r = Math.toRadians(it.first.coerceIn(-85.0, 85.0)); (1 - ln(tan(r) + 1 / cos(r)) / PI) / 2 }
+    val minX = xs.min(); val minY = ys.min()
+    // At least ~150 m across, so a short route isn't blown up.
+    private val span = max(max(xs.max() - minX, ys.max() - minY), 4e-6)
+    val scale = (min(w, h) - 2 * pad).coerceAtLeast(1f) / span
+    val ox = (w - (xs.max() - minX) * scale) / 2
+    val oy = (h - (ys.max() - minY) * scale) / 2
+    fun at(i: Int) = Offset((ox + (xs[i] - minX) * scale).toFloat(), (oy + (ys[i] - minY) * scale).toFloat())
+
+    /** The tile zoom where a tile is drawn 256–512 px wide, and the tiles that cover the box. */
+    val zoom = floor(log2(scale / 256.0)).toInt().coerceIn(2, 19)
+    val tiles: List<Tile> = run {
+        val n = 1 shl zoom
+        val x0 = minX - ox / scale; val x1 = x0 + w / scale
+        val y0 = minY - oy / scale; val y1 = y0 + h / scale
+        val tx = (floor(x0 * n).toInt()..floor(x1 * n).toInt()).filter { it in 0 until n }
+        val ty = (floor(y0 * n).toInt()..floor(y1 * n).toInt()).filter { it in 0 until n }
+        tx.flatMap { x -> ty.map { y -> Tile(zoom, x, y) } }.take(40)
+    }
+
+    fun tileAt(t: Tile): Pair<IntOffset, IntSize> {
+        val n = (1 shl t.z).toDouble()
+        val left = ox + (t.x / n - minX) * scale
+        val top = oy + (t.y / n - minY) * scale
+        val size = scale / n
+        return IntOffset(left.roundToInt(), top.roundToInt()) to IntSize((left + size).roundToInt() - left.roundToInt(), (top + size).roundToInt() - top.roundToInt())
+    }
+}
+
 @Composable
-fun RouteDrawing(route: List<Pair<Double, Double>>, modifier: Modifier, color: Color, upTo: Float, width: androidx.compose.ui.unit.Dp = 6.dp, dot: Boolean = false) {
+fun RouteDrawing(
+    route: List<Pair<Double, Double>>, modifier: Modifier, color: Color, upTo: Float,
+    width: androidx.compose.ui.unit.Dp = 6.dp, dot: Boolean = false, pad: androidx.compose.ui.unit.Dp = 0.dp, map: Boolean = false,
+) {
+    val context = LocalContext.current
+    val cs = MaterialTheme.colorScheme
     val pulse by rememberInfiniteTransition(label = "dot").animateFloat(0.6f, 1f, infiniteRepeatable(tween(800, easing = LinearEasing), RepeatMode.Reverse), label = "p")
-    Canvas(modifier) {
-        if (route.size < 2) return@Canvas
-        val lats = route.map { it.first }; val lons = route.map { it.second }
-        val midLat = Math.toRadians((lats.max() + lats.min()) / 2)
-        val xs = lons.map { it * kotlin.math.cos(midLat) }
-        val minX = xs.min(); val maxX = xs.max(); val minY = lats.min(); val maxY = lats.max()
-        val span = max(maxX - minX, maxY - minY).coerceAtLeast(1e-6)
-        val scale = minOf(size.width, size.height) / span
-        val ox = (size.width - (maxX - minX) * scale) / 2
-        val oy = (size.height - (maxY - minY) * scale) / 2
-        fun at(i: Int) = Offset((ox + (xs[i] - minX) * scale).toFloat(), (oy + (maxY - lats[i]) * scale).toFloat())
-        val path = Path().apply { moveTo(at(0).x, at(0).y); for (i in 1 until route.size) lineTo(at(i).x, at(i).y) }
-        val shown = if (upTo >= 1f) path else Path().also { out ->
-            val m = PathMeasure().apply { setPath(path, false) }
-            m.getSegment(0f, m.length * upTo.coerceIn(0f, 1f), out, true)
+    var box by remember { mutableStateOf(IntSize.Zero) }
+    val padPx = with(LocalDensity.current) { pad.toPx() }
+    val frame = remember(route, box, padPx) { if (route.size < 2 || box.width == 0) null else RouteFrame(route, box.width.toFloat(), box.height.toFloat(), padPx) }
+    val wanted = if (map && frame != null) frame.tiles else emptyList()
+    // Tiles come in as they load; the ones already here show at once.
+    val tiles by produceState(wanted.associateWith { Tiles.cached(it) }.filterValues { it != null }.mapValues { it.value!! }, wanted) {
+        val got = value.toMutableMap()
+        for (t in wanted) if (t !in got) Tiles.get(context, t)?.let { got[t] = it; value = got.toMap() }
+    }
+    val dark = cs.surface.luminance() < 0.5f
+    val filter = remember(dark) {
+        ColorFilter.colorMatrix(
+            if (dark) ColorMatrix(floatArrayOf(-0.55f, -0.3f, -0.15f, 0f, 235f, -0.25f, -0.6f, -0.15f, 0f, 235f, -0.25f, -0.3f, -0.45f, 0f, 235f, 0f, 0f, 0f, 1f, 0f))
+            else ColorMatrix().apply { setToSaturation(0.35f) },
+        )
+    }
+    Box(modifier.onSizeChanged { box = it }) {
+        Canvas(Modifier.fillMaxSize()) {
+            val f = frame ?: return@Canvas
+            for ((t, img) in tiles) {
+                if (t.z != f.zoom) continue
+                val (o, s) = f.tileAt(t)
+                drawImage(img, dstOffset = o, dstSize = s, alpha = 0.9f, colorFilter = filter)
+            }
+            val path = Path().apply { moveTo(f.at(0).x, f.at(0).y); for (i in 1 until route.size) lineTo(f.at(i).x, f.at(i).y) }
+            val shown = if (upTo >= 1f) path else Path().also { out ->
+                val m = PathMeasure().apply { setPath(path, false) }
+                m.getSegment(0f, m.length * upTo.coerceIn(0f, 1f), out, true)
+            }
+            drawPath(shown, color.copy(alpha = 0.25f), style = Stroke(width.toPx() * 2.2f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(shown, color, style = Stroke(width.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawCircle(Color.White, width.toPx() * 1.1f, f.at(0))
+            drawCircle(color, width.toPx() * 0.7f, f.at(0))
+            if (dot) {
+                val end = f.at(route.lastIndex)
+                drawCircle(color.copy(alpha = 0.3f), width.toPx() * 3f * pulse, end)
+                drawCircle(color, width.toPx() * 1.3f, end)
+            }
         }
-        drawPath(shown, color.copy(alpha = 0.25f), style = Stroke(width.toPx() * 2.2f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-        drawPath(shown, color, style = Stroke(width.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        drawCircle(Color.White, width.toPx() * 1.1f, at(0))
-        drawCircle(color, width.toPx() * 0.7f, at(0))
-        if (dot) {
-            val end = at(route.lastIndex)
-            drawCircle(color.copy(alpha = 0.3f), width.toPx() * 3f * pulse, end)
-            drawCircle(color, width.toPx() * 1.3f, end)
+        if (tiles.isNotEmpty()) {
+            Text(
+                "© OpenStreetMap", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.BottomStart).padding(10.dp).clip(RoundedCornerShape(6.dp)).background(cs.surface.copy(alpha = 0.7f)).padding(horizontal = 4.dp),
+            )
         }
     }
 }
@@ -265,7 +339,7 @@ fun CardioLiveScreen(sport: Sport, onClose: () -> Unit) {
                 Text(if (CardioLive.hasFix) "GPS listo" else "Buscando GPS…", style = MaterialTheme.typography.labelLarge, color = cs.onSurfaceVariant)
             }
             Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 10.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer), contentAlignment = Alignment.Center) {
-                if (route.size >= 2) RouteDrawing(route, Modifier.fillMaxSize().padding(28.dp), fit.steps, 1f, 6.dp, dot = true)
+                if (route.size >= 2) RouteDrawing(route, Modifier.fillMaxSize(), fit.steps, 1f, 6.dp, dot = true, pad = 28.dp, map = Prefs.map)
                 else Text("Tu ruta aparece aquí en cuanto te muevas", style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
                 Tokkip(
                     Modifier.align(Alignment.BottomEnd).padding(10.dp).size(110.dp, 98.dp), color = Color(Prefs.color),
@@ -317,7 +391,7 @@ private fun CardioSummary(d: Done, route: List<Pair<Double, Double>>, onClose: (
         Title("¡${sport.verb}!", size = 42.sp)
         Text(String.format(java.util.Locale.US, "%.2f km en %s", d.meters / 1000, clock(d.seconds.toLong())), style = MaterialTheme.typography.titleMedium, color = cs.onSurfaceVariant)
         Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 12.dp).clip(RoundedCornerShape(32.dp)).background(cs.surfaceContainer), contentAlignment = Alignment.Center) {
-            if (route.size >= 2) RouteDrawing(route, Modifier.fillMaxSize().padding(28.dp), fit.steps, draw.value, 6.dp)
+            if (route.size >= 2) RouteDrawing(route, Modifier.fillMaxSize(), fit.steps, draw.value, 6.dp, pad = 28.dp, map = Prefs.map)
             Tokkip(Modifier.align(Alignment.BottomEnd).padding(10.dp).size(120.dp, 106.dp), color = Color(Prefs.color), mood = Mood.HAPPY, face = TokkipEngine.Eye.STAR, dancing = true, jump = jump)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

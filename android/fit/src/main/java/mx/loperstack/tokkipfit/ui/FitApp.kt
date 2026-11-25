@@ -365,6 +365,13 @@ private fun SettingsSheet(onPrivacy: () -> Unit, onWardrobe: () -> Unit, connect
             }
             Switch(Prefs.tellTokkip, { Prefs.changeTellTokkip(it) })
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Mapa bajo tu ruta", style = MaterialTheme.typography.bodyLarge)
+                Text("Baja el mapa de OpenStreetMap solo de la zona de tu ruta; se guarda en el teléfono", style = MaterialTheme.typography.bodySmall, color = cs.onSurfaceVariant)
+            }
+            Switch(Prefs.map, { Prefs.changeMap(it) })
+        }
 
         Text("Health Connect", style = MaterialTheme.typography.titleMedium, color = cs.primary)
         Text(
@@ -417,6 +424,7 @@ private val PRIVACY = listOf(
     "Qué escribe" to "Solo los entrenamientos que haces con Tokkip (desde el teléfono o el reloj): la sesión, sus calorías activas y, en cardio, la distancia y la ruta, para que también los veas en Samsung Health o Fitbit. Respira se guarda como sesión de mindfulness donde Health Connect las tiene. Nada más.",
     "Tu reloj" to "El reloj manda cada entrenamiento terminado a tu teléfono, directo y sin internet, y el teléfono le manda el look de Tokkip.",
     "El Tokkip de la app de Tokkip" to "Si quieres el mismo Tokkip, Fit lee su look (especie, colores, accesorios) de la app de Tokkip. Solo eso, y solo porque las dos están firmadas por ti.",
+    "El mapa (si lo prendes)" to "Con \"Mapa bajo tu ruta\" prendido, Fit baja de OpenStreetMap los pedacitos de mapa de la zona de tu ruta para dibujarla encima. A OpenStreetMap solo le llega qué pedacitos pides (como cualquier mapa en internet), no tu cuenta ni nada más. Se guardan en el teléfono y se borran al apagarlo. Viene apagado.",
     "La app de Tokkip" to "Si la tienes, Fit le cuenta a Tokkip cada entrenamiento que terminas (qué, cuándo y cuánto duró) para que lo festeje y le dé cariño. Solo eso, de una app tuya a otra, sin internet. Lo apagas en Ajustes.",
     "Tu ubicación (Cardio)" to "Solo mientras corres, caminas o pedaleas, para dibujar tu ruta y medir la distancia. Se queda en tu teléfono y, si lo permites, en Health Connect con el entrenamiento.",
     "Cómo quitarle el acceso" to "En Health Connect → Permisos de apps → Tokkip Fit. Puedes quitar cualquier permiso o borrar lo que Fit haya escrito.",

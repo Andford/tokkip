@@ -23,6 +23,8 @@ object Prefs {
     var sounds by mutableStateOf(true)
     /** Tell the Tokkip app about each workout (he celebrates it there, and it gives him cariño). */
     var tellTokkip by mutableStateOf(true)
+    /** OpenStreetMap under your Cardio routes (data/Tiles.kt); off until you turn it on. */
+    var map by mutableStateOf(false)
     /** Your own routines (En casa) and plans (Gym), newest first. */
     var myRoutines by mutableStateOf<List<mx.loperstack.tokkip.fit.MyRoutine>>(emptyList())
     var myPlans by mutableStateOf<List<mx.loperstack.tokkip.fit.GymPlan>>(emptyList())
@@ -40,6 +42,7 @@ object Prefs {
         follow = p.getBoolean("follow", true)
         sounds = p.getBoolean("sounds", true)
         tellTokkip = p.getBoolean("tell_tokkip", true)
+        map = p.getBoolean("map", false)
         myRoutines = mx.loperstack.tokkip.fit.MyRoutine.list(p.getString("my_routines", null))
         myPlans = mx.loperstack.tokkip.fit.MyPlans.list(p.getString("my_plans", null))
         Sounds.enabled = sounds
@@ -52,7 +55,7 @@ object Prefs {
         if (follow) Look.fromTokkip(c)?.let { look = it }
         look.apply()
         Wrist.pushLook(c, look)
-        Wrist.pushMine(c, myRoutines)
+        Wrist.pushMine(c)
     }
 
     /** Whether the Tokkip app is there to follow. */
@@ -75,6 +78,11 @@ object Prefs {
         follow = on
         ctx?.let { prefs(it).edit().putBoolean("follow", on).apply() }
         refreshLook()
+    }
+
+    fun changeMap(on: Boolean) {
+        map = on
+        ctx?.let { prefs(it).edit().putBoolean("map", on).apply(); if (!on) Tiles.clear(it) }
     }
 
     fun changeTellTokkip(on: Boolean) {
@@ -112,7 +120,7 @@ object Prefs {
             .putString("my_routines", mx.loperstack.tokkip.fit.MyRoutine.json(myRoutines))
             .putString("my_plans", mx.loperstack.tokkip.fit.MyPlans.json(myPlans))
             .apply()
-        Wrist.pushMine(c, myRoutines)
+        Wrist.pushMine(c)
     }
 
     /** Every gym set, oldest first (the last 4,000): records and the weight to suggest come from here. */
@@ -122,6 +130,7 @@ object Prefs {
         val c = ctx ?: return
         val list = (gymSets() + s).takeLast(4_000)
         prefs(c).edit().putString("gym_sets", mx.loperstack.tokkip.fit.GymSet.json(list)).apply()
+        Wrist.pushMine(c)
     }
 
     /** Records beaten so far (for the "Récord" badge). */

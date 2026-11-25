@@ -122,3 +122,10 @@ object MyPlans {
 
     fun json(list: List<GymPlan>): String = JSONArray().apply { list.forEach { put(it.toJson()) } }.toString()
 }
+
+/** The last set of each lift (the watch starts from those weights). */
+fun lastSets(history: List<GymSet>): List<GymSet> = history.groupBy { it.lift }.map { it.value.last() }
+
+/** What a lift starts at on the watch: your last weight and reps, or the plan's reps. */
+fun startOf(lift: String, plan: GymPlan, last: List<GymSet>): GymSet =
+    last.lastOrNull { it.lift == lift }?.let { GymSet(lift, it.kg, it.reps) } ?: GymSet(lift, 0.0, plan.reps)

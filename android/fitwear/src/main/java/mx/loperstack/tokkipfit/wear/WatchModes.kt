@@ -76,15 +76,16 @@ private val Teal = Color(0xFF5EEAD4)
 private val Lime = Color(0xFFB9F35A)
 private val Coral = Color(0xFFFF7A6B)
 
-private fun buzzOnce(context: Context, ms: Long = 60, amp: Int = 160) {
+internal fun buzzOnce(context: Context, ms: Long = 60, amp: Int = 160) {
     val vm = context.getSystemService(VibratorManager::class.java) ?: return
     runCatching { vm.defaultVibrator.vibrate(VibrationEffect.createOneShot(ms, amp)) }
 }
 
 /** Sends a finished workout (and its route, as "route": [[lat, lon, t]…]) to the phone. */
-fun sendDone(context: Context, d: Done, route: List<Point> = emptyList()) {
+fun sendDone(context: Context, d: Done, route: List<Point> = emptyList(), sets: List<mx.loperstack.tokkip.fit.GymSet> = emptyList()) {
     val app = context.applicationContext
     val json = d.toJson()
+    if (sets.isNotEmpty()) json.put("sets", org.json.JSONArray(mx.loperstack.tokkip.fit.GymSet.json(sets)))
     if (route.isNotEmpty()) json.put("route", org.json.JSONArray().apply { route.forEach { put(org.json.JSONArray().put(it.lat).put(it.lon).put(it.at)) } })
     Wearable.getNodeClient(app).connectedNodes.addOnSuccessListener { nodes ->
         for (n in nodes) Wearable.getMessageClient(app).sendMessage(n.id, FIT_DONE_PATH, json.toString().toByteArray())
